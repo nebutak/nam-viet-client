@@ -10,6 +10,7 @@ export const SocketProvider = ({ children }) => {
   const serverURL = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000'
 
   useEffect(() => {
+    // DISABLING SOCKET IO TEMPORARILY TO FIX CORS POLLING ERRORS
     const socketIo = io(serverURL)
     setSocket(socketIo)
 
