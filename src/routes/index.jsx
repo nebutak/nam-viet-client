@@ -8,6 +8,7 @@ import AdminLayout from '../views/layouts/AdminLayout'
 import AuthLayout from '../views/layouts/AuthLayout'
 import ErrorLayout from '../views/layouts/ErrorLayout'
 import CustomerPage from '../views/admin/customer/CustomerPage'
+import SupplierPage from '../views/admin/supplier/SupplierPage'
 
 const routes = [
   {
@@ -18,6 +19,11 @@ const routes = [
   {
     path: '/customer',
     element: CustomerPage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/supplier',
+    element: SupplierPage,
     layout: AdminLayout,
   },
   {
