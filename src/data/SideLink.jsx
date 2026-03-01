@@ -165,7 +165,7 @@ export const sideLinks = [
     sub: [
       {
         title: 'DS Khuyến mãi (Mua X tặng Y, ...)',
-        href: '/promotions',
+        href: '/promotion',
         icon: <IconGift size={18} stroke={1.5} />,
         permission: 'GET_PRODUCT',
       },

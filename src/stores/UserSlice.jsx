@@ -8,7 +8,7 @@ export const getUsers = createAsyncThunk(
   'user',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await api.get('/user')
+      const response = await api.get('/users')
       const { data } = response.data
       return data
     } catch (error) {
@@ -22,7 +22,7 @@ export const deleteUser = createAsyncThunk(
   'user/delete',
   async (data, { rejectWithValue, dispatch }) => {
     try {
-      await api.delete(`/user/${data}/delete`)
+      await api.delete(`/users/${data}`)
       await dispatch(getUsers()).unwrap()
       toast.success('Xóa thành công')
     } catch (error) {
@@ -36,7 +36,7 @@ export const createUser = createAsyncThunk(
   'user/create',
   async (data, { rejectWithValue, dispatch }) => {
     try {
-      await api.post('/user/create', data)
+      await api.post('/users', data)
 
       await dispatch(getUsers()).unwrap()
       toast.success('Thêm mới thành công')
@@ -52,7 +52,7 @@ export const updateUser = createAsyncThunk(
   async (updateData, { rejectWithValue, dispatch }) => {
     try {
       const { id, data } = updateData
-      await api.put(`/user/${id}/update`, data)
+      await api.put(`/users/${id}`, data)
       await dispatch(getUsers()).unwrap()
       toast.success('Cập nhật dữ liệu thành công')
     } catch (error) {
@@ -67,7 +67,7 @@ export const updateUserStatus = createAsyncThunk(
   async (updateData, { rejectWithValue, dispatch }) => {
     try {
       const { id, data } = updateData
-      await api.put(`/user/${id}/update-status`, data)
+      await api.patch(`/users/${id}/status`, data)
       await dispatch(getUsers()).unwrap()
       toast.success('Cập nhật trạng thái thành công')
     } catch (error) {
