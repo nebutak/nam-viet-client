@@ -6,6 +6,7 @@ import userReducer from './UserSlice'
 import customerReducer from './CustomerSlice'
 import expiryReducer from './ExpirySlice'
 import customerTimelineReducer from './CustomerTimelineSlice'
+import debtReducer from './DebtSlice'
 import categoryReducer from './CategorySlice'
 import roleReducer from './RoleSlice'
 import permissionReducer from './PermissionSlice'
@@ -23,6 +24,7 @@ export const store = configureStore({
     customer: customerReducer,
     expiry: expiryReducer,
     customerTimeline: customerTimelineReducer,
+    debt: debtReducer,
     category: categoryReducer,
     role: roleReducer,
     permission: permissionReducer,

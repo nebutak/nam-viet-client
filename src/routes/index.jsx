@@ -8,6 +8,7 @@ import AdminLayout from '../views/layouts/AdminLayout'
 import AuthLayout from '../views/layouts/AuthLayout'
 import ErrorLayout from '../views/layouts/ErrorLayout'
 import CustomerPage from '../views/admin/customer/CustomerPage'
+import CustomerDebtPage from '@/views/admin/debt/CustomerDebtPage'
 import CategoryPage from '../views/admin/category/CategoryPage'
 import UserPage from '../views/admin/user/UserPage'
 import RolePage from '../views/admin/role/RolePage'
@@ -59,6 +60,14 @@ const routes = [
     element: CustomerPage,
     layout: AdminLayout,
   },
+
+//Công nợ khách hàng
+  {
+    path: '/customer-debt',
+    element: CustomerDebtPage,
+    layout: AdminLayout,
+  },
+
   {
     path: '/category',
     element: CategoryPage,
