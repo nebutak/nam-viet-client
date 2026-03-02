@@ -11,6 +11,7 @@ import CustomerPage from '../views/admin/customer/CustomerPage'
 import SupplierPage from '../views/admin/supplier/SupplierPage'
 import CustomerDebtPage from '@/views/admin/debt/CustomerDebtPage'
 import CategoryPage from '../views/admin/category/CategoryPage'
+import WarehousePage from '../views/admin/warehouse/WarehousePage'
 import UserPage from '../views/admin/user/UserPage'
 import RolePage from '../views/admin/role/RolePage'
 import SystemLogPage from '../views/admin/setting/system-log/SystemLogPage'
@@ -72,6 +73,11 @@ const routes = [
   {
     path: '/category',
     element: CategoryPage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/warehouse-list',
+    element: WarehousePage,
     layout: AdminLayout,
   },
   {

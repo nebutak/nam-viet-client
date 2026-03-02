@@ -234,7 +234,7 @@ export const sideLinks = [
     title: 'Kho',
     icon: <Warehouse size={20} strokeWidth={1.5} />,
     permission: [
-      'WAREHOUSE_IMPORT_VIEW_ALL',
+      'WAREHOUSE_MANAGEMENT',
       'WAREHOUSE_EXPORT_VIEW_ALL',
       'INVENTORY_NXT_VIEW',
       'INVENTORY_LEDGER_VIEW'

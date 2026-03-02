@@ -9,6 +9,7 @@ import customerTimelineReducer from './CustomerTimelineSlice'
 import supplierReducer from './SupplierSlice'
 import debtReducer from './DebtSlice'
 import categoryReducer from './CategorySlice'
+import warehouseReducer from './WarehouseSlice'
 import roleReducer from './RoleSlice'
 import permissionReducer from './PermissionSlice'
 import systemLogReducer from './SystemLogSlice'
@@ -28,6 +29,7 @@ export const store = configureStore({
     supplier: supplierReducer,
     debt: debtReducer,
     category: categoryReducer,
+    warehouse: warehouseReducer,
     role: roleReducer,
     permission: permissionReducer,
     systemLog: systemLogReducer,
