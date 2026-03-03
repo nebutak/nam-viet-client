@@ -14,6 +14,8 @@ import roleReducer from './RoleSlice'
 import permissionReducer from './PermissionSlice'
 import systemLogReducer from './SystemLogSlice'
 import settingReducer from './SettingSlice'
+import ticketReducer from './TicketSlice'
+import taskReducer from './TaskSlice'
 
 const persistConfig = { key: 'nam-viet', storage }
 
@@ -34,6 +36,8 @@ export const store = configureStore({
     permission: permissionReducer,
     systemLog: systemLogReducer,
     setting: settingReducer,
+    ticket: ticketReducer,
+    task: taskReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({ serializableCheck: false }),

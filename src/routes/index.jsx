@@ -19,11 +19,23 @@ import SettingPage from '../views/admin/setting/SettingPage'
 import GeneralSettingPage from '../views/admin/setting/general/GeneralSettingPage'
 import SystemInformationPage from '../views/admin/setting/system-information/SystemInformationPage'
 import AccessLogPage from '../views/admin/setting/access-log/AccessLogPage'
+import TicketPage from '@/views/admin/ticket/TicketPage'
+import TaskPage from '@/views/admin/task/TaskPage'
 
 const routes = [
   {
     path: '/dashboard',
     element: DashboardPage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/ticket',
+    element: TicketPage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/task',
+    element: TaskPage,
     layout: AdminLayout,
   },
   {
@@ -63,7 +75,7 @@ const routes = [
     layout: AdminLayout,
   },
 
-//Công nợ khách hàng
+  //Công nợ khách hàng
   {
     path: '/customer-debt',
     element: CustomerDebtPage,
