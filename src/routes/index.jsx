@@ -19,6 +19,10 @@ import SettingPage from '../views/admin/setting/SettingPage'
 import GeneralSettingPage from '../views/admin/setting/general/GeneralSettingPage'
 import SystemInformationPage from '../views/admin/setting/system-information/SystemInformationPage'
 import AccessLogPage from '../views/admin/setting/access-log/AccessLogPage'
+import ActivePromotionsPage from '../views/admin/promotion/active-promotions/ActivePromotionsPage'
+import UnitPage from '../views/admin/unit/UnitPage'
+import ProductPage from '../views/admin/product/ProductPage'
+
 import TicketPage from '@/views/admin/ticket/TicketPage'
 import TaskPage from '@/views/admin/task/TaskPage'
 
@@ -63,6 +67,11 @@ const routes = [
     element: AccessLogPage,
     layout: AdminLayout,
   },
+  {
+    path: '/active-promotions',
+    element: ActivePromotionsPage,
+    layout: AdminLayout,
+  },
 
   {
     path: '/role-and-permissions',
@@ -72,6 +81,16 @@ const routes = [
   {
     path: '/customer',
     element: CustomerPage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/unit',
+    element: UnitPage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/product',
+    element: ProductPage,
     layout: AdminLayout,
   },
 

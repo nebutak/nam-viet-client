@@ -14,6 +14,9 @@ import roleReducer from './RoleSlice'
 import permissionReducer from './PermissionSlice'
 import systemLogReducer from './SystemLogSlice'
 import settingReducer from './SettingSlice'
+import promotionReducer from './PromotionSlice'
+import unitReducer from './UnitSlice'
+import productReducer from './ProductSlice'
 import ticketReducer from './TicketSlice'
 import taskReducer from './TaskSlice'
 
@@ -36,6 +39,9 @@ export const store = configureStore({
     permission: permissionReducer,
     systemLog: systemLogReducer,
     setting: settingReducer,
+    promotion: promotionReducer,
+    unit: unitReducer,
+    product: productReducer,
     ticket: ticketReducer,
     task: taskReducer,
   },
