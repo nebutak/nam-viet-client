@@ -6,11 +6,14 @@ import { getAuthUserRolePermissions } from './AuthSlice'
 
 export const getUsers = createAsyncThunk(
   'user',
-  async (_, { rejectWithValue }) => {
+  async (query, { rejectWithValue }) => {
     try {
-      const response = await api.get('/users')
-      const { data } = response.data
-      return data
+      const response = await api.get('/users', { params: query })
+      const { data, meta } = response.data
+      return {
+        data,
+        pagination: meta?.pagination || { total: data.length, totalPages: 1 }
+      }
     } catch (error) {
       const message = handleError(error)
       return rejectWithValue(message)
@@ -79,9 +82,10 @@ export const updateUserStatus = createAsyncThunk(
 
 export const changePassword = createAsyncThunk(
   'user/change-password',
-  async (data, { rejectWithValue }) => {
+  async (updateData, { rejectWithValue }) => {
     try {
-      await api.put('/user/change-password', data)
+      const { id, data } = updateData
+      await api.put(`/users/${id}/password`, data)
       toast.success('Cập nhật mật khẩu thành công')
     } catch (error) {
       const message = handleError(error)
@@ -94,9 +98,10 @@ export const updateProfile = createAsyncThunk(
   'user/update-profile',
   async (data, { rejectWithValue, dispatch }) => {
     try {
-      await api.put('/user/profile', data)
+      const { id, profileData } = data
+      await api.put(`/users/${id}`, profileData)
       await dispatch(getAuthUserRolePermissions()).unwrap()
-      toast.success('Cập nhật thông')
+      toast.success('Cập nhật thông tin thành công')
     } catch (error) {
       const message = handleError(error)
       return rejectWithValue(message)
@@ -106,6 +111,10 @@ export const updateProfile = createAsyncThunk(
 
 const initialState = {
   users: [],
+  pagination: {
+    total: 0,
+    totalPages: 1,
+  },
   loading: false,
   error: null,
 }
@@ -122,7 +131,8 @@ export const userSlice = createSlice({
       })
       .addCase(getUsers.fulfilled, (state, action) => {
         state.loading = false
-        state.users = action.payload
+        state.users = action.payload.data
+        state.pagination = action.payload.pagination
       })
       .addCase(getUsers.rejected, (state, action) => {
         state.loading = false

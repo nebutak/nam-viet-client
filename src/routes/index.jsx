@@ -11,11 +11,74 @@ import CustomerPage from '../views/admin/customer/CustomerPage'
 import UserPage from '../views/admin/employee/EmployeePage'
 import PromotionPage from '../views/admin/promotion/PromotionPage'
 import ActivePromotionPage from '../views/admin/promotion/ActivePromotionPage'
+import SupplierPage from '../views/admin/supplier/SupplierPage'
+import CustomerDebtPage from '@/views/admin/debt/CustomerDebtPage'
+import CategoryPage from '../views/admin/category/CategoryPage'
+import WarehousePage from '../views/admin/warehouse/WarehousePage'
+import UserPage from '../views/admin/user/UserPage'
+import RolePage from '../views/admin/role/RolePage'
+import SystemLogPage from '../views/admin/setting/system-log/SystemLogPage'
+import SettingPage from '../views/admin/setting/SettingPage'
+import GeneralSettingPage from '../views/admin/setting/general/GeneralSettingPage'
+import SystemInformationPage from '../views/admin/setting/system-information/SystemInformationPage'
+import AccessLogPage from '../views/admin/setting/access-log/AccessLogPage'
+import ActivePromotionsPage from '../views/admin/promotion/active-promotions/ActivePromotionsPage'
+import UnitPage from '../views/admin/unit/UnitPage'
+import ProductPage from '../views/admin/product/ProductPage'
+
+import TicketPage from '@/views/admin/ticket/TicketPage'
+import TaskPage from '@/views/admin/task/TaskPage'
 
 const routes = [
   {
     path: '/dashboard',
     element: DashboardPage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/ticket',
+    element: TicketPage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/task',
+    element: TaskPage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/system-log',
+    element: SystemLogPage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/setting',
+    element: SettingPage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/setting/general-information',
+    element: GeneralSettingPage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/setting/system-information',
+    element: SystemInformationPage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/setting/access-log',
+    element: AccessLogPage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/active-promotions',
+    element: ActivePromotionsPage,
+    layout: AdminLayout,
+  },
+
+  {
+    path: '/role-and-permissions',
+    element: RolePage,
     layout: AdminLayout,
   },
   {
@@ -36,6 +99,44 @@ const routes = [
   {
     path: '/active-promotions',
     element: ActivePromotionPage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/unit',
+    element: UnitPage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/product',
+    element: ProductPage,
+    layout: AdminLayout,
+  },
+
+  //Công nợ khách hàng
+  {
+    path: '/customer-debt',
+    element: CustomerDebtPage,
+    layout: AdminLayout,
+  },
+
+  {
+    path: '/category',
+    element: CategoryPage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/warehouse-list',
+    element: WarehousePage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/user',
+    element: UserPage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/supplier',
+    element: SupplierPage,
     layout: AdminLayout,
   },
   {
