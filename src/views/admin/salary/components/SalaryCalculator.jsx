@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useDispatch, useSelector } from "react-redux";
 import { calculateSalary } from "@/stores/SalarySlice";
-import { fetchUsers } from "@/stores/UserSlice";
+import { getUsers } from "@/stores/UserSlice";
 import { SalaryBreakdown } from "./SalaryStatus";
 import { formatMonth } from "./SalaryStatus";
 import {

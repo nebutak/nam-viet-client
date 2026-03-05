@@ -8,8 +8,8 @@ import {
     approveSalary,
     deleteSalary
 } from "@/stores/SalarySlice"
-import { fetchUsers } from "@/stores/UserSlice"
-import { fetchRoles } from "@/stores/RoleSlice"
+import { getUsers } from "@/stores/UserSlice"
+import { getRoles } from "@/stores/RoleSlice"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/custom/Button"
 import {
