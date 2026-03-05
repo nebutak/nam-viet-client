@@ -20,6 +20,23 @@ export const getPromotions = createAsyncThunk(
     },
 )
 
+// Fetch active promotions
+export const getActivePromotions = createAsyncThunk(
+    'promotion/active',
+    async (query = '', { rejectWithValue }) => {
+        try {
+            const response = await api.get(`/promotions/active?${query}`)
+            if (response.data.data) {
+                return response.data
+            }
+            return { data: response.data || [], meta: {} }
+        } catch (error) {
+            const message = handleError(error)
+            return rejectWithValue(message)
+        }
+    },
+)
+
 // Create promotion
 export const createPromotion = createAsyncThunk(
     'promotion/create',
@@ -179,6 +196,7 @@ export const approveMultiplePromotions = createAsyncThunk(
 
 const initialState = {
     promotions: [],
+    activePromotions: [],
     meta: {
         total: 0,
         page: 1,
@@ -210,6 +228,21 @@ export const promotionSlice = createSlice({
             .addCase(getPromotions.rejected, (state, action) => {
                 state.loading = false
                 state.error = action.payload || 'Lỗi lấy danh sách khuyến mãi'
+                toast.error(state.error)
+            })
+
+            // getActivePromotions
+            .addCase(getActivePromotions.pending, (state) => {
+                state.loading = true
+                state.error = null
+            })
+            .addCase(getActivePromotions.fulfilled, (state, action) => {
+                state.loading = false
+                state.activePromotions = action.payload.data
+            })
+            .addCase(getActivePromotions.rejected, (state, action) => {
+                state.loading = false
+                state.error = action.payload || 'Lỗi lấy danh sách khuyến mãi đang hoạt động'
                 toast.error(state.error)
             })
 
