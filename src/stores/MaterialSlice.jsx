@@ -45,6 +45,20 @@ export const deleteMaterial = createAsyncThunk(
     },
 )
 
+export const deleteMultipleMaterials = createAsyncThunk(
+    'material/deleteMultiple',
+    async (ids, { rejectWithValue, dispatch }) => {
+        try {
+            await api.post('/materials/bulk-delete', { ids })
+            await dispatch(getMaterials()).unwrap()
+            toast.success('Xóa các nguyên liệu đã chọn thành công')
+        } catch (error) {
+            const message = handleError(error)
+            return rejectWithValue(message)
+        }
+    },
+)
+
 export const updateMaterial = createAsyncThunk(
     'material/update',
     async (updateData, { rejectWithValue, dispatch }) => {

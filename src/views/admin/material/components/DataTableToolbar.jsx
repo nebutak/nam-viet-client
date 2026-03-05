@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input'
 import { PlusIcon } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import CreateMaterialDialog from './CreateMaterialDialog'
+import DeleteMultipleMaterialsDialog from './DeleteMultipleMaterialsDialog'
 
 const DataTableToolbar = ({ table }) => {
     const isFiltered = table.getState().columnFilters.length > 0
@@ -11,6 +12,9 @@ const DataTableToolbar = ({ table }) => {
 
     const initialFilter = table.getState().globalFilter || ''
     const [inputValue, setInputValue] = useState(initialFilter)
+
+    const selectedRows = table.getFilteredSelectedRowModel().rows
+    const selectedMaterials = selectedRows.map((row) => row.original)
 
     useEffect(() => {
         setInputValue(table.getState().globalFilter || '')
@@ -45,14 +49,23 @@ const DataTableToolbar = ({ table }) => {
                 )}
             </div>
 
-            <Button
-                onClick={() => setShowCreateDialog(true)}
-                className="mx-2 bg-green-600 hover:bg-green-700 text-white"
-                size="sm"
-            >
-                <PlusIcon className="mr-2 size-4" aria-hidden="true" />
-                Thêm mới
-            </Button>
+            <div className="flex items-center space-x-2">
+                {selectedMaterials.length > 0 && (
+                    <DeleteMultipleMaterialsDialog
+                        materials={selectedMaterials}
+                        onSuccess={() => table.toggleAllRowsSelected(false)}
+                    />
+                )}
+
+                <Button
+                    onClick={() => setShowCreateDialog(true)}
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                    size="sm"
+                >
+                    <PlusIcon className="mr-2 size-4" aria-hidden="true" />
+                    Thêm mới
+                </Button>
+            </div>
 
             {showCreateDialog && (
                 <CreateMaterialDialog
@@ -65,3 +78,4 @@ const DataTableToolbar = ({ table }) => {
 }
 
 export { DataTableToolbar }
+
