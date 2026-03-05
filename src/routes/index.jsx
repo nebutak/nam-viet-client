@@ -8,14 +8,14 @@ import AdminLayout from '../views/layouts/AdminLayout'
 import AuthLayout from '../views/layouts/AuthLayout'
 import ErrorLayout from '../views/layouts/ErrorLayout'
 import CustomerPage from '../views/admin/customer/CustomerPage'
-import EmployeePage from '../views/admin/employee/EmployeePage'
+import EmployeePage from '../views/admin/employee/EmployeePage' 
 import PromotionPage from '../views/admin/promotion/PromotionPage'
 import ActivePromotionPage from '../views/admin/promotion/ActivePromotionPage'
 import SupplierPage from '../views/admin/supplier/SupplierPage'
 import CustomerDebtPage from '@/views/admin/debt/CustomerDebtPage'
 import CategoryPage from '../views/admin/category/CategoryPage'
 import WarehousePage from '../views/admin/warehouse/WarehousePage'
-import UserPage from '../views/admin/user/UserPage'
+import UserPage from '../views/admin/user/UserPage' // Giữ nguyên UserPage cho trang User
 import RolePage from '../views/admin/role/RolePage'
 import SystemLogPage from '../views/admin/setting/system-log/SystemLogPage'
 import SettingPage from '../views/admin/setting/SettingPage'
@@ -77,7 +77,6 @@ const routes = [
     element: ActivePromotionsPage,
     layout: AdminLayout,
   },
-
   {
     path: '/role-and-permissions',
     element: RolePage,
@@ -90,7 +89,7 @@ const routes = [
   },
   {
     path: '/employee',
-    element: UserPage,
+    element: EmployeePage, // Đã cập nhật sử dụng EmployeePage
     layout: AdminLayout,
   },
   {
@@ -130,7 +129,6 @@ const routes = [
     element: CustomerDebtPage,
     layout: AdminLayout,
   },
-
   {
     path: '/category',
     element: CategoryPage,
@@ -143,7 +141,7 @@ const routes = [
   },
   {
     path: '/user',
-    element: UserPage,
+    element: UserPage, // Trang người dùng hệ thống
     layout: AdminLayout,
   },
   {
