@@ -34,9 +34,29 @@ export const createProduct = createAsyncThunk(
     'product/create',
     async (data, { rejectWithValue, dispatch }) => {
         try {
-            await api.post('/products', data)
+            const response = await api.post('/products', data)
+            const newProduct = response.data.data
             await dispatch(getProducts()).unwrap()
             toast.success('Thêm sản phẩm thành công')
+            return newProduct
+        } catch (error) {
+            const message = handleError(error)
+            return rejectWithValue(message)
+        }
+    },
+)
+
+export const uploadProductImages = createAsyncThunk(
+    'product/uploadImages',
+    async ({ id, files }, { rejectWithValue }) => {
+        try {
+            const formData = new FormData()
+            files.forEach((file) => formData.append('images', file))
+            const response = await api.post(`/products/${id}/images`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            })
+            toast.success('Upload ảnh thành công')
+            return response.data.data
         } catch (error) {
             const message = handleError(error)
             return rejectWithValue(message)

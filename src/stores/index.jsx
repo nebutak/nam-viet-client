@@ -17,6 +17,8 @@ import settingReducer from './SettingSlice'
 import promotionReducer from './PromotionSlice'
 import unitReducer from './UnitSlice'
 import productReducer from './ProductSlice'
+import stockTransactionReducer from './StockTransactionSlice'
+import salesOrderReducer from './SalesOrderSlice'
 
 const persistConfig = { key: 'nam-viet', storage }
 
@@ -40,6 +42,8 @@ export const store = configureStore({
     promotion: promotionReducer,
     unit: unitReducer,
     product: productReducer,
+    stockTransaction: stockTransactionReducer,
+    salesOrder: salesOrderReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({ serializableCheck: false }),

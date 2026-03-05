@@ -22,6 +22,8 @@ import AccessLogPage from '../views/admin/setting/access-log/AccessLogPage'
 import ActivePromotionsPage from '../views/admin/promotion/active-promotions/ActivePromotionsPage'
 import UnitPage from '../views/admin/unit/UnitPage'
 import ProductPage from '../views/admin/product/ProductPage'
+import WarehouseInPage from '../views/admin/warehouse-in/WarehouseInPage'
+import WarehouseOutPage from '../views/admin/warehouse-out/WarehouseOutPage'
 
 
 const routes = [
@@ -97,6 +99,16 @@ const routes = [
   {
     path: '/warehouse-list',
     element: WarehousePage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/warehouse-in',
+    element: WarehouseInPage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/warehouse-out',
+    element: WarehouseOutPage,
     layout: AdminLayout,
   },
   {

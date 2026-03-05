@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useDispatch, useSelector } from 'react-redux'
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import {
     Dialog,
@@ -30,8 +30,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
-import { PlusCircle } from 'lucide-react'
-import { createProduct } from '@/stores/ProductSlice'
+import { ImageIcon, PlusCircle, Star, Trash2, Upload, X } from 'lucide-react'
+import { createProduct, uploadProductImages, getProducts } from '@/stores/ProductSlice'
 import { productTypes } from '../data'
 
 const formSchema = z.object({
@@ -57,6 +57,10 @@ const formSchema = z.object({
 
 export default function CreateProductDialog() {
     const [open, setOpen] = useState(false)
+    const [imageFiles, setImageFiles] = useState([])     // File objects
+    const [imagePreviews, setImagePreviews] = useState([]) // { url, isPrimary }
+    const [uploading, setUploading] = useState(false)
+
     const dispatch = useDispatch()
     const { loading } = useSelector((state) => state.product)
     const categories = useSelector((state) => state.category.categories || [])
@@ -84,6 +88,57 @@ export default function CreateProductDialog() {
         },
     })
 
+    const handleImageSelect = useCallback((e) => {
+        const files = Array.from(e.target.files || [])
+        if (!files.length) return
+
+        const newFiles = [...imageFiles, ...files].slice(0, 5)
+        setImageFiles(newFiles)
+
+        const newPreviews = newFiles.map((file, idx) => ({
+            url: URL.createObjectURL(file),
+            isPrimary: idx === 0,
+            name: file.name,
+        }))
+        setImagePreviews(newPreviews)
+        // Reset input so same file can be re-selected
+        e.target.value = ''
+    }, [imageFiles])
+
+    const removeImage = (index) => {
+        URL.revokeObjectURL(imagePreviews[index].url)
+        const newFiles = imageFiles.filter((_, i) => i !== index)
+        const newPreviews = imagePreviews
+            .filter((_, i) => i !== index)
+            .map((p, i) => ({ ...p, isPrimary: i === 0 }))
+        setImageFiles(newFiles)
+        setImagePreviews(newPreviews)
+    }
+
+    const setPrimary = (index) => {
+        setImagePreviews((prev) =>
+            prev.map((p, i) => ({ ...p, isPrimary: i === index }))
+        )
+        // Move primary image to first position in files array
+        const newFiles = [...imageFiles]
+        const [movedFile] = newFiles.splice(index, 1)
+        newFiles.unshift(movedFile)
+        setImageFiles(newFiles)
+        setImagePreviews((prev) => {
+            const newPrev = [...prev]
+            const [movedPrev] = newPrev.splice(index, 1)
+            newPrev.unshift({ ...movedPrev, isPrimary: true })
+            return newPrev.map((p, i) => ({ ...p, isPrimary: i === 0 }))
+        })
+    }
+
+    const resetForm = () => {
+        form.reset()
+        imagePreviews.forEach((p) => URL.revokeObjectURL(p.url))
+        setImageFiles([])
+        setImagePreviews([])
+    }
+
     const onSubmit = async (values) => {
         const payload = { ...values }
         if (!payload.sku) delete payload.sku
@@ -92,18 +147,32 @@ export default function CreateProductDialog() {
         if (!payload.unitId) delete payload.unitId
 
         try {
-            await dispatch(createProduct(payload)).unwrap()
+            setUploading(true)
+            const newProduct = await dispatch(createProduct(payload)).unwrap()
+
+            // Upload images if any files selected
+            if (imageFiles.length > 0 && newProduct?.id) {
+                await dispatch(uploadProductImages({
+                    id: newProduct.id,
+                    files: imageFiles,
+                })).unwrap()
+                // Refresh list again so images appear in the table and detail dialog
+                await dispatch(getProducts()).unwrap()
+            }
+
             setOpen(false)
-            form.reset()
+            resetForm()
         } catch (error) {
             // handled by slice
+        } finally {
+            setUploading(false)
         }
     }
 
     const productTypeValue = form.watch('productType')
 
     return (
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm() }}>
             <DialogTrigger asChild>
                 <Button size="sm" className="h-8 gap-1">
                     <PlusCircle className="h-3.5 w-3.5" />
@@ -180,7 +249,7 @@ export default function CreateProductDialog() {
                                     )}
                                 </div>
 
-                                {/* ✅ Đơn vị tính FK */}
+                                {/* Đơn vị tính FK */}
                                 <FormField control={form.control} name="unitId" render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Đơn Vị Tính</FormLabel>
@@ -329,12 +398,91 @@ export default function CreateProductDialog() {
                             </FormItem>
                         )} />
 
+                        {/* ========== IMAGE UPLOAD SECTION ========== */}
+                        <div className="space-y-3">
+                            <h3 className="font-semibold bg-muted px-2 py-1 rounded text-sm flex items-center gap-2">
+                                <ImageIcon className="h-4 w-4" />
+                                Hình ảnh sản phẩm ({imagePreviews.length}/5)
+                            </h3>
+
+                            {/* Upload zone */}
+                            {imagePreviews.length < 5 && (
+                                <label className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-muted-foreground/30 rounded-lg cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition-colors">
+                                    <div className="flex flex-col items-center gap-1 text-muted-foreground">
+                                        <Upload className="h-6 w-6" />
+                                        <span className="text-sm font-medium">Nhấn để chọn ảnh</span>
+                                        <span className="text-xs">PNG, JPG, WebP · Tối đa 5 ảnh · 5MB/ảnh</span>
+                                    </div>
+                                    <input
+                                        type="file"
+                                        className="hidden"
+                                        accept="image/png,image/jpeg,image/webp,image/gif"
+                                        multiple
+                                        onChange={handleImageSelect}
+                                    />
+                                </label>
+                            )}
+
+                            {/* Preview grid */}
+                            {imagePreviews.length > 0 && (
+                                <div className="grid grid-cols-5 gap-2">
+                                    {imagePreviews.map((preview, idx) => (
+                                        <div
+                                            key={idx}
+                                            className={`relative group rounded-lg overflow-hidden border-2 ${preview.isPrimary ? 'border-primary' : 'border-border'}`}
+                                        >
+                                            <img
+                                                src={preview.url}
+                                                alt={`Preview ${idx + 1}`}
+                                                className="w-full h-20 object-cover"
+                                            />
+                                            {/* Primary badge */}
+                                            {preview.isPrimary && (
+                                                <div className="absolute top-1 left-1 bg-primary text-primary-foreground text-[10px] px-1 py-0.5 rounded flex items-center gap-0.5">
+                                                    <Star className="h-2.5 w-2.5 fill-current" />
+                                                    Chính
+                                                </div>
+                                            )}
+                                            {/* Hover actions */}
+                                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                                                {!preview.isPrimary && (
+                                                    <button
+                                                        type="button"
+                                                        title="Đặt làm ảnh chính"
+                                                        onClick={() => setPrimary(idx)}
+                                                        className="bg-white/90 text-yellow-600 rounded p-1 hover:bg-white"
+                                                    >
+                                                        <Star className="h-3.5 w-3.5" />
+                                                    </button>
+                                                )}
+                                                <button
+                                                    type="button"
+                                                    title="Xóa ảnh"
+                                                    onClick={() => removeImage(idx)}
+                                                    className="bg-white/90 text-destructive rounded p-1 hover:bg-white"
+                                                >
+                                                    <X className="h-3.5 w-3.5" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {imagePreviews.length > 0 && (
+                                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                    <Star className="h-3 w-3 text-primary fill-current" />
+                                    Ảnh đầu tiên (có viền xanh) sẽ là ảnh đại diện. Hover để thay đổi.
+                                </p>
+                            )}
+                        </div>
+
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                            <Button type="button" variant="outline" onClick={() => { setOpen(false); resetForm() }}>
                                 Hủy
                             </Button>
-                            <Button type="submit" disabled={loading}>
-                                {loading ? 'Đang lưu...' : 'Lưu'}
+                            <Button type="submit" disabled={loading || uploading}>
+                                {uploading ? 'Đang upload ảnh...' : loading ? 'Đang lưu...' : 'Lưu'}
                             </Button>
                         </DialogFooter>
                     </form>
