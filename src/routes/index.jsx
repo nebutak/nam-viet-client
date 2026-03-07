@@ -25,6 +25,9 @@ import AccessLogPage from '../views/admin/setting/access-log/AccessLogPage'
 import ActivePromotionsPage from '../views/admin/promotion/active-promotions/ActivePromotionsPage'
 import UnitPage from '../views/admin/unit/UnitPage'
 import ProductPage from '../views/admin/product/ProductPage'
+import WarehouseInPage from '../views/admin/warehouse-in/WarehouseInPage'
+import WarehouseOutPage from '../views/admin/warehouse-out/WarehouseOutPage'
+import InventoryWarningPage from '../views/admin/inventory-warning/InventoryWarningPage'
 import AttributePage from '../views/admin/attribute/AttributePage'
 import TaxPage from '../views/admin/tax/TaxPage'
 
@@ -212,6 +215,21 @@ const routes = [
   {
     path: '/warehouse-list',
     element: WarehousePage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/warehouse-in',
+    element: WarehouseInPage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/warehouse-out',
+    element: WarehouseOutPage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/inventory-warning',
+    element: InventoryWarningPage,
     layout: AdminLayout,
   },
   {

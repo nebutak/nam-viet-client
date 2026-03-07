@@ -17,6 +17,8 @@ import systemLogReducer from './SystemLogSlice'
 import settingReducer from './SettingSlice'
 import unitReducer from './UnitSlice'
 import productReducer from './ProductSlice'
+import stockTransactionReducer from './StockTransactionSlice'
+import salesOrderReducer from './SalesOrderSlice'
 import ticketReducer from './TicketSlice'
 import taskReducer from './TaskSlice'
 import materialReducer from './MaterialSlice'
@@ -53,6 +55,8 @@ export const store = configureStore({
     setting: settingReducer,
     unit: unitReducer,
     product: productReducer,
+    stockTransaction: stockTransactionReducer,
+    salesOrder: salesOrderReducer,
     ticket: ticketReducer,
     task: taskReducer,
     material: materialReducer,

@@ -3,13 +3,55 @@ import { handleError } from '@/utils/handle-error'
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import { toast } from 'sonner'
 
+// =====================
+// Thunks
+// =====================
+
 export const getProducts = createAsyncThunk(
-  'product',
+  'product/getAll',
   async (params = {}, { rejectWithValue }) => {
     try {
       const response = await api.get('/products', { params })
       const { data, pagination, summary } = response.data
       return { data, pagination, summary }
+    } catch (error) {
+      return rejectWithValue(handleError(error))
+    }
+  },
+)
+
+export const getLowStockProducts = createAsyncThunk(
+  'product/getLowStock',
+  async (params = {}, { rejectWithValue }) => {
+    try {
+      const response = await api.get('/products/low-stock', { params })
+      const { data, meta } = response.data
+      return { data, meta }
+    } catch (error) {
+      return rejectWithValue(handleError(error))
+    }
+  },
+)
+
+export const getProductById = createAsyncThunk(
+  'product/getById',
+  async (id, { rejectWithValue }) => {
+    try {
+      const response = await api.get(`/products/${id}`)
+      return response.data.data
+    } catch (error) {
+      return rejectWithValue(handleError(error))
+    }
+  },
+)
+
+export const getProductDetail = createAsyncThunk(
+  'product/detail',
+  async (id, { rejectWithValue }) => {
+    try {
+      const response = await api.get(`/products/${id}`)
+      const { data } = response.data
+      return data
     } catch (error) {
       return rejectWithValue(handleError(error))
     }
@@ -42,9 +84,49 @@ export const deleteMultipleProducts = createAsyncThunk(
   },
 )
 
+export const copyProduct = createAsyncThunk(
+  'product/copy',
+  async (id, { rejectWithValue, dispatch }) => {
+    try {
+      await api.post(`/products/${id}/copy`)
+      await dispatch(getProducts()).unwrap()
+      toast.success('Sao chép sản phẩm thành công')
+    } catch (error) {
+      return rejectWithValue(handleError(error))
+    }
+  },
+)
+
+export const importProduct = createAsyncThunk(
+  'product/import',
+  async (data, { rejectWithValue, dispatch }) => {
+    try {
+      const response = await api.post('/products/import', data)
+      await dispatch(getProducts()).unwrap()
+      return response.data
+    } catch (error) {
+      return rejectWithValue(handleError(error))
+    }
+  },
+)
+
+export const getProductSaleHistory = createAsyncThunk(
+  'product/sale-history',
+  async ({ id, params }, { rejectWithValue }) => {
+    try {
+      const response = await api.get(`/products/${id}/sale-history`, { params })
+      const { data } = response.data
+      return data
+    } catch (error) {
+      return rejectWithValue(handleError(error))
+    }
+  },
+)
+
 // =====================
-// form-data helpers (support nested arrays/objects)
+// FormData helpers (support nested arrays/objects)
 // =====================
+
 const buildFormData = (data) => {
   const formData = new FormData()
 
@@ -90,20 +172,20 @@ const buildFormData = (data) => {
     'conversionFactor',
   ])
 
-    ;[
-      'code',
-      'categoryId',
-      'supplierId',
-      'unitId',
-      'basePrice',
-      'price',
-      'name',
-      'description',
-      'note',
-      'type',
-      'applyWarranty',
-      'manageSerial',
-    ].forEach((field) => appendIfPresent(field, data[field]))
+  ;[
+    'code',
+    'categoryId',
+    'supplierId',
+    'unitId',
+    'basePrice',
+    'price',
+    'name',
+    'description',
+    'note',
+    'type',
+    'applyWarranty',
+    'manageSerial',
+  ].forEach((field) => appendIfPresent(field, data[field]))
 
   if (data.salaryCoefficient) {
     const sc = data.salaryCoefficient
@@ -143,11 +225,13 @@ export const createProduct = createAsyncThunk(
   async (data, { rejectWithValue, dispatch }) => {
     try {
       const formData = buildFormData(data)
-      await api.post('/products', formData, {
+      const response = await api.post('/products', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
+      const newProduct = response.data.data
       await dispatch(getProducts()).unwrap()
       toast.success('Tạo sản phẩm thành công')
+      return newProduct
     } catch (error) {
       return rejectWithValue(handleError(error))
     }
@@ -170,57 +254,26 @@ export const updateProduct = createAsyncThunk(
   },
 )
 
-export const getProductDetail = createAsyncThunk(
-  'product/detail',
-  async (id, { rejectWithValue }) => {
+export const uploadProductImages = createAsyncThunk(
+  'product/uploadImages',
+  async ({ id, files }, { rejectWithValue }) => {
     try {
-      const response = await api.get(`/products/${id}`)
-      const { data } = response.data
-      return data
+      const formData = new FormData()
+      files.forEach((file) => formData.append('images', file))
+      const response = await api.post(`/products/${id}/images`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      toast.success('Upload ảnh thành công')
+      return response.data.data
     } catch (error) {
       return rejectWithValue(handleError(error))
     }
   },
 )
 
-export const copyProduct = createAsyncThunk(
-  'product/copy',
-  async (id, { rejectWithValue, dispatch }) => {
-    try {
-      await api.post(`/products/${id}/copy`)
-      await dispatch(getProducts()).unwrap()
-      toast.success('Sao chép sản phẩm thành công')
-    } catch (error) {
-      return rejectWithValue(handleError(error))
-    }
-  },
-)
-
-export const getProductSaleHistory = createAsyncThunk(
-  'product/sale-history',
-  async ({ id, params }, { rejectWithValue }) => {
-    try {
-      const response = await api.get(`/products/${id}/sale-history`, { params })
-      const { data } = response.data
-      return data
-    } catch (error) {
-      return rejectWithValue(handleError(error))
-    }
-  },
-)
-
-export const importProduct = createAsyncThunk(
-  'product/import',
-  async (data, { rejectWithValue, dispatch }) => {
-    try {
-      const response = await api.post('/products/import', data)
-      await dispatch(getProducts()).unwrap()
-      return response.data
-    } catch (error) {
-      return rejectWithValue(handleError(error))
-    }
-  },
-)
+// =====================
+// Initial State
+// =====================
 
 const initialState = {
   products: [],
@@ -232,6 +285,7 @@ const initialState = {
     total: 0,
     totalPages: 1,
   },
+  lowStockProducts: [],
   saleHistory: {
     data: [],
     pagination: null,
@@ -240,6 +294,10 @@ const initialState = {
   loading: false,
   error: null,
 }
+
+// =====================
+// Slice
+// =====================
 
 export const productSlice = createSlice({
   name: 'product',
@@ -256,6 +314,7 @@ export const productSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      // ── getProducts ──────────────────────────────────────
       .addCase(getProducts.pending, (state) => {
         state.loading = true
         state.error = null
@@ -274,39 +333,41 @@ export const productSlice = createSlice({
         toast.error(state.error)
       })
 
-      .addCase(deleteProduct.pending, (state) => { state.loading = true; state.error = null })
-      .addCase(deleteProduct.fulfilled, (state) => { state.loading = false })
-      .addCase(deleteProduct.rejected, (state, action) => {
+      // ── getLowStockProducts ──────────────────────────────
+      .addCase(getLowStockProducts.pending, (state) => {
+        state.loading = true
+        state.error = null
+      })
+      .addCase(getLowStockProducts.fulfilled, (state, action) => {
+        state.loading = false
+        state.lowStockProducts = action.payload.data
+      })
+      .addCase(getLowStockProducts.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload?.message || action.payload || 'Lỗi lấy dữ liệu cảnh báo tồn kho'
+        toast.error(state.error)
+      })
+
+      // ── getProductById ───────────────────────────────────
+      .addCase(getProductById.pending, (state) => {
+        state.loading = true
+        state.error = null
+      })
+      .addCase(getProductById.fulfilled, (state, action) => {
+        state.loading = false
+        state.product = action.payload
+      })
+      .addCase(getProductById.rejected, (state, action) => {
         state.loading = false
         state.error = action.payload?.message || action.payload || 'Lỗi không xác định'
         toast.error(state.error)
       })
 
-      .addCase(deleteMultipleProducts.pending, (state) => { state.loading = true; state.error = null })
-      .addCase(deleteMultipleProducts.fulfilled, (state) => { state.loading = false })
-      .addCase(deleteMultipleProducts.rejected, (state, action) => {
-        state.loading = false
-        state.error = action.payload?.message || action.payload || 'Lỗi không xác định'
-        toast.error(state.error)
+      // ── getProductDetail ─────────────────────────────────
+      .addCase(getProductDetail.pending, (state) => {
+        state.loading = true
+        state.error = null
       })
-
-      .addCase(createProduct.pending, (state) => { state.loading = true; state.error = null })
-      .addCase(createProduct.fulfilled, (state) => { state.loading = false })
-      .addCase(createProduct.rejected, (state, action) => {
-        state.loading = false
-        state.error = action.payload?.message || action.payload || 'Lỗi không xác định'
-        toast.error(state.error)
-      })
-
-      .addCase(updateProduct.pending, (state) => { state.loading = true; state.error = null })
-      .addCase(updateProduct.fulfilled, (state) => { state.loading = false })
-      .addCase(updateProduct.rejected, (state, action) => {
-        state.loading = false
-        state.error = action.payload?.message || action.payload || 'Lỗi không xác định'
-        toast.error(state.error)
-      })
-
-      .addCase(getProductDetail.pending, (state) => { state.loading = true; state.error = null })
       .addCase(getProductDetail.fulfilled, (state, action) => {
         state.loading = false
         state.product = action.payload
@@ -317,16 +378,84 @@ export const productSlice = createSlice({
         toast.error(state.error)
       })
 
-      .addCase(copyProduct.pending, (state) => { state.loading = true; state.error = null })
-      .addCase(copyProduct.fulfilled, (state) => { state.loading = false })
+      // ── createProduct ────────────────────────────────────
+      .addCase(createProduct.pending, (state) => {
+        state.loading = true
+        state.error = null
+      })
+      .addCase(createProduct.fulfilled, (state) => {
+        state.loading = false
+      })
+      .addCase(createProduct.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload?.message || action.payload || 'Lỗi không xác định'
+        toast.error(state.error)
+      })
+
+      // ── updateProduct ────────────────────────────────────
+      .addCase(updateProduct.pending, (state) => {
+        state.loading = true
+        state.error = null
+      })
+      .addCase(updateProduct.fulfilled, (state) => {
+        state.loading = false
+      })
+      .addCase(updateProduct.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload?.message || action.payload || 'Lỗi không xác định'
+        toast.error(state.error)
+      })
+
+      // ── deleteProduct ────────────────────────────────────
+      .addCase(deleteProduct.pending, (state) => {
+        state.loading = true
+        state.error = null
+      })
+      .addCase(deleteProduct.fulfilled, (state) => {
+        state.loading = false
+      })
+      .addCase(deleteProduct.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload?.message || action.payload || 'Lỗi không xác định'
+        toast.error(state.error)
+      })
+
+      // ── deleteMultipleProducts ───────────────────────────
+      .addCase(deleteMultipleProducts.pending, (state) => {
+        state.loading = true
+        state.error = null
+      })
+      .addCase(deleteMultipleProducts.fulfilled, (state) => {
+        state.loading = false
+      })
+      .addCase(deleteMultipleProducts.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload?.message || action.payload || 'Lỗi không xác định'
+        toast.error(state.error)
+      })
+
+      // ── copyProduct ──────────────────────────────────────
+      .addCase(copyProduct.pending, (state) => {
+        state.loading = true
+        state.error = null
+      })
+      .addCase(copyProduct.fulfilled, (state) => {
+        state.loading = false
+      })
       .addCase(copyProduct.rejected, (state, action) => {
         state.loading = false
         state.error = action.payload?.message || action.payload || 'Lỗi không xác định'
         toast.error(state.error)
       })
 
-      .addCase(importProduct.pending, (state) => { state.loading = true; state.error = null })
-      .addCase(importProduct.fulfilled, (state) => { state.loading = false })
+      // ── importProduct ────────────────────────────────────
+      .addCase(importProduct.pending, (state) => {
+        state.loading = true
+        state.error = null
+      })
+      .addCase(importProduct.fulfilled, (state) => {
+        state.loading = false
+      })
       .addCase(importProduct.rejected, (state, action) => {
         state.loading = false
         const payload = action.payload
@@ -344,7 +473,25 @@ export const productSlice = createSlice({
         }
       })
 
-      .addCase(getProductSaleHistory.pending, (state) => { state.loading = true; state.error = null })
+      // ── uploadProductImages ──────────────────────────────
+      .addCase(uploadProductImages.pending, (state) => {
+        state.loading = true
+        state.error = null
+      })
+      .addCase(uploadProductImages.fulfilled, (state) => {
+        state.loading = false
+      })
+      .addCase(uploadProductImages.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload?.message || action.payload || 'Lỗi không xác định'
+        toast.error(state.error)
+      })
+
+      // ── getProductSaleHistory ────────────────────────────
+      .addCase(getProductSaleHistory.pending, (state) => {
+        state.loading = true
+        state.error = null
+      })
       .addCase(getProductSaleHistory.fulfilled, (state, action) => {
         state.loading = false
         state.saleHistory.data = action.payload?.data
