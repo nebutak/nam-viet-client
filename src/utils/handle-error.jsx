@@ -18,18 +18,13 @@ const handleError = (error) => {
 
     case 422: {
       const errorData = data?.error?.details || data?.error?.message || data?.message
-      if (
-        errorData &&
-        typeof errorData === 'object' &&
-        !Array.isArray(errorData)
-      ) {
+      if (errorData && typeof errorData === 'object' && !Array.isArray(errorData)) {
         const firstKey = Object.keys(errorData)[0]
         const firstMessage = errorData[firstKey]
         return firstMessage || 'Dữ liệu không hợp lệ.'
       }
       return typeof errorData === 'string' ? errorData : 'Dữ liệu không hợp lệ. Vui lòng kiểm tra lại.'
     }
-
     case 500:
       return serverMessage || 'Lỗi máy chủ nội bộ. Vui lòng thử lại sau.'
     default:

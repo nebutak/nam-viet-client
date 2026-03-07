@@ -6,6 +6,7 @@ import userReducer from './UserSlice'
 import customerReducer from './CustomerSlice'
 import expiryReducer from './ExpirySlice'
 import customerTimelineReducer from './CustomerTimelineSlice'
+import promotionReducer from './PromotionSlice'
 import supplierReducer from './SupplierSlice'
 import debtReducer from './DebtSlice'
 import categoryReducer from './CategorySlice'
@@ -14,11 +15,23 @@ import roleReducer from './RoleSlice'
 import permissionReducer from './PermissionSlice'
 import systemLogReducer from './SystemLogSlice'
 import settingReducer from './SettingSlice'
-import promotionReducer from './PromotionSlice'
 import unitReducer from './UnitSlice'
 import productReducer from './ProductSlice'
 import stockTransactionReducer from './StockTransactionSlice'
 import salesOrderReducer from './SalesOrderSlice'
+import ticketReducer from './TicketSlice'
+import taskReducer from './TaskSlice'
+import materialReducer from './MaterialSlice'
+import attendanceReducer from './AttendanceSlice'
+import overtimeReducer from './OvertimeSlice'
+import taxReducer from './TaxSlice'
+import creditNoteReducer from './CreditNoteSlice'
+import attributeReducer from './AttributeSlice'
+import invoiceReducer from './InvoiceSlice'
+import purchaseOrderReducer from './PurchaseOrderSlice'
+import receiptReducer from './ReceiptSlice'
+import paymentReducer from './PaymentSlice'
+import warehouseReceiptReducer from './WarehouseReceiptSlice'
 
 const persistConfig = { key: 'nam-viet', storage }
 
@@ -31,6 +44,7 @@ export const store = configureStore({
     customer: customerReducer,
     expiry: expiryReducer,
     customerTimeline: customerTimelineReducer,
+    promotion: promotionReducer,
     supplier: supplierReducer,
     debt: debtReducer,
     category: categoryReducer,
@@ -39,11 +53,23 @@ export const store = configureStore({
     permission: permissionReducer,
     systemLog: systemLogReducer,
     setting: settingReducer,
-    promotion: promotionReducer,
     unit: unitReducer,
     product: productReducer,
     stockTransaction: stockTransactionReducer,
     salesOrder: salesOrderReducer,
+    ticket: ticketReducer,
+    task: taskReducer,
+    material: materialReducer,
+    attendance: attendanceReducer,
+    overtime: overtimeReducer,
+    tax: taxReducer,
+    creditNote: creditNoteReducer,
+    attribute: attributeReducer,
+    invoice: invoiceReducer,
+    purchaseOrder: purchaseOrderReducer,
+    receipt: receiptReducer,
+    payment: paymentReducer,
+    warehouseReceipt: warehouseReceiptReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({ serializableCheck: false }),
