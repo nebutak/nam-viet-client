@@ -8,7 +8,7 @@ import AdminLayout from '../views/layouts/AdminLayout'
 import AuthLayout from '../views/layouts/AuthLayout'
 import ErrorLayout from '../views/layouts/ErrorLayout'
 import CustomerPage from '../views/admin/customer/CustomerPage'
-import EmployeePage from '../views/admin/employee/EmployeePage' 
+import EmployeePage from '../views/admin/employee/EmployeePage'
 import PromotionPage from '../views/admin/promotion/PromotionPage'
 import ActivePromotionPage from '../views/admin/promotion/ActivePromotionPage'
 import SupplierPage from '../views/admin/supplier/SupplierPage'
@@ -25,6 +25,9 @@ import AccessLogPage from '../views/admin/setting/access-log/AccessLogPage'
 import ActivePromotionsPage from '../views/admin/promotion/active-promotions/ActivePromotionsPage'
 import UnitPage from '../views/admin/unit/UnitPage'
 import ProductPage from '../views/admin/product/ProductPage'
+// import WarehouseInPage from '../views/admin/warehouse-in/WarehouseInPage'
+// import WarehouseOutPage from '../views/admin/warehouse-out/WarehouseOutPage'
+import InventoryWarningPage from '../views/admin/inventory-warning/InventoryWarningPage'
 import AttributePage from '../views/admin/attribute/AttributePage'
 import TaxPage from '../views/admin/tax/TaxPage'
 import RevenuePage from '../views/admin/report/RevenuePage'
@@ -34,13 +37,32 @@ import FinancialReportPage from '../views/admin/report/FinancialReportPage'
 
 import TicketPage from '@/views/admin/ticket/TicketPage'
 import TaskPage from '@/views/admin/task/TaskPage'
-import AttendancePage from '../views/admin/attendance/AttendancePage'
-import OvertimePage from '../views/admin/overtime/OvertimePage'
-import OvertimeDetailPage from '../views/admin/overtime/OvertimeDetailPage'
-import SalaryPage from '../views/admin/salary/SalaryPage'
-import SalaryCalculatePage from '../views/admin/salary/SalaryCalculatePage'
+import MaterialPage from '@/views/admin/material/MaterialPage'
+import AttendancePage from '@/views/admin/attendance/AttendancePage'
+
+import OvertimePage from '@/views/admin/overtime/OvertimePage'
+import InvoicePage from '@/views/admin/invoice/InvoicePage'
+import MyInvoicePage from '@/views/admin/invoice/MyInvoicePage'
+import PurchaseOrderPage from '@/views/admin/purchase-order/PurchaseOrderPage'
+import MyPurchaseOrderPage from '@/views/admin/purchase-order/MyPurchaseOrderPage'
+import ReceiptPage from '@/views/admin/receipt/ReceiptPage'
+import MyReceiptPage from '@/views/admin/receipt/MyReceiptPage'
+import PaymentPage from '@/views/admin/payment/PaymentPage'
+import MyPaymentPage from '@/views/admin/payment/MyPaymentPage'
+import WarehouseInPage from '@/views/admin/warehouse-receipt/WarehouseInPage'
+import WarehouseOutPage from '@/views/admin/warehouse-receipt/WarehouseOutPage'
 
 const routes = [
+  {
+    path: '/attendance',
+    element: AttendancePage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/overtime',
+    element: OvertimePage,
+    layout: AdminLayout,
+  },
   {
     path: '/dashboard',
     element: DashboardPage,
@@ -59,31 +81,6 @@ const routes = [
   {
     path: '/system-log',
     element: SystemLogPage,
-    layout: AdminLayout,
-  },
-  {
-    path: '/attendance',
-    element: AttendancePage,
-    layout: AdminLayout,
-  },
-  {
-    path: '/overtime',
-    element: OvertimePage,
-    layout: AdminLayout,
-  },
-  {
-    path: '/overtime/:id',
-    element: OvertimeDetailPage,
-    layout: AdminLayout,
-  },
-  {
-    path: '/salary',
-    element: SalaryPage,
-    layout: AdminLayout,
-  },
-  {
-    path: '/salary/calculate',
-    element: SalaryCalculatePage,
     layout: AdminLayout,
   },
   {
@@ -123,7 +120,7 @@ const routes = [
   },
   {
     path: '/employee',
-    element: EmployeePage, // Đã cập nhật sử dụng EmployeePage
+    element: EmployeePage,
     layout: AdminLayout,
   },
   {
@@ -164,6 +161,57 @@ const routes = [
     layout: AdminLayout,
   },
   {
+    path: '/invoice',
+    element: InvoicePage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/invoice-user',
+    element: MyInvoicePage,
+    layout: AdminLayout,
+  },
+
+  {
+    path: '/purchase-order',
+    element: PurchaseOrderPage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/purchase-order-user',
+    element: MyPurchaseOrderPage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/receipt',
+    element: ReceiptPage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/receipt-user',
+    element: MyReceiptPage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/payment',
+    element: PaymentPage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/payment-user',
+    element: MyPaymentPage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/warehouse-in',
+    element: WarehouseInPage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/warehouse-out',
+    element: WarehouseOutPage,
+    layout: AdminLayout,
+  },
+  {
     path: '/category',
     element: CategoryPage,
     layout: AdminLayout,
@@ -171,6 +219,21 @@ const routes = [
   {
     path: '/warehouse-list',
     element: WarehousePage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/warehouse-in',
+    element: WarehouseInPage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/warehouse-out',
+    element: WarehouseOutPage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/inventory-warning',
+    element: InventoryWarningPage,
     layout: AdminLayout,
   },
   {
@@ -202,6 +265,11 @@ const routes = [
   {
     path: '/financial-report',
     element: FinancialReportPage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/material',
+    element: MaterialPage,
     layout: AdminLayout,
   },
   {

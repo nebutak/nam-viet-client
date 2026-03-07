@@ -15,6 +15,7 @@ const handleError = (error) => {
       return serverMessage || 'Bị cấm. Bạn không có quyền truy cập tài nguyên này.'
     case 404:
       return serverMessage || 'Không tìm thấy tài nguyên.'
+
     case 422: {
       const errorData = data?.error?.details || data?.error?.message || data?.message
       if (errorData && typeof errorData === 'object' && !Array.isArray(errorData)) {

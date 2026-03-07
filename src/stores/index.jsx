@@ -17,13 +17,21 @@ import systemLogReducer from './SystemLogSlice'
 import settingReducer from './SettingSlice'
 import unitReducer from './UnitSlice'
 import productReducer from './ProductSlice'
+import stockTransactionReducer from './StockTransactionSlice'
+import salesOrderReducer from './SalesOrderSlice'
 import ticketReducer from './TicketSlice'
 import taskReducer from './TaskSlice'
-import attendanceReducer from './AttendanceSlice';
-import overtimeReducer from './OvertimeSlice';
-import salaryReducer from "./SalarySlice"
+import materialReducer from './MaterialSlice'
+import attendanceReducer from './AttendanceSlice'
+import overtimeReducer from './OvertimeSlice'
 import taxReducer from './TaxSlice'
+import creditNoteReducer from './CreditNoteSlice'
 import attributeReducer from './AttributeSlice'
+import invoiceReducer from './InvoiceSlice'
+import purchaseOrderReducer from './PurchaseOrderSlice'
+import receiptReducer from './ReceiptSlice'
+import paymentReducer from './PaymentSlice'
+import warehouseReceiptReducer from './WarehouseReceiptSlice'
 
 const persistConfig = { key: 'nam-viet', storage }
 
@@ -47,13 +55,21 @@ export const store = configureStore({
     setting: settingReducer,
     unit: unitReducer,
     product: productReducer,
+    stockTransaction: stockTransactionReducer,
+    salesOrder: salesOrderReducer,
     ticket: ticketReducer,
     task: taskReducer,
+    material: materialReducer,
     attendance: attendanceReducer,
     overtime: overtimeReducer,
-    salary: salaryReducer,
     tax: taxReducer,
+    creditNote: creditNoteReducer,
     attribute: attributeReducer,
+    invoice: invoiceReducer,
+    purchaseOrder: purchaseOrderReducer,
+    receipt: receiptReducer,
+    payment: paymentReducer,
+    warehouseReceipt: warehouseReceiptReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({ serializableCheck: false }),

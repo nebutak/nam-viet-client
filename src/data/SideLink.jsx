@@ -38,10 +38,10 @@ import {
 
 export const sideLinks = [
   {
-    title: 'Tổng quan (Dashboard)',
+    title: 'Tổng quan',
     href: '/dashboard',
     icon: <LayoutDashboard size={20} strokeWidth={1.5} />,
-    permission: 'OVERVIEW_MANAGEMENT',
+    permission: 'GET_DASHBOARD',
   },
   {
     title: 'Đơn bán',
@@ -156,7 +156,7 @@ export const sideLinks = [
     sub: [
       {
         title: 'DS Khuyến mãi (Mua X tặng Y, ...)',
-        href: '/promotions',
+        href: '/promotion',
         icon: <Gift size={18} strokeWidth={1.5} />,
         permission: 'GET_PROMOTION',
       },

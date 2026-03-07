@@ -1,27 +1,42 @@
-import React from "react"
-import { useForm } from "react-hook-form"
-import { useDispatch } from "react-redux"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-import { Button } from "@/components/custom/Button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { requestLeave } from "@/stores/AttendanceSlice"
+import React, { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+import { useDispatch, useSelector } from 'react-redux'
+import { requestLeave } from '@/stores/AttendanceSlice'
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/custom/Button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea as TextArea } from '@/components/ui/textarea'
+
+const requestLeaveSchema = z.object({
+    date: z.string().min(1, 'Ngày nghỉ là bắt buộc'),
+    leaveType: z.enum(['annual', 'sick', 'unpaid', 'other']),
+    shift: z.enum(['morning', 'afternoon', 'all_day']),
+    reason: z.string().min(1, 'Lý do là bắt buộc').max(500, 'Lý do không quá 500 ký tự'),
+})
 
 export default function RequestLeaveDialog({ isOpen, onClose }) {
     const dispatch = useDispatch()
+    const { loading } = useSelector((state) => state.attendance)
 
     const {
         register,
         handleSubmit,
         reset,
-        formState: { errors, isSubmitting },
+        formState: { errors },
     } = useForm({
+        resolver: zodResolver(requestLeaveSchema),
         defaultValues: {
-            leaveType: "annual",
-            shift: "all_day",
-            date: new Date().toISOString().split("T")[0],
-            reason: "",
+            leaveType: 'annual',
+            shift: 'all_day',
+            date: new Date().toISOString().split('T')[0],
         },
     })
 
@@ -30,87 +45,83 @@ export default function RequestLeaveDialog({ isOpen, onClose }) {
             await dispatch(requestLeave(data)).unwrap()
             reset()
             onClose()
-        } catch (error) {
-            console.error(error)
+        } catch {
+            // Error is handled in the slice via toast
         }
     }
 
-    const handleClose = () => {
-        reset()
-        onClose()
-    }
+    const selectClassName =
+        'h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800'
 
     return (
-        <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-            <DialogContent className="sm:max-w-[500px]">
-                <DialogHeader>
-                    <DialogTitle className="text-xl">Tạo đơn nghỉ phép</DialogTitle>
-                    <p className="text-sm text-gray-500">Gửi yêu cầu xin nghỉ phép tới quản lý</p>
+        <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+            <DialogContent className="max-w-[500px] p-6">
+                <DialogHeader className="mb-6">
+                    <DialogTitle className="text-xl font-bold text-gray-800 dark:text-white/90">
+                        Tạo đơn nghỉ phép
+                    </DialogTitle>
                 </DialogHeader>
 
-                <form id="leave-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="date">Ngày nghỉ <span className="text-red-500">*</span></Label>
-                        <Input
-                            id="date"
-                            type="date"
-                            {...register("date", { required: "Vui lòng chọn ngày nghỉ" })}
-                            className={errors.date ? "border-red-500" : ""}
-                        />
-                        {errors.date && <p className="text-xs text-red-500">{errors.date.message}</p>}
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                    <div>
+                        <Label htmlFor="date">Ngày nghỉ</Label>
+                        <Input id="date" type="date" {...register('date')} error={errors.date?.message} />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
+                        <div>
                             <Label htmlFor="leaveType">Loại nghỉ</Label>
-                            <select
-                                id="leaveType"
-                                className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
-                                {...register("leaveType")}
-                            >
-                                <option value="annual">Nghỉ phép năm</option>
-                                <option value="sick">Nghỉ ốm</option>
-                                <option value="unpaid">Nghỉ không lương</option>
-                                <option value="other">Khác</option>
-                            </select>
+                            <div className="relative">
+                                <select id="leaveType" {...register('leaveType')} className={selectClassName}>
+                                    <option value="annual">Nghỉ phép năm</option>
+                                    <option value="sick">Nghỉ ốm</option>
+                                    <option value="unpaid">Nghỉ không lương</option>
+                                    <option value="other">Khác</option>
+                                </select>
+                            </div>
+                            {errors.leaveType && (
+                                <p className="mt-1.5 text-xs text-error-500">{errors.leaveType.message}</p>
+                            )}
                         </div>
 
-                        <div className="space-y-2">
+                        <div>
                             <Label htmlFor="shift">Ca nghỉ</Label>
-                            <select
-                                id="shift"
-                                className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
-                                {...register("shift")}
-                            >
-                                <option value="all_day">Cả ngày</option>
-                                <option value="morning">Buổi sáng</option>
-                                <option value="afternoon">Buổi chiều</option>
-                            </select>
+                            <div className="relative">
+                                <select id="shift" {...register('shift')} className={selectClassName}>
+                                    <option value="all_day">Cả ngày</option>
+                                    <option value="morning">Buổi sáng</option>
+                                    <option value="afternoon">Buổi chiều</option>
+                                </select>
+                            </div>
+                            {errors.shift && (
+                                <p className="mt-1.5 text-xs text-error-500">{errors.shift.message}</p>
+                            )}
                         </div>
                     </div>
 
-                    <div className="space-y-2">
-                        <Label htmlFor="reason">Lý do <span className="text-red-500">*</span></Label>
-                        <Textarea
+                    <div>
+                        <Label htmlFor="reason">Lý do</Label>
+                        <TextArea
                             id="reason"
-                            placeholder="Nhập lý do nghỉ chi tiết..."
+                            placeholder="Nhập lý do nghỉ..."
+                            {...register('reason')}
+                            error={!!errors.reason}
+                            hint={errors.reason?.message}
                             rows={3}
-                            {...register("reason", { required: "Vui lòng nhập lý do" })}
-                            className={errors.reason ? "border-red-500" : ""}
                         />
-                        {errors.reason && <p className="text-xs text-red-500">{errors.reason.message}</p>}
+                    </div>
+
+                    <div className="mt-6 flex justify-end gap-3">
+                        <Button variant="outline" onClick={onClose} type="button">
+                            Hủy
+                        </Button>
+                        <Button type="submit" isLoading={loading} disabled={loading}>
+                            Gửi yêu cầu
+                        </Button>
                     </div>
                 </form>
-
-                <DialogFooter>
-                    <Button variant="outline" onClick={handleClose} disabled={isSubmitting}>
-                        Hủy
-                    </Button>
-                    <Button type="submit" form="leave-form" disabled={isSubmitting} className="bg-blue-600 hover:bg-blue-700 text-white">
-                        {isSubmitting ? "Đang gửi..." : "Gửi yêu cầu"}
-                    </Button>
-                </DialogFooter>
             </DialogContent>
         </Dialog>
     )
 }
+

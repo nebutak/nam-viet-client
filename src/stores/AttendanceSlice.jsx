@@ -3,153 +3,222 @@ import { handleError } from '@/utils/handle-error'
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import { toast } from 'sonner'
 
-export const getAttendances = createAsyncThunk(
-    'attendance/getList',
-    async (params = {}, { rejectWithValue }) => {
+// Get All Attendance Records
+export const getAttendanceList = createAsyncThunk(
+    'attendance/list',
+    async (filters = {}, { rejectWithValue }) => {
         try {
-            const response = await api.get('/attendance', { params })
-            const { data, meta } = response.data
-            return { data, meta }
+            const response = await api.get('/attendance', { params: filters })
+            if (response.data?.data) return response.data
+            return { data: response.data || [], meta: {} }
         } catch (error) {
-            const errorObj = handleError(error)
-            return rejectWithValue(errorObj?.message || 'Có lỗi xảy ra')
+            return rejectWithValue(handleError(error))
         }
-    },
+    }
 )
 
-export const getMyAttendances = createAsyncThunk(
-    'attendance/getMyList',
-    async (params = {}, { rejectWithValue }) => {
+// Get My Attendance Records
+export const getMyAttendance = createAsyncThunk(
+    'attendance/myList',
+    async (filters = {}, { rejectWithValue }) => {
         try {
-            const response = await api.get('/attendance/my', { params })
-            const { data, meta } = response.data
-            return { data, meta }
+            const response = await api.get('/attendance/my', { params: filters })
+            if (response.data?.data) return response.data
+            return { data: response.data || [], meta: {} }
         } catch (error) {
-            const errorObj = handleError(error)
-            return rejectWithValue(errorObj?.message || 'Có lỗi xảy ra')
+            return rejectWithValue(handleError(error))
         }
-    },
+    }
 )
 
+// Get Today's Attendance Status
+export const getTodayAttendance = createAsyncThunk(
+    'attendance/today',
+    async (_, { rejectWithValue }) => {
+        try {
+            const today = new Date().toISOString().split('T')[0]
+            const response = await api.get('/attendance/my', {
+                params: { fromDate: today, toDate: today },
+            })
+            const todayRecord = response.data?.data?.[0]
+            return {
+                hasCheckedIn: !!todayRecord?.checkInTime,
+                hasCheckedOut: !!todayRecord?.checkOutTime,
+                checkInTime: todayRecord?.checkInTime,
+                checkOutTime: todayRecord?.checkOutTime,
+                workHours: todayRecord?.workHours,
+                status: todayRecord?.status || 'absent',
+            }
+        } catch (error) {
+            return rejectWithValue(handleError(error))
+        }
+    }
+)
+
+// Get Attendance Statistics
 export const getAttendanceStatistics = createAsyncThunk(
-    'attendance/getStatistics',
-    async (params = {}, { rejectWithValue }) => {
+    'attendance/statistics',
+    async (filters = {}, { rejectWithValue }) => {
         try {
-            const response = await api.get('/attendance/statistics', { params })
-            return response.data.data
+            const response = await api.get('/attendance/statistics', { params: filters })
+            return response.data?.data || response.data
         } catch (error) {
-            const errorObj = handleError(error)
-            return rejectWithValue(errorObj?.message || 'Có lỗi xảy ra')
+            return rejectWithValue(handleError(error))
         }
-    },
+    }
 )
 
+// Check In
 export const checkIn = createAsyncThunk(
     'attendance/checkIn',
-    async (payload, { rejectWithValue }) => {
+    async (data, { rejectWithValue, dispatch }) => {
         try {
-            const response = await api.post('/attendance/check-in', payload)
+            const response = await api.post('/attendance/check-in', data)
+            await dispatch(getTodayAttendance()).unwrap()
             toast.success('Chấm công vào thành công!')
             return response.data
         } catch (error) {
-            const errorObj = handleError(error)
-            const errorMessage = errorObj?.message || 'Có lỗi xảy ra'
-            toast.error(errorMessage)
-            return rejectWithValue(errorMessage)
+            const message = handleError(error)
+            toast.error(message || 'Chấm công vào thất bại!')
+            return rejectWithValue(message)
         }
-    },
+    }
 )
 
+// Check Out
 export const checkOut = createAsyncThunk(
     'attendance/checkOut',
-    async (payload, { rejectWithValue }) => {
+    async (data, { rejectWithValue, dispatch }) => {
         try {
-            const response = await api.post('/attendance/check-out', payload)
+            const response = await api.post('/attendance/check-out', data)
+            await dispatch(getTodayAttendance()).unwrap()
             toast.success('Chấm công ra thành công!')
             return response.data
         } catch (error) {
-            const errorObj = handleError(error)
-            const errorMessage = errorObj?.message || 'Có lỗi xảy ra'
-            toast.error(errorMessage)
-            return rejectWithValue(errorMessage)
+            const message = handleError(error)
+            toast.error(message || 'Chấm công ra thất bại!')
+            return rejectWithValue(message)
         }
-    },
+    }
 )
 
+// Request Leave
+export const requestLeave = createAsyncThunk(
+    'attendance/leave',
+    async (data, { rejectWithValue, dispatch }) => {
+        try {
+            const response = await api.post('/attendance/leave', data)
+            await dispatch(getMyAttendance()).unwrap()
+            toast.success('Yêu cầu nghỉ phép đã được gửi!')
+            return response.data
+        } catch (error) {
+            const message = handleError(error)
+            toast.error(message || 'Gửi yêu cầu nghỉ phép thất bại!')
+            return rejectWithValue(message)
+        }
+    }
+)
+
+// Approve Leave
+export const approveLeave = createAsyncThunk(
+    'attendance/approve',
+    async (id, { rejectWithValue, dispatch }) => {
+        try {
+            const response = await api.put(`/attendance/${id}/approve`, { approved: true })
+            await dispatch(getAttendanceList()).unwrap()
+            toast.success('Đã phê duyệt thông qua nghỉ phép!')
+            return response.data
+        } catch (error) {
+            const message = handleError(error)
+            toast.error(message || 'Xử lý phê duyệt thất bại!')
+            return rejectWithValue(message)
+        }
+    }
+)
+
+// Reject Leave
+export const rejectLeave = createAsyncThunk(
+    'attendance/reject',
+    async (id, { rejectWithValue, dispatch }) => {
+        try {
+            const response = await api.put(`/attendance/${id}/approve`, { approved: false })
+            await dispatch(getAttendanceList()).unwrap()
+            toast.success('Đã từ chối nghỉ phép!')
+            return response.data
+        } catch (error) {
+            const message = handleError(error)
+            toast.error(message || 'Từ chối thất bại!')
+            return rejectWithValue(message)
+        }
+    }
+)
+
+// Update Attendance (Admin)
 export const updateAttendance = createAsyncThunk(
     'attendance/update',
-    async ({ id, data }, { rejectWithValue }) => {
+    async ({ id, data }, { rejectWithValue, dispatch }) => {
         try {
             const response = await api.put(`/attendance/${id}`, data)
+            await dispatch(getAttendanceList()).unwrap()
             toast.success('Cập nhật chấm công thành công!')
             return response.data
         } catch (error) {
-            const errorObj = handleError(error)
-            const errorMessage = errorObj?.message || 'Có lỗi xảy ra'
-            toast.error(errorMessage)
-            return rejectWithValue(errorMessage)
+            const message = handleError(error)
+            toast.error(message || 'Cập nhật chấm công thất bại!')
+            return rejectWithValue(message)
         }
-    },
+    }
 )
 
-export const generateQR = createAsyncThunk(
-    'attendance/generateQR',
-    async (payload, { rejectWithValue }) => {
+// Import Attendance
+export const importAttendance = createAsyncThunk(
+    'attendance/import',
+    async (file, { rejectWithValue, dispatch }) => {
         try {
-            const response = await api.post('/attendance/qr/generate', payload)
-            toast.success('Tạo mã QR thành công!')
-            return response.data.data
-        } catch (error) {
-            const errorObj = handleError(error)
-            const errorMessage = errorObj?.message || 'Có lỗi xảy ra'
-            toast.error(errorMessage)
-            return rejectWithValue(errorMessage)
-        }
-    },
-)
-
-
-export const requestLeave = createAsyncThunk(
-    'attendance/requestLeave',
-    async (payload, { rejectWithValue }) => {
-        try {
-            const response = await api.post('/attendance/leave', payload)
-            toast.success('Gửi yêu cầu nghỉ phép thành công!')
+            const formData = new FormData()
+            formData.append('file', file)
+            const response = await api.post('/attendance/import', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            })
+            await dispatch(getAttendanceList()).unwrap()
+            const summary = response.data?.data?.summary || {}
+            toast.success(`Nhập thành công ${summary.validCount || 0} bản ghi. ${summary.invalidCount > 0 ? `${summary.invalidCount} bản ghi lỗi.` : ''}`)
             return response.data
         } catch (error) {
-            const errorObj = handleError(error)
-            const errorMessage = errorObj?.message || 'Có lỗi xảy ra'
-            toast.error(errorMessage)
-            return rejectWithValue(errorMessage)
+            const message = handleError(error)
+            toast.error(message || 'Nhập dữ liệu thất bại!')
+            return rejectWithValue(message)
         }
-    },
+    }
 )
 
-export const approveLeave = createAsyncThunk(
-    'attendance/approveLeave',
-    async ({ id, data }, { rejectWithValue }) => {
+// Lock Attendance Month
+export const lockAttendanceMonth = createAsyncThunk(
+    'attendance/lockMonth',
+    async (month, { rejectWithValue, dispatch }) => {
         try {
-            const response = await api.put(`/attendance/${id}/approve`, data)
-            toast.success('Duyệt phép thành công!')
+            const response = await api.post('/attendance/lock-month', { month })
+            await dispatch(getAttendanceStatistics()).unwrap()
+            toast.success('Chốt công tháng thành công!')
             return response.data
         } catch (error) {
-            const errorObj = handleError(error)
-            const errorMessage = errorObj?.message || 'Có lỗi xảy ra'
-            toast.error(errorMessage)
-            return rejectWithValue(errorMessage)
+            const message = handleError(error)
+            toast.error(message || 'Chốt công tháng thất bại!')
+            return rejectWithValue(message)
         }
-    },
+    }
 )
 
 const initialState = {
-    attendances: [],
-    myAttendances: [],
+    attendanceList: [],
+    myAttendance: [],
+    todayStatus: null,
     statistics: null,
-    pagination: {
+    meta: {
+        total: 0,
         page: 1,
         limit: 20,
-        total: 0,
-        totalPages: 1,
+        totalPages: 0,
     },
     loading: false,
     error: null,
@@ -161,71 +230,59 @@ export const attendanceSlice = createSlice({
     reducers: {},
     extraReducers: (builder) => {
         builder
-            // getAttendances
-            .addCase(getAttendances.pending, (state) => {
-                state.loading = true
-                state.error = null
-            })
-            .addCase(getAttendances.fulfilled, (state, action) => {
+            // getAttendanceList
+            .addCase(getAttendanceList.pending, (state) => { state.loading = true; state.error = null })
+            .addCase(getAttendanceList.fulfilled, (state, action) => {
                 state.loading = false
-                state.attendances = action.payload.data || []
-                if (action.payload.meta) {
-                    state.pagination = action.payload.meta
-                }
+                state.attendanceList = action.payload.data
+                if (action.payload.meta) state.meta = action.payload.meta
             })
-            .addCase(getAttendances.rejected, (state, action) => {
+            .addCase(getAttendanceList.rejected, (state, action) => {
                 state.loading = false
-                state.error = action.payload || 'Lỗi không xác định'
-                toast.error(state.error)
+                state.error = action.payload || 'Lỗi tải danh sách chấm công'
             })
-            // getMyAttendances
-            .addCase(getMyAttendances.pending, (state) => {
-                state.loading = true
-                state.error = null
-            })
-            .addCase(getMyAttendances.fulfilled, (state, action) => {
+
+            // getMyAttendance
+            .addCase(getMyAttendance.pending, (state) => { state.loading = true; state.error = null })
+            .addCase(getMyAttendance.fulfilled, (state, action) => {
                 state.loading = false
-                state.myAttendances = action.payload.data || []
+                state.myAttendance = action.payload.data
+                if (action.payload.meta) state.meta = action.payload.meta
             })
-            .addCase(getMyAttendances.rejected, (state, action) => {
+            .addCase(getMyAttendance.rejected, (state, action) => {
                 state.loading = false
-                state.error = action.payload || 'Lỗi không xác định'
-                toast.error(state.error)
+                state.error = action.payload
             })
+
+            // getTodayAttendance
+            .addCase(getTodayAttendance.fulfilled, (state, action) => {
+                state.todayStatus = action.payload
+            })
+
             // getAttendanceStatistics
-            .addCase(getAttendanceStatistics.pending, (state) => {
-                state.loading = true
-            })
             .addCase(getAttendanceStatistics.fulfilled, (state, action) => {
-                state.loading = false
                 state.statistics = action.payload
             })
-            .addCase(getAttendanceStatistics.rejected, (state, action) => {
-                state.loading = false
-                state.error = action.payload
-            })
-            // updateAttendance
-            .addCase(updateAttendance.pending, (state) => {
-                state.loading = true
-            })
-            .addCase(updateAttendance.fulfilled, (state) => {
-                state.loading = false
-            })
-            .addCase(updateAttendance.rejected, (state, action) => {
-                state.loading = false
-                state.error = action.payload
-            })
-            // approveLeave
-            .addCase(approveLeave.pending, (state) => {
-                state.loading = true
-            })
-            .addCase(approveLeave.fulfilled, (state) => {
-                state.loading = false
-            })
-            .addCase(approveLeave.rejected, (state, action) => {
-                state.loading = false
-                state.error = action.payload
-            })
+
+            // checkIn
+            .addCase(checkIn.pending, (state) => { state.loading = true })
+            .addCase(checkIn.fulfilled, (state) => { state.loading = false })
+            .addCase(checkIn.rejected, (state) => { state.loading = false })
+
+            // checkOut
+            .addCase(checkOut.pending, (state) => { state.loading = true })
+            .addCase(checkOut.fulfilled, (state) => { state.loading = false })
+            .addCase(checkOut.rejected, (state) => { state.loading = false })
+
+            // lockAttendanceMonth
+            .addCase(lockAttendanceMonth.pending, (state) => { state.loading = true })
+            .addCase(lockAttendanceMonth.fulfilled, (state) => { state.loading = false })
+            .addCase(lockAttendanceMonth.rejected, (state, action) => { state.loading = false; state.error = action.payload })
+
+            // importAttendance
+            .addCase(importAttendance.pending, (state) => { state.loading = true })
+            .addCase(importAttendance.fulfilled, (state) => { state.loading = false })
+            .addCase(importAttendance.rejected, (state, action) => { state.loading = false; state.error = action.payload })
     },
 })
 

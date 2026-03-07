@@ -1,225 +1,198 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import axios from 'axios';
-import { toast } from 'sonner';
-
-const API_URL = import.meta.env.VITE_API_URL + '/api/overtime';
-
-// Helper to get auth header
-const getAuthHeaders = () => {
-    const token = localStorage.getItem('token');
-    return {
-        headers: {
-            Authorization: `Bearer ${token}`
-        }
-    };
-};
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
+import { toast } from 'sonner'
+import api from '@/utils/axios'
+import { handleError } from '@/utils/handle-error'
 
 export const getOvertimeSessions = createAsyncThunk(
-    'overtime/getSessions',
-    async ({ page = 1, limit = 20, search = '', status, month }, { rejectWithValue }) => {
+    'overtime/getOvertimeSessions',
+    async (params, { rejectWithValue }) => {
         try {
-            const params = new URLSearchParams({
-                page: page.toString(),
-                limit: limit.toString(),
-            });
-
-            if (search) params.append('search', search);
-            if (status) params.append('status', status);
-            if (month) params.append('month', month);
-
-            const response = await axios.get(`${API_URL}?${params.toString()}`, getAuthHeaders());
-            return response.data;
+            const response = await api.get('/overtime', { params })
+            return response.data
         } catch (error) {
-            return rejectWithValue(error.response?.data?.message || 'Lỗi khi tải danh sách phiên tăng ca');
+            const message = handleError(error)
+            toast.error(message || 'Không thể lấy danh sách tăng ca')
+            return rejectWithValue(message)
         }
     }
-);
+)
 
-export const getOvertimeSession = createAsyncThunk(
-    'overtime/getSession',
-    async (id, { rejectWithValue }) => {
-        try {
-            const response = await axios.get(`${API_URL}/${id}`, getAuthHeaders());
-            return response.data;
-        } catch (error) {
-            return rejectWithValue(error.response?.data?.message || 'Lỗi khi tải cấu hình phiên tăng ca');
-        }
-    }
-);
-
-// We need a separate stats thunk if available, but for now we'll derive stats locally or use a specific endpoint 
 export const getOvertimeStats = createAsyncThunk(
-    'overtime/getStats',
+    'overtime/getOvertimeStats',
     async (_, { rejectWithValue }) => {
         try {
-            const response = await axios.get(`${API_URL}/stats`, getAuthHeaders());
-            return response.data;
+            const response = await api.get('/overtime/stats')
+            return response.data
         } catch (error) {
-            return rejectWithValue(error.response?.data?.message || 'Lỗi khi tải thống kê');
+            const message = handleError(error)
+            return rejectWithValue(message)
         }
     }
-);
+)
+
+export const getOvertimeSessionDetail = createAsyncThunk(
+    'overtime/getOvertimeSessionDetail',
+    async (id, { rejectWithValue }) => {
+        try {
+            const response = await api.get(`/overtime/${id}`)
+            return response.data
+        } catch (error) {
+            const message = handleError(error)
+            toast.error(message || 'Không thể lấy chi tiết phiên tăng ca')
+            return rejectWithValue(message)
+        }
+    }
+)
 
 export const createOvertimeSession = createAsyncThunk(
-    'overtime/createSession',
-    async (data, { rejectWithValue }) => {
+    'overtime/createOvertimeSession',
+    async (data, { rejectWithValue, dispatch }) => {
         try {
-            const response = await axios.post(API_URL, data, getAuthHeaders());
-            toast.success('Tạo phiên tăng ca thành công');
-            return response.data;
+            const response = await api.post('/overtime', data)
+            toast.success('Tạo phiên tăng ca thành công!')
+            dispatch(getOvertimeSessions())
+            dispatch(getOvertimeStats())
+            return response.data
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Tạo phiên tăng ca thất bại');
-            return rejectWithValue(error.response?.data?.message);
+            const message = handleError(error)
+            toast.error(message || 'Tạo phiên tăng ca thất bại!')
+            return rejectWithValue(message)
         }
     }
-);
+)
 
-export const addEmployeesToSession = createAsyncThunk(
-    'overtime/addEmployees',
-    async ({ sessionId, userIds }, { rejectWithValue }) => {
+export const addEmployeesToOvertime = createAsyncThunk(
+    'overtime/addEmployeesToOvertime',
+    async ({ sessionId, userIds }, { rejectWithValue, dispatch }) => {
         try {
-            const response = await axios.post(`${API_URL}/${sessionId}/employees`, { userIds }, getAuthHeaders());
-            return response.data;
+            const response = await api.post(`/overtime/${sessionId}/employees`, { userIds })
+            toast.success('Thêm nhân viên thành công!')
+            dispatch(getOvertimeSessionDetail(sessionId))
+            dispatch(getOvertimeSessions())
+            return response.data
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Thêm nhân viên thất bại');
-            return rejectWithValue(error.response?.data?.message);
+            const message = handleError(error)
+            toast.error(message || 'Thêm nhân viên thất bại!')
+            return rejectWithValue(message)
         }
     }
-);
+)
 
-export const removeEmployeeFromSession = createAsyncThunk(
-    'overtime/removeEmployee',
-    async ({ sessionId, userId }, { rejectWithValue }) => {
+export const removeEmployeeFromOvertime = createAsyncThunk(
+    'overtime/removeEmployeeFromOvertime',
+    async ({ sessionId, userId }, { rejectWithValue, dispatch }) => {
         try {
-            const response = await axios.delete(`${API_URL}/${sessionId}/employees/${userId}`, getAuthHeaders());
-            return { sessionId, userId, data: response.data };
+            const response = await api.delete(`/overtime/${sessionId}/employees/${userId}`)
+            toast.success('Xóa nhân viên khỏi phiên thành công!')
+            dispatch(getOvertimeSessionDetail(sessionId))
+            return response.data
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Xóa nhân viên thất bại');
-            return rejectWithValue(error.response?.data?.message);
+            const message = handleError(error)
+            toast.error(message || 'Xóa nhân viên thất bại!')
+            return rejectWithValue(message)
         }
     }
-);
+)
 
-export const closeSession = createAsyncThunk(
-    'overtime/closeSession',
-    async ({ sessionId, endTime }, { rejectWithValue }) => {
+export const closeOvertimeSession = createAsyncThunk(
+    'overtime/closeOvertimeSession',
+    async ({ sessionId, endTime }, { rejectWithValue, dispatch }) => {
         try {
-            const response = await axios.post(`${API_URL}/${sessionId}/close`, { endTime }, getAuthHeaders());
-            return response.data;
+            const response = await api.post(`/overtime/${sessionId}/close`, { endTime })
+            toast.success('Đóng phiên tăng ca thành công!')
+            dispatch(getOvertimeSessionDetail(sessionId))
+            dispatch(getOvertimeSessions())
+            dispatch(getOvertimeStats())
+            return response.data
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Đóng phiên thất bại');
-            return rejectWithValue(error.response?.data?.message);
+            const message = handleError(error)
+            toast.error(message || 'Đóng phiên tăng ca thất bại!')
+            return rejectWithValue(message)
         }
     }
-);
+)
+
+const initialState = {
+    sessions: [],
+    sessionDetail: null,
+    stats: null,
+    loading: false,
+    error: null,
+}
+
+const handlePending = (state) => {
+    state.loading = true
+    state.error = null
+}
+
+const handleRejected = (state, action) => {
+    state.loading = false
+    state.error = action.payload
+}
 
 const overtimeSlice = createSlice({
     name: 'overtime',
-    initialState: {
-        sessions: [],
-        currentSession: null,
-        stats: null,
-        meta: null,
-        loading: false,
-        error: null,
-    },
+    initialState,
     reducers: {
-        clearCurrentSession: (state) => {
-            state.currentSession = null;
+        clearSessionDetail: (state) => {
+            state.sessionDetail = null
         }
     },
     extraReducers: (builder) => {
         builder
             // getOvertimeSessions
-            .addCase(getOvertimeSessions.pending, (state) => {
-                state.loading = true;
-                state.error = null;
-            })
+            .addCase(getOvertimeSessions.pending, handlePending)
             .addCase(getOvertimeSessions.fulfilled, (state, action) => {
-                state.loading = false;
-                state.sessions = action.payload.data || [];
-                state.meta = action.payload.meta || null;
+                state.loading = false
+                state.sessions = action.payload.data || action.payload
             })
-            .addCase(getOvertimeSessions.rejected, (state, action) => {
-                state.loading = false;
-                state.error = action.payload;
-            })
-
-            // getOvertimeSession
-            .addCase(getOvertimeSession.pending, (state) => {
-                state.loading = true;
-                state.error = null;
-            })
-            .addCase(getOvertimeSession.fulfilled, (state, action) => {
-                state.loading = false;
-                state.currentSession = action.payload.data;
-            })
-            .addCase(getOvertimeSession.rejected, (state, action) => {
-                state.loading = false;
-                state.error = action.payload;
-            })
+            .addCase(getOvertimeSessions.rejected, handleRejected)
 
             // getOvertimeStats
+            .addCase(getOvertimeStats.pending, handlePending)
             .addCase(getOvertimeStats.fulfilled, (state, action) => {
-                state.stats = action.payload.data;
+                state.loading = false
+                state.stats = action.payload.data || action.payload
             })
+            .addCase(getOvertimeStats.rejected, handleRejected)
+
+            // getOvertimeSessionDetail
+            .addCase(getOvertimeSessionDetail.pending, handlePending)
+            .addCase(getOvertimeSessionDetail.fulfilled, (state, action) => {
+                state.loading = false
+                state.sessionDetail = action.payload.data || action.payload
+            })
+            .addCase(getOvertimeSessionDetail.rejected, handleRejected)
 
             // createOvertimeSession
-            .addCase(createOvertimeSession.pending, (state) => {
-                state.loading = true;
+            .addCase(createOvertimeSession.pending, handlePending)
+            .addCase(createOvertimeSession.fulfilled, (state) => {
+                state.loading = false
             })
-            .addCase(createOvertimeSession.fulfilled, (state, action) => {
-                state.loading = false;
-            })
-            .addCase(createOvertimeSession.rejected, (state, action) => {
-                state.loading = false;
-                state.error = action.payload;
-            })
+            .addCase(createOvertimeSession.rejected, handleRejected)
 
-            // addEmployeesToSession
-            .addCase(addEmployeesToSession.pending, (state) => {
-                state.loading = true;
+            // addEmployeesToOvertime
+            .addCase(addEmployeesToOvertime.pending, handlePending)
+            .addCase(addEmployeesToOvertime.fulfilled, (state) => {
+                state.loading = false
             })
-            .addCase(addEmployeesToSession.fulfilled, (state, action) => {
-                state.loading = false;
-            })
-            .addCase(addEmployeesToSession.rejected, (state, action) => {
-                state.loading = false;
-                state.error = action.payload;
-            })
+            .addCase(addEmployeesToOvertime.rejected, handleRejected)
 
-            // removeEmployeeFromSession
-            .addCase(removeEmployeeFromSession.pending, (state) => {
-                state.loading = true;
+            // removeEmployeeFromOvertime
+            .addCase(removeEmployeeFromOvertime.pending, handlePending)
+            .addCase(removeEmployeeFromOvertime.fulfilled, (state) => {
+                state.loading = false
             })
-            .addCase(removeEmployeeFromSession.fulfilled, (state, action) => {
-                state.loading = false;
-                const { userId } = action.payload;
-                if (state.currentSession && state.currentSession.entries) {
-                    state.currentSession.entries = state.currentSession.entries.filter(e => e.userId !== userId);
-                }
-            })
-            .addCase(removeEmployeeFromSession.rejected, (state, action) => {
-                state.loading = false;
-                state.error = action.payload;
-            })
+            .addCase(removeEmployeeFromOvertime.rejected, handleRejected)
 
-            // closeSession
-            .addCase(closeSession.pending, (state) => {
-                state.loading = true;
+            // closeOvertimeSession
+            .addCase(closeOvertimeSession.pending, handlePending)
+            .addCase(closeOvertimeSession.fulfilled, (state) => {
+                state.loading = false
             })
-            .addCase(closeSession.fulfilled, (state, action) => {
-                state.loading = false;
-                if (state.currentSession && state.currentSession.id === action.payload.data?.id) {
-                    state.currentSession = action.payload.data;
-                }
-            })
-            .addCase(closeSession.rejected, (state, action) => {
-                state.loading = false;
-                state.error = action.payload;
-            });
+            .addCase(closeOvertimeSession.rejected, handleRejected)
     }
-});
+})
 
-export const { clearCurrentSession } = overtimeSlice.actions;
-export default overtimeSlice.reducer;
+export const { clearSessionDetail } = overtimeSlice.actions
+export default overtimeSlice.reducer
