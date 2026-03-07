@@ -7,6 +7,7 @@ import useIsCollapsed from '@/hooks/UseIsCollapsed'
 import Notification from '@/components/custom/Notification'
 import NotificationBell from '@/components/NotificationBell'
 import MobileNavigation from '@/components/MobileNavigation'
+import { GlobalSearch } from '@/components/GlobalSearch'
 
 const AdminLayout = () => {
   const [isCollapsed, setIsCollapsed] = useIsCollapsed()
@@ -32,12 +33,17 @@ const AdminLayout = () => {
       >
         <Layout>
           <LayoutHeader className="sticky top-0 z-40 bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60 text-foreground border-b border-border min-h-[var(--header-height)] shadow-sm">
-            <div className="ml-auto flex items-center space-x-6">
-              <div className="hidden md:flex items-center space-x-4">
-                <NotificationBell />
-                <ThemeSwitch />
+            <div className="flex flex-1 items-center justify-between md:justify-end">
+              <div className="flex items-center mx-4 md:mr-auto">
+                <GlobalSearch />
               </div>
-              <UserNav />
+              <div className="ml-auto flex items-center space-x-6">
+                <div className="hidden md:flex items-center space-x-4">
+                  <NotificationBell />
+                  <ThemeSwitch />
+                </div>
+                <UserNav />
+              </div>
             </div>
           </LayoutHeader>
 
