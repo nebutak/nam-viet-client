@@ -306,7 +306,7 @@ export const sideLinks = [
   {
     title: 'Báo Cáo',
     icon: <PieChart size={20} strokeWidth={1.5} />,
-    permission: ['GET_REVENUE_REPORT', 'GET_INVENTORY_REPORT', 'GET_SALES_REPORT', 'GET_FINANCIAL_REPORT'],
+    permission: ['GET_REVENUE_REPORT', 'GET_INVENTORY_REPORT', 'GET_SALES_REPORT', 'GET_PRODUCTION_REPORT', 'GET_FINANCIAL_REPORT'],
     sub: [
       {
         title: 'Doanh thu',
@@ -325,6 +325,12 @@ export const sideLinks = [
         href: '/sales-report',
         icon: <CircleDollarSign size={18} strokeWidth={1.5} />,
         permission: 'GET_SALES_REPORT',
+      },
+      {
+        title: 'Sản xuất',
+        href: '/production-report',
+        icon: <Package size={18} strokeWidth={1.5} />,
+        permission: 'GET_PRODUCTION_REPORT',
       },
       {
         title: 'Tài chính',

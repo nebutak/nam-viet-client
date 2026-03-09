@@ -48,6 +48,11 @@ import MyPaymentPage from '@/views/admin/payment/MyPaymentPage'
 import WarehouseInPage from '@/views/admin/warehouse-receipt/WarehouseInPage'
 import WarehouseOutPage from '@/views/admin/warehouse-receipt/WarehouseOutPage'
 
+import RevenueReportPage from '@/views/admin/reports/revenue/RevenueReportPage'
+import InventoryReportPage from '@/views/admin/reports/inventory/InventoryReportPage'
+import SalesReportPage from '@/views/admin/reports/sales/SalesReportPage'
+import FinancialReportPage from '@/views/admin/reports/financial/FinancialReportPage'
+import ProductionReportPage from '@/views/admin/reports/production/ProductionReportPage'
 import SalaryPage from '@/views/admin/salary/SalaryPage'
 import SalaryCalculatePage from '@/views/admin/salary/SalaryCalculatePage'
 
@@ -243,6 +248,31 @@ const routes = [
   {
     path: '/inventory-warning',
     element: InventoryWarningPage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/revenue',
+    element: RevenueReportPage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/inventory-report',
+    element: InventoryReportPage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/sales-report',
+    element: SalesReportPage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/financial-report',
+    element: FinancialReportPage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/production-report',
+    element: ProductionReportPage,
     layout: AdminLayout,
   },
   {
