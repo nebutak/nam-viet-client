@@ -7,7 +7,9 @@ export const getCategories = createAsyncThunk(
   'category',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await api.get('/categories')
+      const response = await api.get('/categories', {
+        params: { limit: 1000 }
+      })
 
       const { data } = response.data
       return data

@@ -58,8 +58,6 @@ const baseCreateSchema = z.object({
   name: z.string().nonempty('Tên là bắt buộc'),
   description: z.string().nullable(),
   note: z.string().nullable(),
-  type: z.string().nonempty('Loại là bắt buộc'),
-  // source: z.string().nonempty('Nguồn là bắt buộc'),
 
   // salaryCoefficient: z.object({
   //   coefficient: z
@@ -80,7 +78,6 @@ const baseCreateSchema = z.object({
   warrantyPolicy: z.any().optional(), // validate bằng superRefine
 
   basePrice: z.union([z.string(), z.number()]).optional(), // giá gốc
-  manageSerial: z.boolean().default(false), // quản lý serial
 
   // Price Sync fields
   syncEnabled: z.boolean().optional().default(false),

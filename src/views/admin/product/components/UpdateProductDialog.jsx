@@ -155,6 +155,7 @@ const UpdateProductDialog = ({
       name: product?.name ?? '',
       description: product?.description ?? '',
       note: product?.note ?? '',
+      type: product?.productType ?? 'goods',
       minStockLevel: product?.minStockLevel?.toString?.() ?? '0',
       source: product?.source ?? '',
       salaryCoefficient: product?.coefficient
@@ -171,7 +172,6 @@ const UpdateProductDialog = ({
       image: new File([], ''),
       hasExpiry: product?.hasExpiry ?? false,
       code: product?.code ?? '',
-      manageSerial: product?.manageSerial ?? false,
 
       // Warranty
       applyWarranty: !!product?.warrantyPolicy,
@@ -187,7 +187,6 @@ const UpdateProductDialog = ({
     },
   })
 
-  const selectedProductType = form.watch('type')
   const selectedBaseUnitId = form.watch('unitId')
   const selectedSupplierId = form.watch('supplierId')
 
@@ -330,6 +329,7 @@ const UpdateProductDialog = ({
         name: data.name,
         description: data.description,
         note: data.note,
+        productType: 'goods',
         minStockLevel: data.minStockLevel,
         // Only include salaryCoefficient if it has valid data
         ...(data.salaryCoefficient?.coefficient ? {
@@ -912,9 +912,9 @@ const UpdateProductDialog = ({
                 )}
               </div>
 
-              {/* Attributes only for digital */}
-              {selectedProductType === 'digital' && (
-                <div className="mb-3 grid gap-4 md:grid-cols-2">
+              {/* Product Attributes Block */}
+              <div>
+                <div className="mb-3 mt-4 border-t pt-4 grid gap-4 md:grid-cols-2">
                   {attrFields.map((fieldItem, index) => (
                     <div key={fieldItem.id} className="flex items-center gap-4">
                       <FormField
@@ -973,20 +973,9 @@ const UpdateProductDialog = ({
                     </div>
                   ))}
 
-                  <div className="md:col-span-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => appendAttr(defaultAttributeWithValue)}
-                      className="w-52"
-                    >
-                      <PlusIcon className="h-4 w-4 flex-shrink-0" /> Thêm thuộc
-                      tính sản phẩm
-                    </Button>
-                  </div>
-                </div>
-              )}
 
+                </div>
+              </div>
               <div className="mb-3 grid gap-4 md:grid-cols-3">
                 <FormField
                   control={form.control}
@@ -1049,34 +1038,8 @@ const UpdateProductDialog = ({
                           Quản lý hạn dùng
                         </FormLabel>
                       </FormItem>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="manageSerial"
-                  render={({ field }) => (
-                    <FormItem>
-                      <div className="mb-3">
-                        <FormLabel>Serial</FormLabel>
-                      </div>
-                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                        <FormLabel className="text-sm font-normal">
-                          Quản lý theo serial
-                        </FormLabel>
-                      </FormItem>
-                      <p className="text-sm italic text-muted-foreground">
-                        Bật nếu mỗi đơn vị sản phẩm có số serial riêng (điện
-                        thoại, máy móc, ... Serial sẽ được nhập khi nhập kho,
-                        không nhập tại đây.
+                      <p className="text-sm italic text-muted-foreground mt-2">
+                        Bật nếu sản phẩm cần theo dõi Số Lô (Batch) và Hạn sử dụng (Expiry Date) khi nhập / xuất kho.
                       </p>
                       <FormMessage />
                     </FormItem>
@@ -1216,39 +1179,44 @@ const UpdateProductDialog = ({
             Cập nhật
           </Button>
         </DialogFooter>
-      </DialogContent>
+      </DialogContent>      {
+        showCreateSupplierDialog && (
+          <CreateSupplierDialog
+            open={showCreateSupplierDialog}
+            onOpenChange={setShowCreateSupplierDialog}
+            showTrigger={false}
+            contentClassName="z-[100040]"
+            overlayClassName="z-[100039]"
+          />
+        )
+      }
 
-      {showCreateSupplierDialog && (
-        <CreateSupplierDialog
-          open={showCreateSupplierDialog}
-          onOpenChange={setShowCreateSupplierDialog}
-          showTrigger={false}
-          contentClassName="z-[100040]"
-          overlayClassName="z-[100039]"
-        />
-      )}
+      {
+        showCreateCategoryDialog && (
+          <CreateCategoryDialog
+            open={showCreateCategoryDialog}
+            onOpenChange={setShowCreateCategoryDialog}
+            showTrigger={false}
+            contentClassName="z-[100040]"
+            overlayClassName="z-[100039]"
+          />
+        )
+      }
 
-      {showCreateCategoryDialog && (
-        <CreateCategoryDialog
-          open={showCreateCategoryDialog}
-          onOpenChange={setShowCreateCategoryDialog}
-          showTrigger={false}
-          contentClassName="z-[100040]"
-          overlayClassName="z-[100039]"
-        />
-      )}
-
-      {showCreateUnitDialog && (
-        <CreateUnitDialog
-          open={showCreateUnitDialog}
-          onOpenChange={setShowCreateUnitDialog}
-          showTrigger={false}
-          contentClassName="z-[100040]"
-          overlayClassName="z-[100039]"
-        />
-      )}
-    </Dialog>
+      {
+        showCreateUnitDialog && (
+          <CreateUnitDialog
+            open={showCreateUnitDialog}
+            onOpenChange={setShowCreateUnitDialog}
+            showTrigger={false}
+            contentClassName="z-[100040]"
+            overlayClassName="z-[100039]"
+          />
+        )
+      }
+    </Dialog >
   )
 }
 
 export default UpdateProductDialog
+

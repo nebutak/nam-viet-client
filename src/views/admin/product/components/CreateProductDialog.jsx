@@ -124,6 +124,7 @@ const CreateProductDialog = ({
       name: '',
       description: '',
       note: '',
+      type: 'goods',
       minStockLevel: '0',
       salaryCoefficient: {
         coefficient: '',
@@ -133,7 +134,6 @@ const CreateProductDialog = ({
       image: new File([], ''),
       hasExpiry: false,
       code: '',
-      manageSerial: false,
       warrantyPolicy: {
         periodMonths: '',
         conditions: '',
@@ -143,7 +143,6 @@ const CreateProductDialog = ({
     },
   })
 
-  const selectedProductType = form.watch('type')
   const selectedBaseUnitId = form.watch('unitId')
   const selectedSupplierId = form.watch('supplierId')
 
@@ -230,6 +229,7 @@ const CreateProductDialog = ({
         name: data.name,
         description: data.description,
         note: data.note,
+        type: 'goods',
         minStockLevel: data.minStockLevel,
         salaryCoefficient: {
           coefficient: data.salaryCoefficient?.coefficient || 0,
@@ -723,9 +723,9 @@ const CreateProductDialog = ({
                 )}
               </div>
 
-              {/* Attributes only for digital */}
-              {selectedProductType === 'digital' && (
-                <div className="mb-3 grid gap-4 md:grid-cols-2">
+              {/* Product Attributes Block */}
+              <div>
+                <div className="mb-3 mt-4 border-t pt-4 grid gap-4 md:grid-cols-2">
                   {attributeFields.map((fieldItem, index) => (
                     <div key={fieldItem.id} className="flex items-center gap-4">
                       <FormField
@@ -787,18 +787,9 @@ const CreateProductDialog = ({
                   ))}
 
                   <div className="md:col-span-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => appendAttribute(defaultAttributeWithValue)}
-                      className="w-52"
-                    >
-                      <PlusIcon className="h-4 w-4 flex-shrink-0" /> Thêm thuộc
-                      tính sản phẩm
-                    </Button>
                   </div>
                 </div>
-              )}
+              </div>
 
               <div className="mb-3 grid gap-4 md:grid-cols-3">
                 <FormField
@@ -862,34 +853,8 @@ const CreateProductDialog = ({
                           Quản lý hạn dùng
                         </FormLabel>
                       </FormItem>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="manageSerial"
-                  render={({ field }) => (
-                    <FormItem>
-                      <div className="mb-3">
-                        <FormLabel>Serial</FormLabel>
-                      </div>
-                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                        <FormLabel className="text-sm font-normal">
-                          Quản lý theo serial
-                        </FormLabel>
-                      </FormItem>
-                      <p className="text-sm italic text-muted-foreground">
-                        Bật nếu mỗi đơn vị sản phẩm có số serial riêng (điện
-                        thoại, máy móc, ... Serial sẽ được nhập khi nhập kho,
-                        không nhập tại đây.
+                      <p className="text-sm italic text-muted-foreground mt-2">
+                        Bật nếu sản phẩm cần theo dõi Số Lô (Batch) và Hạn sử dụng (Expiry Date) khi nhập / xuất kho.
                       </p>
                       <FormMessage />
                     </FormItem>

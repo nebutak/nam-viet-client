@@ -18,7 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { DataTableToolbar } from './DataTableToolbar'
+import DataTableToolbar from './DataTableToolbar'
 import { DataTablePagination } from './DataTablePagination'
 import { Skeleton } from '@/components/ui/skeleton'
 import MobileProductCard from './MobileProductCard'

@@ -132,7 +132,7 @@ const DataTableToolbar = ({ table }) => {
                     title="Chọn danh mục"
                     options={categories.map((category) => ({
                       value: parseInt(category?.id),
-                      label: category?.name,
+                      label: category?.categoryName,
                     }))}
                   />
                   <DropdownMenuSeparator />
@@ -249,7 +249,7 @@ const DataTableToolbar = ({ table }) => {
               title="Danh mục"
               options={categories.map((category) => ({
                 value: parseInt(category?.id),
-                label: category?.name,
+                label: category?.categoryName,
               }))}
             />
           )}
@@ -383,4 +383,4 @@ const DataTableToolbar = ({ table }) => {
   )
 }
 
-export { DataTableToolbar }
+export default DataTableToolbar

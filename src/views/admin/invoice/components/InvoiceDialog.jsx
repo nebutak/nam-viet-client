@@ -134,10 +134,8 @@ const InvoiceDialog = ({
   const [quantities, setQuantities] = useState({})
   const [notes, setNotes] = useState({})
   const [giveaway, setGiveaway] = useState({})
-  const [accountName, setAccountName] = useState({})
   const [totalAmount, setTotalAmount] = useState('')
   const [selectedTaxes, setSelectedTaxes] = useState({})
-  const [customerAccounts, setCustomerAccounts] = useState([])
   const [generalInformation, setGeneralInformation] = useState(false)
   const [invoice, setInvoice] = useState(null)
   const [banks, setBanks] = useState([])
@@ -159,7 +157,9 @@ const InvoiceDialog = ({
   }
 
   const handleStartDateChange = (productId, date) => {
-    setProductStartDate((prev) => ({ ...prev, [productId]: date }))
+    // This function is no longer needed if productStartDate is removed.
+    // Keeping it as a placeholder or removing it entirely depends on other usages.
+    // For now, removing its body.
   }
 
   // Handle contract product selection
@@ -225,16 +225,6 @@ const InvoiceDialog = ({
     setGiveaway({})
     setSelectedTaxes({})
     setApplyWarrantyItems({})
-    setApplyExpiryItems({})
-    setExpiryDurations({})
-    setProductStartDate({})
-    setAccountName({})
-    setCustomerAccounts([])
-    setSelectedCustomer(null)
-    setCustomerEditData(null)
-    setCustomerErrors({})
-    setTotalAmount('')
-    setIsSharing(false)
     setIsCreateReceipt(false)
     setHasPrintQuotation(false)
     setHasPrintInvoice(false)
@@ -291,10 +281,6 @@ const InvoiceDialog = ({
         const give = {}
         const tax = {}
         const warr = {}
-        const expApply = {}
-        const expDur = {}
-        const expStart = {}
-        const acc = {}
         const unitIds = {}
         const basePrices = {}
         const overrides = {}
@@ -310,14 +296,6 @@ const InvoiceDialog = ({
           give[pid] = Number(item.giveaway || 0)
           tax[pid] = item.taxes?.map((t) => t.id) || item.taxIds || []
           warr[pid] = !!item.applyWarranty || !!(item.warranty && item.warranty !== '0' && item.warranty !== 'false')
-
-          expApply[pid] = !!item.applyExpiry
-          expDur[pid] = {
-            value: item.expiryDuration || 1,
-            unit: item.expiryUnit || 'month',
-          }
-          expStart[pid] = item.startDate ? new Date(item.startDate) : null
-          acc[pid] = item.accountName || ''
 
           // Unit conversion from invoice item
           const unitIdFromItem = item.unitId || product?.baseUnitId || product?.prices?.[0]?.unitId
@@ -363,10 +341,6 @@ const InvoiceDialog = ({
         setGiveaway(give)
         setSelectedTaxes(tax)
         setApplyWarrantyItems(warr)
-        setApplyExpiryItems(expApply)
-        setExpiryDurations(expDur)
-        setProductStartDate(expStart)
-        setAccountName(acc)
         setSelectedUnitIds(unitIds)
         setBaseUnitPrices(basePrices)
         setPriceOverrides(overrides)
@@ -783,61 +757,7 @@ const InvoiceDialog = ({
 
     setDeliveryDateError('') // Clear error if not printing contract or validation passed
 
-    // validations liên quan expiry/account giữ nguyên
-    for (const product of selectedProducts) {
-      const selectedAccount = customerAccounts.find(
-        (acc) => acc.accountName === accountName[product.id],
-      )
-
-      const accountProductId = selectedAccount?.expiries?.[0]?.productId
-      const expiryDuration = expiryDurations[product.id]
-      const isHasExpiry = product.hasExpiry && applyExpiryItems[product.id]
-
-      if (accountProductId && accountProductId !== product.id) {
-        toast.error('Tài khoản không khớp với sản phẩm')
-        return
-      }
-
-      if (
-        isHasExpiry &&
-        (!expiryDuration?.value || expiryDuration.value <= 0)
-      ) {
-        toast.error(
-          `Vui lòng nhập thời hạn gia hạn cho sản phẩm "${product.name}"`,
-        )
-        return
-      }
-
-      const hasAccount = !!accountName[product.id]
-      const hasStartDate = !!productStartDate[product.id]
-
-      if (isHasExpiry && (!hasAccount || !hasStartDate)) {
-        toast.error(
-          `Vui lòng nhập cả tài khoản và ngày bắt đầu cho sản phẩm "${product.name}"`,
-        )
-        return
-      }
-
-      if ((hasAccount && !hasStartDate) || (!hasAccount && hasStartDate)) {
-        toast.error(
-          `Vui lòng nhập cả tài khoản và ngày bắt đầu cho sản phẩm "${product.name}"`,
-        )
-        return
-      }
-    }
-
     const items = selectedProducts.map((product) => {
-      const startDate = productStartDate[product.id]
-        ? new Date(productStartDate[product.id]).toISOString()
-        : null
-
-      const selectedAccount = customerAccounts.find(
-        (acc) => acc.accountName === accountName[product.id],
-      )
-
-      const isApplyExpiry = !!applyExpiryItems[product.id]
-      const expiry = expiryDurations[product.id] || {}
-
       // ===== unit conversion fields =====
       const unitId =
         selectedUnitIds[product.id] ||
@@ -890,15 +810,6 @@ const InvoiceDialog = ({
 
         note: notes[product.id] || '',
         options: product.attributes || [],
-
-        accountId: isApplyExpiry
-          ? selectedAccount?.id?.toString() || null
-          : null,
-        accountName: isApplyExpiry ? accountName[product.id] || '' : '',
-        startDate: isApplyExpiry ? startDate : null,
-        applyExpiry: isApplyExpiry,
-        expiryDuration: isApplyExpiry ? expiry.value : null,
-        expiryUnit: isApplyExpiry ? expiry.unit : null,
 
         conditions:
           applyWarrantyItems[product.id] && product?.warrantyPolicy
@@ -1054,25 +965,6 @@ const InvoiceDialog = ({
     )
     setSelectedProducts(selectProductDetails)
 
-    // giữ lại ngày bắt đầu, expiry durations như cũ
-    setProductStartDate((prev) => {
-      const updated = {}
-      for (const id of productIds) {
-        if (prev[id]) updated[id] = prev[id]
-      }
-      return updated
-    })
-
-    setExpiryDurations((prev) => {
-      const next = { ...prev }
-      for (const p of selectProductDetails) {
-        if (p.hasExpiry && !next[p.id]) {
-          next[p.id] = { value: 1, unit: 'month' }
-        }
-      }
-      return next
-    })
-
     // ===== init unit & base price states =====
     setSelectedUnitIds((prev) => {
       const next = { ...prev }
@@ -1122,58 +1014,11 @@ const InvoiceDialog = ({
     }))
   }
 
-  const handleApplyExpiryChange = (productId, checked) => {
-    setApplyExpiryItems((prev) => ({
-      ...prev,
-      [productId]: !!checked,
-    }))
-    if (checked) {
-      setExpiryDurations((prev) => ({
-        ...prev,
-        [productId]: prev[productId] || {
-          value: 1,
-          unit: 'month',
-        },
-      }))
-    }
-  }
-
-  const handleExpiryDurationChange = (productId, field, value) => {
-    setExpiryDurations((prev) => ({
-      ...prev,
-      [productId]: {
-        ...(prev[productId] || { value: 1, unit: 'month' }),
-        [field]: value,
-      },
-    }))
-  }
-
   const handleApplyWarrantyChange = (productId, checked) => {
     setApplyWarrantyItems((prev) => ({
       ...prev,
       [productId]: !!checked,
     }))
-  }
-
-  const handleAccountNameChange = (productId, value) => {
-    setAccountName((prev) => ({
-      ...prev,
-      [productId]: value,
-    }))
-
-    const selectedAcc = customerAccounts.find(
-      (acc) => acc.accountName === value,
-    )
-    if (selectedAcc && selectedAcc.expiries?.[0]?.endDate) {
-      const endDate = new Date(selectedAcc.expiries[0].endDate)
-      const nextStartDate = new Date(endDate)
-      nextStartDate.setDate(nextStartDate.getDate() + 1)
-
-      setProductStartDate((prev) => ({
-        ...prev,
-        [productId]: nextStartDate,
-      }))
-    }
   }
 
   const calculateSubTotal = (productId) => {

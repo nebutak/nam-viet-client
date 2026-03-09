@@ -170,6 +170,8 @@ const CreateManualWarehouseReceiptDialog = ({
         quantity: 1,
         price: defaultPrice,
         movement: defaultMovement,
+        batchNumber: '',
+        expiryDate: null,
         note: '',
         product: product // Keep full product ref for unit conversion lookup
       }
@@ -217,6 +219,8 @@ const CreateManualWarehouseReceiptDialog = ({
         movement: receiptType === 1 ? 'in' : 'out',
         qtyActual: item.quantity,
         unitPrice: item.price,
+        batchNumber: item.product?.hasExpiry ? item.batchNumber : undefined,
+        expiryDate: item.product?.hasExpiry && item.expiryDate ? item.expiryDate.toISOString().split('T')[0] : undefined,
         note: item.note
       }))
 
@@ -608,8 +612,32 @@ const CreateManualWarehouseReceiptDialog = ({
                               </div>
                             </div>
 
-                            {/* Row 4: Note */}
-                            <div className="space-y-1">
+                            {/* Row 4: Batch & Expiry (if applicable) */}
+                            {item.product?.hasExpiry && (
+                              <div className="grid grid-cols-2 gap-2 mt-2">
+                                <div className="space-y-1">
+                                  <label className="text-[10px] text-muted-foreground uppercase">Số Lô</label>
+                                  <Input
+                                    className="h-8 text-sm"
+                                    value={item.batchNumber}
+                                    onChange={(e) => handleProductChange(index, 'batchNumber', e.target.value)}
+                                    placeholder="Số lô..."
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-[10px] text-muted-foreground uppercase">Hạn SD</label>
+                                  <Input
+                                    type="date"
+                                    className="h-8 text-sm"
+                                    value={item.expiryDate ? (item.expiryDate instanceof Date ? item.expiryDate.toISOString().split('T')[0] : item.expiryDate) : ''}
+                                    onChange={(e) => handleProductChange(index, 'expiryDate', e.target.value ? new Date(e.target.value) : null)}
+                                  />
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Row 5: Note */}
+                            <div className="space-y-1 mt-2">
                               <label className="text-[10px] text-muted-foreground uppercase">Ghi chú</label>
                               <Input
                                 className="h-8 text-sm"
@@ -636,6 +664,8 @@ const CreateManualWarehouseReceiptDialog = ({
                             <TableHead className="w-[150px]">
                               {receiptType === 2 ? 'Đơn giá bán' : 'Đơn giá vốn'}
                             </TableHead>
+                            <TableHead className="w-[120px]">Số Lô</TableHead>
+                            <TableHead className="w-[150px]">Hạn SD</TableHead>
                             <TableHead>Ghi chú</TableHead>
                             <TableHead className="w-[50px]"></TableHead>
                           </TableRow>
@@ -704,6 +734,30 @@ const CreateManualWarehouseReceiptDialog = ({
                                     value={item.price}
                                     onChange={(val) => handleProductChange(index, 'price', val)}
                                   />
+                                </TableCell>
+                                <TableCell>
+                                  {item.product?.hasExpiry ? (
+                                    <Input
+                                      className="h-8"
+                                      value={item.batchNumber}
+                                      onChange={(e) => handleProductChange(index, 'batchNumber', e.target.value)}
+                                      placeholder="Số lô..."
+                                    />
+                                  ) : (
+                                    <span className="text-xs text-muted-foreground">-</span>
+                                  )}
+                                </TableCell>
+                                <TableCell>
+                                  {item.product?.hasExpiry ? (
+                                    <Input
+                                      type="date"
+                                      className="h-8 text-xs"
+                                      value={item.expiryDate ? (item.expiryDate instanceof Date ? item.expiryDate.toISOString().split('T')[0] : item.expiryDate) : ''}
+                                      onChange={(e) => handleProductChange(index, 'expiryDate', e.target.value ? new Date(e.target.value) : null)}
+                                    />
+                                  ) : (
+                                    <span className="text-xs text-muted-foreground">-</span>
+                                  )}
                                 </TableCell>
                                 <TableCell>
                                   <Input

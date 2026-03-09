@@ -2,7 +2,7 @@ import { Layout, LayoutBody } from '@/components/custom/Layout'
 import { ProductDataTable } from './components/ProductDataTable'
 import { useDispatch, useSelector } from 'react-redux'
 import { getProducts, updateProductInStore } from '@/stores/ProductSlice'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { columns } from './components/Column'
 import useSocketEvent from '@/hooks/UseSocketEvent'
 import { toast } from 'sonner'
@@ -11,11 +11,30 @@ const ProductPage = () => {
   const dispatch = useDispatch()
   const products = useSelector((state) => state.product.products)
   const loading = useSelector((state) => state.product.loading)
+  const serverPagination = useSelector((state) => state.product.pagination)
+
+  const [pagination, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 20,
+  })
+  const [columnFilters, setColumnFilters] = useState([])
+  const [globalFilter, setGlobalFilter] = useState('')
 
   useEffect(() => {
     document.title = 'Quản lý sản phẩm'
-    dispatch(getProducts())
-  }, [dispatch])
+
+    const filtersParams = columnFilters.reduce((acc, filter) => {
+      acc[filter.id] = filter.value.join ? filter.value.join(',') : filter.value
+      return acc
+    }, {})
+
+    dispatch(getProducts({
+      page: pagination.pageIndex + 1,
+      limit: pagination.pageSize,
+      search: globalFilter || undefined,
+      ...filtersParams
+    }))
+  }, [dispatch, pagination.pageIndex, pagination.pageSize, columnFilters, globalFilter])
 
   // Listen for real-time price updates
   useSocketEvent({
@@ -47,6 +66,14 @@ const ProductPage = () => {
               data={products}
               columns={columns}
               loading={loading}
+              pagination={pagination}
+              pageCount={serverPagination?.totalPages || 1}
+              rowCount={serverPagination?.total || 0}
+              onPaginationChange={setPagination}
+              columnFilters={columnFilters}
+              onColumnFiltersChange={setColumnFilters}
+              globalFilter={globalFilter}
+              onGlobalFilterChange={setGlobalFilter}
             />
           )}
         </div>
