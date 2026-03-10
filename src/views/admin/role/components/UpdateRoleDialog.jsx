@@ -113,7 +113,7 @@ const UpdateRoleDialog = ({
         updatedCheckedPermissions.push(node.id)
 
         // Custom Logic: If GET_INVOICE or PURCHASE_ORDER_VIEW_ALL is checked, auto-check GET_USER
-        if (node.code === 'GET_INVOICE' || node.code === 'PURCHASE_ORDER_VIEW_ALL') {
+        if (node.code === 'GET_INVOICE' || node.code === 'GET_PURCHASE_ORDER') {
           const getUserId = codeToIdMap['GET_USER']
           if (getUserId && !updatedCheckedPermissions.includes(getUserId)) {
             updatedCheckedPermissions.push(getUserId)
@@ -123,7 +123,7 @@ const UpdateRoleDialog = ({
         // Validation: Cannot uncheck GET_USER if dependent permissions are active
         if (node.code === 'GET_USER') {
           const getInvoiceId = codeToIdMap['GET_INVOICE']
-          const getPurchaseOrderId = codeToIdMap['PURCHASE_ORDER_VIEW_ALL']
+          const getPurchaseOrderId = codeToIdMap['GET_PURCHASE_ORDER']
 
           const hasDependentPermissions = updatedCheckedPermissions.some(id =>
             (getInvoiceId && id === getInvoiceId) ||
@@ -151,7 +151,7 @@ const UpdateRoleDialog = ({
 
         // Custom Logic: Check if GET_INVOICE or PURCHASE_ORDER_VIEW_ALL was added
         const getInvoiceId = codeToIdMap['GET_INVOICE']
-        const getPurchaseOrderId = codeToIdMap['PURCHASE_ORDER_VIEW_ALL']
+        const getPurchaseOrderId = codeToIdMap['GET_PURCHASE_ORDER']
 
         if (
           (getInvoiceId && newIds.includes(getInvoiceId)) ||
@@ -167,7 +167,7 @@ const UpdateRoleDialog = ({
         const getUserId = codeToIdMap['GET_USER']
         if (getUserId && idsToToggle.includes(getUserId)) {
           const getInvoiceId = codeToIdMap['GET_INVOICE']
-          const getPurchaseOrderId = codeToIdMap['PURCHASE_ORDER_VIEW_ALL']
+          const getPurchaseOrderId = codeToIdMap['GET_PURCHASE_ORDER']
 
           // Let's look at remaining permissions AFTER removal
           const remainingPermissions = updatedCheckedPermissions.filter(id => !idsToToggle.includes(id))

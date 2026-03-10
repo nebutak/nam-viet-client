@@ -89,7 +89,7 @@ const DataTableToolbar = ({ table, onCreated, isMyPurchaseOrder }) => {
 
         {/* Quick actions */}
         <div className="flex gap-2">
-          <Can permission={['PURCHASE_ORDER_CREATE']}>
+          <Can permission={['CREATE_PURCHASE_ORDER']}>
             <Button
               size="sm"
               className="flex-1 h-8 text-xs bg-green-600 hover:bg-green-700 text-white"
@@ -344,7 +344,7 @@ const DataTableToolbar = ({ table, onCreated, isMyPurchaseOrder }) => {
         )}
 
         {/* Tạo đơn đặt hàng */}
-        <Can permission={['PURCHASE_ORDER_CREATE']}>
+        <Can permission={['CREATE_PURCHASE_ORDER']}>
           <Button
             size="sm"
             onClick={() => setShowCreateDialog(true)}

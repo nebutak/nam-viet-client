@@ -186,7 +186,7 @@ const DataTableRowActions = ({ row, table }) => {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48">
-          <Can permission="PURCHASE_ORDER_VIEW_ALL">
+          <Can permission="GET_PURCHASE_ORDER">
             <DropdownMenuItem
               onClick={() => table.options.meta?.onView?.(purchaseOrder.id)}
               className="text-slate-600"
@@ -212,7 +212,7 @@ const DataTableRowActions = ({ row, table }) => {
           <DropdownMenuSeparator />
 
           {canImportWarehouse && (
-            <Can permission="WAREHOUSE_IMPORT_CREATE">
+            <Can permission="CREATE_WAREHOUSE_IMPORT">
               <DropdownMenuItem onClick={() => setShowImportWarehouseDialog(true)} className="text-orange-600">
                 Tạo phiếu nhập
                 <DropdownMenuShortcut>
@@ -223,7 +223,7 @@ const DataTableRowActions = ({ row, table }) => {
           )}
 
           {canPayment && (
-            <Can permission="PAYMENT_CREATE">
+            <Can permission="CREATE_PAYMENT">
               <DropdownMenuItem onClick={handleShowPaymentDialog} disabled={isOpeningPayment} className="text-emerald-600">
                 Tạo phiếu chi
                 <DropdownMenuShortcut>
@@ -236,7 +236,7 @@ const DataTableRowActions = ({ row, table }) => {
           <DropdownMenuSeparator />
 
           {canEdit && (
-            <Can permission="PURCHASE_ORDER_UPDATE">
+            <Can permission="UPDATE_PURCHASE_ORDER">
               <DropdownMenuItem onClick={() => setShowUpdateDialog(true)} className="text-amber-500 focus:text-amber-600 hover:text-amber-600 focus:bg-amber-50">
                 Sửa
                 <DropdownMenuShortcut>
@@ -258,7 +258,7 @@ const DataTableRowActions = ({ row, table }) => {
           )} */}
 
           {canDelete && (
-            <Can permission="PURCHASE_ORDER_DELETE">
+            <Can permission="DELETE_PURCHASE_ORDER">
               <DropdownMenuItem onSelect={() => setShowDeleteDialog(true)} className="text-red-600">
                 Xóa
                 <DropdownMenuShortcut>
@@ -272,7 +272,7 @@ const DataTableRowActions = ({ row, table }) => {
 
           {/* Ghi Sổ Kho - Chỉ hiển thị khi có phiếu kho DRAFT */}
           {purchaseOrder?.warehouseReceipt?.status === 'DRAFT' && (
-            <Can permission="WAREHOUSE_IMPORT_CREATE">
+            <Can permission="CREATE_WAREHOUSE_IMPORT">
               <DropdownMenuItem
                 onClick={handlePostWarehouseReceipt}
                 className="text-orange-600"

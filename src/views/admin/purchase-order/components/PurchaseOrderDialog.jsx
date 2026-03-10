@@ -19,7 +19,7 @@ import { getProducts } from '@/stores/ProductSlice'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { getSuppliers } from '@/stores/SupplierSlice'
-import { getCustomers } from '@/stores/CustomerSlice'
+
 import { createPurchaseOrderSchema } from '../schema'
 import { createPurchaseOrder, updatePurchaseOrder, getPurchaseOrderDetail } from '@/stores/PurchaseOrderSlice'
 import { toast } from 'sonner'
@@ -46,7 +46,6 @@ const PurchaseOrderDialog = ({
   const dispatch = useDispatch()
   const products = useSelector((state) => state.product.products)
   const suppliers = useSelector((state) => state.supplier.suppliers)
-  const customers = useSelector((state) => state.customer.customers)
   const loading = useSelector((state) => state.purchaseOrder.loading)
   const authUserWithRoleHasPermissions =
     useSelector((state) => state.auth.authUserWithRoleHasPermissions) || {}
@@ -65,11 +64,6 @@ const PurchaseOrderDialog = ({
 
   const [selectedSupplier, setSelectedSupplier] = useState(null)
   const [supplierEditData, setSupplierEditData] = useState(null)
-
-  const [selectedCustomer, setSelectedCustomer] = useState(null)
-  const [customerEditData, setCustomerEditData] = useState(null)
-  // 'supplier' | 'customer'
-  const [sourceType, setSourceType] = useState('supplier')
 
   const [selectedProducts, setSelectedProducts] = useState([])
   const [selectedUnitIds, setSelectedUnitIds] = useState({})
@@ -136,7 +130,6 @@ const PurchaseOrderDialog = ({
     if (open) {
       dispatch(getProducts())
       dispatch(getSuppliers())
-      dispatch(getCustomers())
     }
   }, [dispatch, open])
 
@@ -232,9 +225,6 @@ const PurchaseOrderDialog = ({
     setSelectedTaxes({})
     setSelectedSupplier(null)
     setSupplierEditData(null)
-    setSelectedCustomer(null)
-    setCustomerEditData(null)
-    setSourceType('supplier')
     setExpectedDeliveryDate(null)
     setSearchQuery('')
     setSelectedCategory('all')
@@ -435,39 +425,7 @@ const PurchaseOrderDialog = ({
     }
   }
 
-  const handleSelectCustomer = (customer) => {
-    setSelectedCustomer(customer)
-    if (customer) {
-      form.setValue('customerId', customer.id.toString())
-      setCustomerEditData({
-        name: customer.name,
-        phone: customer.phone || '',
-        email: customer.email || '',
-        address: customer.address || '',
-        identityCard: customer.identityCard || '',
-        identityDate: customer.identityDate || null,
-        identityPlace: customer.identityPlace || '',
-      })
-    } else {
-      form.setValue('customerId', '')
-      setCustomerEditData(null)
-    }
-  }
 
-  const handleSourceTypeChange = (type) => {
-    setSourceType(type)
-    if (type === 'supplier') {
-      // Clear customer data
-      setSelectedCustomer(null)
-      setCustomerEditData(null)
-      form.setValue('customerId', '')
-    } else if (type === 'customer') {
-      // Clear supplier data
-      setSelectedSupplier(null)
-      setSupplierEditData(null)
-      form.setValue('supplierId', '')
-    }
-  }
 
   const handleUnitChange = (productId, unitId) => {
     setSelectedUnitIds(prev => ({ ...prev, [productId]: Number(unitId) }))
@@ -588,27 +546,17 @@ const PurchaseOrderDialog = ({
       return
     }
 
-    // Must have either supplier or customer
-    if (sourceType === 'supplier') {
-      if (!data.supplierId && (!supplierEditData?.name || !supplierEditData?.phone)) {
-        toast.error('Vui lòng chọn nhà cung cấp hoặc nhập tên và số điện thoại cho nhà cung cấp mới')
-        return
-      }
-    } else {
-      if (!data.customerId && (!customerEditData?.name || !customerEditData?.phone)) {
-        toast.error('Vui lòng chọn khách hàng hoặc nhập tên và số điện thoại cho khách hàng mới')
-        return
-      }
+    if (!data.supplierId && (!supplierEditData?.name || !supplierEditData?.phone)) {
+      toast.error('Vui lòng chọn nhà cung cấp hoặc nhập tên và số điện thoại cho nhà cung cấp mới')
+      return
     }
 
-    // Số hợp đồng bắt buộc chỉ khi mua từ nhà cung cấp
-    if (sourceType === 'supplier' && !contractNumber) {
+    if (!contractNumber) {
       toast.error('Vui lòng nhập số hợp đồng')
       return
     }
 
-    // Strict validation for new supplier (only when buying from supplier)
-    if (sourceType === 'supplier' && supplierEditData) {
+    if (supplierEditData) {
       const phoneRegex = /^(0)(2|3|5|7|8|9)([0-9]{8,9})$/
       if (supplierEditData.phone && !phoneRegex.test(supplierEditData.phone)) {
         toast.error('SĐT nhà cung cấp không hợp lệ (Bắt đầu bằng 02, 03, 05, 07, 08, 09 và có 10-11 số)')
@@ -678,8 +626,7 @@ const PurchaseOrderDialog = ({
 
 
     const commonPayload = {
-      supplierId: sourceType === 'supplier' ? (data.supplierId || (isUpdateMode ? targetOrder?.supplierId : null)) : null,
-      customerId: sourceType === 'customer' ? (data.customerId || (isUpdateMode ? targetOrder?.customerId : null)) : null,
+      supplierId: data.supplierId || (isUpdateMode ? targetOrder?.supplierId : null),
       orderDate: data.orderDate ? new Date(data.orderDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
       expectedDeliveryDate: formattedDate,
       expectedReturnDate: formattedDate,
@@ -696,24 +643,13 @@ const PurchaseOrderDialog = ({
       paymentTerms: data.paymentTerms,
       updatedBy: authUserWithRoleHasPermissions.id,
 
-      ...(sourceType === 'supplier' && supplierEditData && {
+      ...(supplierEditData && {
         newSupplier: {
           name: supplierEditData.name,
           phone: supplierEditData.phone,
           email: supplierEditData.email || '',
           address: supplierEditData.address || '',
           taxCode: supplierEditData.taxCode || '',
-        }
-      }),
-      ...(sourceType === 'customer' && customerEditData && {
-        newCustomer: {
-          name: customerEditData.name,
-          phone: customerEditData.phone,
-          email: customerEditData.email || '',
-          address: customerEditData.address || '',
-          identityCard: customerEditData.identityCard || '',
-          identityDate: customerEditData.identityDate || null,
-          identityPlace: customerEditData.identityPlace || '',
         }
       }),
     }
@@ -897,13 +833,6 @@ const PurchaseOrderDialog = ({
                         supplierEditData={supplierEditData}
                         onSupplierEditDataChange={setSupplierEditData}
                         onSelectSupplier={handleSelectSupplier}
-                        customers={customers}
-                        selectedCustomer={selectedCustomer}
-                        customerEditData={customerEditData}
-                        onCustomerEditDataChange={setCustomerEditData}
-                        onSelectCustomer={handleSelectCustomer}
-                        sourceType={sourceType}
-                        onSourceTypeChange={handleSourceTypeChange}
                         paymentMethods={paymentMethods}
                         calculateSubTotal={calculateSubTotal}
                         calculateTotalTax={calculateTotalTax}
@@ -1045,13 +974,6 @@ const PurchaseOrderDialog = ({
                 supplierEditData={supplierEditData}
                 onSupplierEditDataChange={setSupplierEditData}
                 onSelectSupplier={handleSelectSupplier}
-                customers={customers}
-                selectedCustomer={selectedCustomer}
-                customerEditData={customerEditData}
-                onCustomerEditDataChange={setCustomerEditData}
-                onSelectCustomer={handleSelectCustomer}
-                sourceType={sourceType}
-                onSourceTypeChange={handleSourceTypeChange}
                 paymentMethods={paymentMethods}
                 calculateSubTotal={calculateSubTotal}
                 calculateTotalTax={calculateTotalTax}

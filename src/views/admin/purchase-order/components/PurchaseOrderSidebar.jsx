@@ -51,13 +51,6 @@ const PurchaseOrderSidebar = ({
   supplierEditData,
   onSupplierEditDataChange,
   onSelectSupplier,
-  customers = [],
-  selectedCustomer,
-  customerEditData,
-  onCustomerEditDataChange,
-  onSelectCustomer,
-  sourceType = 'supplier',
-  onSourceTypeChange,
   paymentMethods,
   calculateSubTotal,
   calculateTotalTax,
@@ -174,708 +167,314 @@ const PurchaseOrderSidebar = ({
       <div className="absolute left-0 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-border/40 to-transparent" />
 
       {/* Header */}
-      <div className="p-4 border-b bg-background/80 backdrop-blur-sm">
-        <h3 className="font-semibold mb-3">Thông tin đơn đặt hàng</h3>
-        {/* Source Type Toggle */}
-        <div className="flex rounded-md border overflow-hidden text-xs">
-          <button
-            type="button"
-            className={cn(
-              'flex-1 py-1.5 font-medium transition-colors',
-              sourceType === 'supplier'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-background text-muted-foreground hover:bg-muted/50'
-            )}
-            onClick={() => onSourceTypeChange?.('supplier')}
-          >
-            Nhà cung cấp
-          </button>
-          <button
-            type="button"
-            className={cn(
-              'flex-1 py-1.5 font-medium transition-colors',
-              sourceType === 'customer'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-background text-muted-foreground hover:bg-muted/50'
-            )}
-            onClick={() => onSourceTypeChange?.('customer')}
-          >
-            Khách hàng
-          </button>
-        </div>
-      </div>
-
       <ScrollArea className="flex-1">
         <div className="p-4 space-y-4">
-          {/* Supplier or Customer Selection */}
-          {sourceType === 'supplier' ? (
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Nhà cung cấp</label>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Nhà cung cấp</label>
 
-              {selectedSupplier ? (
-                <>
-                  <div className="border rounded-lg p-3 space-y-2 overflow-hidden">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage
-                          src={`https://ui-avatars.com/api/?bold=true&background=random&name=${selectedSupplier?.name}`}
-                          alt={selectedSupplier?.name}
-                        />
-                        <AvatarFallback>
-                          <User className="h-4 w-4" />
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium text-sm leading-snug break-words">
-                          {selectedSupplier?.name}
-                        </div>
-                        {selectedSupplier?.code && (
-                          <div className="text-xs text-muted-foreground">
-                            {selectedSupplier?.code}
-                          </div>
-                        )}
+            {selectedSupplier ? (
+              <>
+                <div className="border rounded-lg p-3 space-y-2 overflow-hidden">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage
+                        src={`https://ui-avatars.com/api/?bold=true&background=random&name=${selectedSupplier?.name}`}
+                        alt={selectedSupplier?.name}
+                      />
+                      <AvatarFallback>
+                        <User className="h-4 w-4" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm leading-snug break-words">
+                        {selectedSupplier?.name}
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={() => onSelectSupplier(null)}
-                      >
-                        <RefreshCcw className="h-4 w-4" />
-                      </Button>
-                    </div>
-
-                    <Separator />
-
-                    <div className="space-y-1.5 text-xs">
-                      {selectedSupplier?.phone && (
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <MobileIcon className="h-3 w-3" />
-                          <a
-                            href={`tel:${selectedSupplier?.phone}`}
-                            className="hover:text-primary"
-                          >
-                            {selectedSupplier?.phone}
-                          </a>
-                        </div>
-                      )}
-                      {selectedSupplier?.email && (
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <Mail className="h-3 w-3" />
-                          <a
-                            href={`mailto:${selectedSupplier?.email}`}
-                            className="hover:text-primary truncate"
-                          >
-                            {selectedSupplier?.email}
-                          </a>
-                        </div>
-                      )}
-                      {selectedSupplier?.address && (
-                        <div className="flex items-start gap-2 text-muted-foreground">
-                          <MapPin className="h-3 w-3 mt-0.5 shrink-0" />
-                          <span className="line-clamp-2">{selectedSupplier?.address}</span>
+                      {selectedSupplier?.code && (
+                        <div className="text-xs text-muted-foreground">
+                          {selectedSupplier?.code}
                         </div>
                       )}
                     </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => onSelectSupplier(null)}
+                    >
+                      <RefreshCcw className="h-4 w-4" />
+                    </Button>
                   </div>
 
-                  {/* Supplier Edit Fields - Always visible when supplier selected */}
                   <Separator />
-                  <div className="space-y-3 p-3 border rounded-lg bg-muted/30">
-                    <div className="text-xs font-medium text-muted-foreground">Thông tin nhà cung cấp (có thể sửa)</div>
 
-                    <FormItem className="space-y-1">
-                      <FormLabel className="text-xs">Tên nhà cung cấp <span className="text-destructive"> *</span></FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Nhập tên"
-                          value={supplierEditData?.name || ''}
-                          onChange={(e) => onSupplierEditDataChange({ ...supplierEditData, name: e.target.value })}
-                          onFocus={(e) => e.target.select()}
-                          className="h-8 text-xs"
-                        />
-                      </FormControl>
-                    </FormItem>
-
-                    <FormItem className="space-y-1">
-                      <FormLabel className="text-xs">Số điện thoại <span className="text-destructive"> *</span></FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Nhập SĐT"
-                          value={supplierEditData?.phone || ''}
-                          onChange={(e) => {
-                            const val = e.target.value
-                            onSupplierEditDataChange({ ...supplierEditData, phone: val })
-                            validatePhoneNumber(val)
-                          }}
-                          onFocus={(e) => e.target.select()}
-                          className={cn("h-8 text-xs", phoneError && "border-destructive")}
-                        />
-                      </FormControl>
-                      {phoneError && <span className="text-[10px] text-destructive">{phoneError}</span>}
-                    </FormItem>
-
-                    <FormItem className="space-y-1">
-                      <FormLabel className="text-xs">Email</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Nhập email"
-                          value={supplierEditData?.email || ''}
-                          onChange={(e) => {
-                            const val = e.target.value
-                            onSupplierEditDataChange({ ...supplierEditData, email: val })
-                            validateEmail(val)
-                          }}
-                          onFocus={(e) => e.target.select()}
-                          className={cn("h-8 text-xs", emailError && "border-destructive")}
-                        />
-                      </FormControl>
-                      {emailError && <span className="text-[10px] text-destructive">{emailError}</span>}
-                    </FormItem>
-
-                    <FormItem className="space-y-1">
-                      <FormLabel className="text-xs">Địa chỉ</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Nhập địa chỉ"
-                          value={supplierEditData?.address || ''}
-                          onChange={(e) => onSupplierEditDataChange({ ...supplierEditData, address: e.target.value })}
-                          onFocus={(e) => e.target.select()}
-                          className="h-8 text-xs"
-                        />
-                      </FormControl>
-                    </FormItem>
-
-                    <FormItem className="space-y-1">
-                      <FormLabel className="text-xs">Mã số thuế</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="MST"
-                          value={supplierEditData?.taxCode || ''}
-                          onChange={(e) => onSupplierEditDataChange({ ...supplierEditData, taxCode: e.target.value })}
-                          onFocus={(e) => e.target.select()}
-                          className="h-8 text-xs"
-                        />
-                      </FormControl>
-                    </FormItem>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <FormField
-                    control={form.control}
-                    name="supplierId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant="outline"
-                                className="w-full justify-between font-normal"
-                              >
-                                {field.value
-                                  ? suppliers.find((s) => s.id.toString() === field.value.toString())?.name
-                                  : 'Chọn nhà cung cấp'}
-                                <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                            <Command>
-                              <CommandInput placeholder="Tìm kiếm..." className="h-9" />
-                              <CommandEmpty>Không tìm thấy</CommandEmpty>
-                              <CommandGroup>
-                                <CommandList>
-                                  {suppliers.map((supplier) => (
-                                    <CommandItem
-                                      value={supplier.id.toString()}
-                                      key={supplier.id}
-                                      onSelect={() => onSelectSupplier(supplier)}
-                                    >
-                                      {supplier.name} - {supplier.phone}
-                                      <CheckIcon
-                                        className={cn(
-                                          'ml-auto h-4 w-4',
-                                          supplier.id.toString() === field.value?.toString()
-                                            ? 'opacity-100'
-                                            : 'opacity-0'
-                                        )}
-                                      />
-                                    </CommandItem>
-                                  ))}
-                                </CommandList>
-                              </CommandGroup>
-                            </Command>
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
+                  <div className="space-y-1.5 text-xs">
+                    {selectedSupplier?.phone && (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <MobileIcon className="h-3 w-3" />
+                        <a
+                          href={`tel:${selectedSupplier?.phone}`}
+                          className="hover:text-primary"
+                        >
+                          {selectedSupplier?.phone}
+                        </a>
+                      </div>
                     )}
-                  />
-
-                  {/* Supplier Input Fields - For creating new */}
-                  <div className="space-y-3 p-3 border rounded-lg bg-muted/30">
-                    <div className="text-xs font-medium text-muted-foreground">Hoặc nhập thông tin nhà cung cấp mới</div>
-
-                    <FormItem className="space-y-1">
-                      <FormLabel className="text-xs">Tên nhà cung cấp <span className="text-destructive"> *</span></FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Nhập tên"
-                          value={supplierEditData?.name || ''}
-                          onChange={(e) => onSupplierEditDataChange({
-                            ...supplierEditData,
-                            name: e.target.value
-                          })}
-                          onFocus={(e) => e.target.select()}
-                          className="h-8 text-xs"
-                        />
-                      </FormControl>
-                    </FormItem>
-
-                    <FormItem className="space-y-1">
-                      <FormLabel className="text-xs">Số điện thoại <span className="text-destructive"> *</span></FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Nhập SĐT"
-                          value={supplierEditData?.phone || ''}
-                          onChange={(e) => {
-                            const val = e.target.value
-                            onSupplierEditDataChange({
-                              ...supplierEditData,
-                              phone: val
-                            })
-                            validatePhoneNumber(val)
-                          }}
-                          onFocus={(e) => e.target.select()}
-                          className={cn("h-8 text-xs", phoneError && "border-destructive")}
-                        />
-                      </FormControl>
-                      {phoneError && <span className="text-[10px] text-destructive">{phoneError}</span>}
-                    </FormItem>
-
-                    <FormItem className="space-y-1">
-                      <FormLabel className="text-xs">Email</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Nhập email"
-                          value={supplierEditData?.email || ''}
-                          onChange={(e) => {
-                            const val = e.target.value
-                            onSupplierEditDataChange({
-                              ...supplierEditData,
-                              email: val
-                            })
-                            validateEmail(val)
-                          }}
-                          onFocus={(e) => e.target.select()}
-                          className={cn("h-8 text-xs", emailError && "border-destructive")}
-                        />
-                      </FormControl>
-                      {emailError && <span className="text-[10px] text-destructive">{emailError}</span>}
-                    </FormItem>
-
-                    <FormItem className="space-y-1">
-                      <FormLabel className="text-xs">Địa chỉ</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Nhập địa chỉ"
-                          value={supplierEditData?.address || ''}
-                          onChange={(e) => onSupplierEditDataChange({
-                            ...supplierEditData,
-                            address: e.target.value
-                          })}
-                          onFocus={(e) => e.target.select()}
-                          className="h-8 text-xs"
-                        />
-                      </FormControl>
-                    </FormItem>
-
-                    <FormItem className="space-y-1">
-                      <FormLabel className="text-xs">Mã số thuế</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="MST"
-                          value={supplierEditData?.taxCode || ''}
-                          onChange={(e) => onSupplierEditDataChange({
-                            ...supplierEditData,
-                            taxCode: e.target.value
-                          })}
-                          onFocus={(e) => e.target.select()}
-                          className="h-8 text-xs"
-                        />
-                      </FormControl>
-                    </FormItem>
-
-                    <p className="text-[10px] text-muted-foreground italic">
-                      * Nhà cung cấp sẽ được tạo tự động khi lưu đơn hàng nếu chưa có
-                    </p>
-                  </div>
-                </>
-              )}
-            </div>
-          ) : (
-            /* ===== CUSTOMER SECTION ===== */
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Khách hàng</label>
-
-              {selectedCustomer ? (
-                <>
-                  <div className="border rounded-lg p-3 space-y-2 overflow-hidden">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage
-                          src={`https://ui-avatars.com/api/?bold=true&background=random&name=${selectedCustomer?.name}`}
-                          alt={selectedCustomer?.name}
-                        />
-                        <AvatarFallback><User className="h-4 w-4" /></AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium text-sm leading-snug break-words">{selectedCustomer?.name}</div>
-                        {selectedCustomer?.code && <div className="text-xs text-muted-foreground">{selectedCustomer.code}</div>}
+                    {selectedSupplier?.email && (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Mail className="h-3 w-3" />
+                        <a
+                          href={`mailto:${selectedSupplier?.email}`}
+                          className="hover:text-primary truncate"
+                        >
+                          {selectedSupplier?.email}
+                        </a>
                       </div>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onSelectCustomer(null)}>
-                        <RefreshCcw className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <Separator />
-                    <div className="space-y-1.5 text-xs">
-                      {selectedCustomer?.phone && (
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <MobileIcon className="h-3 w-3" />
-                          <a href={`tel:${selectedCustomer.phone}`} className="hover:text-primary">{selectedCustomer.phone}</a>
-                        </div>
-                      )}
-                      {selectedCustomer?.email && (
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <Mail className="h-3 w-3" />
-                          <a href={`mailto:${selectedCustomer.email}`} className="hover:text-primary truncate">{selectedCustomer.email}</a>
-                        </div>
-                      )}
-                      {selectedCustomer?.address && (
-                        <div className="flex items-start gap-2 text-muted-foreground">
-                          <MapPin className="h-3 w-3 mt-0.5 shrink-0" />
-                          <span className="line-clamp-2">{selectedCustomer.address}</span>
-                        </div>
-                      )}
-                    </div>
+                    )}
+                    {selectedSupplier?.address && (
+                      <div className="flex items-start gap-2 text-muted-foreground">
+                        <MapPin className="h-3 w-3 mt-0.5 shrink-0" />
+                        <span className="line-clamp-2">{selectedSupplier?.address}</span>
+                      </div>
+                    )}
                   </div>
-                  <Separator />
-                  <div className="space-y-3 p-3 border rounded-lg bg-muted/30">
-                    <div className="text-xs font-medium text-muted-foreground">Thông tin khách hàng (có thể sửa)</div>
+                </div>
 
-                    <FormItem className="space-y-1">
-                      <FormLabel className="text-xs">Tên khách hàng <span className="text-destructive">*</span></FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Nhập tên"
-                          value={customerEditData?.name || ''}
-                          onChange={(e) => onCustomerEditDataChange({ ...customerEditData, name: e.target.value })}
-                          onFocus={(e) => e.target.select()}
-                          autoCapitalize="words"
-                          className="h-8 text-xs"
-                        />
-                      </FormControl>
-                    </FormItem>
+                {/* Supplier Edit Fields - Always visible when supplier selected */}
+                <Separator />
+                <div className="space-y-3 p-3 border rounded-lg bg-muted/30">
+                  <div className="text-xs font-medium text-muted-foreground">Thông tin nhà cung cấp (có thể sửa)</div>
 
-                    <FormItem className="space-y-1">
-                      <FormLabel className="text-xs">Số điện thoại <span className="text-destructive">*</span></FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Nhập SĐT"
-                          value={customerEditData?.phone || ''}
-                          onChange={(e) => {
-                            const val = e.target.value
-                            onCustomerEditDataChange({ ...customerEditData, phone: val })
-                            validatePhoneNumber(val)
-                          }}
-                          onFocus={(e) => e.target.select()}
-                          inputMode="numeric"
-                          className={cn('h-8 text-xs', phoneError && 'border-destructive')}
-                        />
-                      </FormControl>
-                      {phoneError && <span className="text-[10px] text-destructive">{phoneError}</span>}
-                    </FormItem>
+                  <FormItem className="space-y-1">
+                    <FormLabel className="text-xs">Tên nhà cung cấp <span className="text-destructive"> *</span></FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Nhập tên"
+                        value={supplierEditData?.name || ''}
+                        onChange={(e) => onSupplierEditDataChange({ ...supplierEditData, name: e.target.value })}
+                        onFocus={(e) => e.target.select()}
+                        className="h-8 text-xs"
+                      />
+                    </FormControl>
+                  </FormItem>
 
-                    <FormItem className="space-y-1">
-                      <FormLabel className="text-xs">Email</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="email"
-                          autoCapitalize="none"
-                          autoCorrect="off"
-                          placeholder="Nhập email"
-                          value={customerEditData?.email || ''}
-                          onChange={(e) => {
-                            const val = e.target.value
-                            onCustomerEditDataChange({ ...customerEditData, email: val })
-                            validateEmail(val)
-                          }}
-                          onFocus={(e) => e.target.select()}
-                          className={cn('h-8 text-xs', emailError && 'border-destructive')}
-                        />
-                      </FormControl>
-                      {emailError && <span className="text-[10px] text-destructive">{emailError}</span>}
-                    </FormItem>
+                  <FormItem className="space-y-1">
+                    <FormLabel className="text-xs">Số điện thoại <span className="text-destructive"> *</span></FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Nhập SĐT"
+                        value={supplierEditData?.phone || ''}
+                        onChange={(e) => {
+                          const val = e.target.value
+                          onSupplierEditDataChange({ ...supplierEditData, phone: val })
+                          validatePhoneNumber(val)
+                        }}
+                        onFocus={(e) => e.target.select()}
+                        className={cn("h-8 text-xs", phoneError && "border-destructive")}
+                      />
+                    </FormControl>
+                    {phoneError && <span className="text-[10px] text-destructive">{phoneError}</span>}
+                  </FormItem>
 
-                    <FormItem className="space-y-1">
-                      <FormLabel className="text-xs">Địa chỉ</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Nhập địa chỉ"
-                          value={customerEditData?.address || ''}
-                          onChange={(e) => onCustomerEditDataChange({ ...customerEditData, address: e.target.value })}
-                          onFocus={(e) => e.target.select()}
-                          className="h-8 text-xs"
-                        />
-                      </FormControl>
-                    </FormItem>
+                  <FormItem className="space-y-1">
+                    <FormLabel className="text-xs">Email</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Nhập email"
+                        value={supplierEditData?.email || ''}
+                        onChange={(e) => {
+                          const val = e.target.value
+                          onSupplierEditDataChange({ ...supplierEditData, email: val })
+                          validateEmail(val)
+                        }}
+                        onFocus={(e) => e.target.select()}
+                        className={cn("h-8 text-xs", emailError && "border-destructive")}
+                      />
+                    </FormControl>
+                    {emailError && <span className="text-[10px] text-destructive">{emailError}</span>}
+                  </FormItem>
 
-                    <FormItem className="space-y-1">
-                      <FormLabel className="text-xs">CCCD <span className="text-destructive">*</span></FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Nhập số CCCD"
-                          value={customerEditData?.identityCard || ''}
-                          onChange={(e) => {
-                            const val = e.target.value.replace(/\D/g, '').slice(0, 12)
-                            onCustomerEditDataChange({ ...customerEditData, identityCard: val })
-                            validateIdentityCard(val)
-                          }}
-                          onFocus={(e) => e.target.select()}
-                          inputMode="numeric"
-                          className={cn('h-8 text-xs', identityCardError && 'border-destructive')}
-                        />
-                      </FormControl>
-                      {identityCardError && <span className="text-[10px] text-destructive">{identityCardError}</span>}
-                    </FormItem>
+                  <FormItem className="space-y-1">
+                    <FormLabel className="text-xs">Địa chỉ</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Nhập địa chỉ"
+                        value={supplierEditData?.address || ''}
+                        onChange={(e) => onSupplierEditDataChange({ ...supplierEditData, address: e.target.value })}
+                        onFocus={(e) => e.target.select()}
+                        className="h-8 text-xs"
+                      />
+                    </FormControl>
+                  </FormItem>
 
-                    <FormItem className="space-y-1">
-                      <FormLabel className="text-xs">Ngày cấp</FormLabel>
-                      <Popover open={openIdentityDatePicker} onOpenChange={setOpenIdentityDatePicker}>
+                  <FormItem className="space-y-1">
+                    <FormLabel className="text-xs">Mã số thuế</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="MST"
+                        value={supplierEditData?.taxCode || ''}
+                        onChange={(e) => onSupplierEditDataChange({ ...supplierEditData, taxCode: e.target.value })}
+                        onFocus={(e) => e.target.select()}
+                        className="h-8 text-xs"
+                      />
+                    </FormControl>
+                  </FormItem>
+                </div>
+              </>
+            ) : (
+              <>
+                <FormField
+                  control={form.control}
+                  name="supplierId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <Popover>
                         <PopoverTrigger asChild>
                           <FormControl>
                             <Button
                               variant="outline"
-                              className={cn('h-8 w-full justify-start text-left font-normal text-xs', !customerEditData?.identityDate && 'text-muted-foreground')}
+                              className="w-full justify-between font-normal"
                             >
-                              <Calendar className="mr-2 h-3 w-3" />
-                              {customerEditData?.identityDate
-                                ? new Date(customerEditData.identityDate).toLocaleDateString('vi-VN')
-                                : 'Chọn ngày cấp'}
+                              {field.value
+                                ? suppliers.find((s) => s.id.toString() === field.value.toString())?.name
+                                : 'Chọn nhà cung cấp'}
+                              <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                             </Button>
                           </FormControl>
                         </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <DatePicker
-                            mode="single"
-                            selected={customerEditData?.identityDate ? new Date(customerEditData.identityDate) : undefined}
-                            onSelect={(date) => {
-                              onCustomerEditDataChange({ ...customerEditData, identityDate: date ? date.toISOString() : null })
-                              setOpenIdentityDatePicker(false)
-                            }}
-                            disabled={(date) => date > new Date()}
-                          />
+                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                          <Command>
+                            <CommandInput placeholder="Tìm kiếm..." className="h-9" />
+                            <CommandEmpty>Không tìm thấy</CommandEmpty>
+                            <CommandGroup>
+                              <CommandList>
+                                {suppliers.map((supplier) => (
+                                  <CommandItem
+                                    value={supplier.id.toString()}
+                                    key={supplier.id}
+                                    onSelect={() => onSelectSupplier(supplier)}
+                                  >
+                                    {supplier.name} - {supplier.phone}
+                                    <CheckIcon
+                                      className={cn(
+                                        'ml-auto h-4 w-4',
+                                        supplier.id.toString() === field.value?.toString()
+                                          ? 'opacity-100'
+                                          : 'opacity-0'
+                                      )}
+                                    />
+                                  </CommandItem>
+                                ))}
+                              </CommandList>
+                            </CommandGroup>
+                          </Command>
                         </PopoverContent>
                       </Popover>
+                      <FormMessage />
                     </FormItem>
+                  )}
+                />
 
-                    <FormItem className="space-y-1">
-                      <FormLabel className="text-xs">Nơi cấp</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Nhập nơi cấp"
-                          value={customerEditData?.identityPlace || ''}
-                          onChange={(e) => onCustomerEditDataChange({ ...customerEditData, identityPlace: e.target.value })}
-                          onFocus={(e) => e.target.select()}
-                          className="h-8 text-xs"
-                        />
-                      </FormControl>
-                    </FormItem>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <FormField
-                    control={form.control}
-                    name="customerId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button variant="outline" className="w-full justify-between font-normal">
-                                {field.value
-                                  ? customers.find((c) => c.id.toString() === field.value?.toString())?.name
-                                  : 'Chọn khách hàng'}
-                                <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                            <Command>
-                              <CommandInput placeholder="Tìm kiếm..." className="h-9" />
-                              <CommandEmpty>Không tìm thấy</CommandEmpty>
-                              <CommandGroup>
-                                <CommandList>
-                                  {customers.map((customer) => (
-                                    <CommandItem
-                                      value={`${customer.name || ''} ${customer.phone || ''}`.trim()}
-                                      key={customer.id}
-                                      onSelect={() => onSelectCustomer(customer)}
-                                    >
-                                      {customer.name} - {customer.phone}
-                                      <CheckIcon className={cn('ml-auto h-4 w-4', customer.id.toString() === field.value?.toString() ? 'opacity-100' : 'opacity-0')} />
-                                    </CommandItem>
-                                  ))}
-                                </CommandList>
-                              </CommandGroup>
-                            </Command>
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <div className="space-y-3 p-3 border rounded-lg bg-muted/30">
-                    <div className="text-xs font-medium text-muted-foreground">Hoặc nhập thông tin khách hàng mới</div>
+                {/* Supplier Input Fields - For creating new */}
+                <div className="space-y-3 p-3 border rounded-lg bg-muted/30">
+                  <div className="text-xs font-medium text-muted-foreground">Hoặc nhập thông tin nhà cung cấp mới</div>
 
-                    <FormItem className="space-y-1">
-                      <FormLabel className="text-xs">Tên khách hàng <span className="text-destructive">*</span></FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Nhập tên"
-                          value={customerEditData?.name || ''}
-                          onChange={(e) => onCustomerEditDataChange({ ...customerEditData, name: e.target.value })}
-                          onFocus={(e) => e.target.select()}
-                          autoCapitalize="words"
-                          className="h-8 text-xs"
-                        />
-                      </FormControl>
-                    </FormItem>
+                  <FormItem className="space-y-1">
+                    <FormLabel className="text-xs">Tên nhà cung cấp <span className="text-destructive"> *</span></FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Nhập tên"
+                        value={supplierEditData?.name || ''}
+                        onChange={(e) => onSupplierEditDataChange({
+                          ...supplierEditData,
+                          name: e.target.value
+                        })}
+                        onFocus={(e) => e.target.select()}
+                        className="h-8 text-xs"
+                      />
+                    </FormControl>
+                  </FormItem>
 
-                    <FormItem className="space-y-1">
-                      <FormLabel className="text-xs">Số điện thoại <span className="text-destructive">*</span></FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Nhập SĐT"
-                          value={customerEditData?.phone || ''}
-                          onChange={(e) => {
-                            const val = e.target.value
-                            onCustomerEditDataChange({ ...customerEditData, phone: val })
-                            validatePhoneNumber(val)
-                          }}
-                          onFocus={(e) => e.target.select()}
-                          inputMode="numeric"
-                          className={cn('h-8 text-xs', phoneError && 'border-destructive')}
-                        />
-                      </FormControl>
-                      {phoneError && <span className="text-[10px] text-destructive">{phoneError}</span>}
-                    </FormItem>
+                  <FormItem className="space-y-1">
+                    <FormLabel className="text-xs">Số điện thoại <span className="text-destructive"> *</span></FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Nhập SĐT"
+                        value={supplierEditData?.phone || ''}
+                        onChange={(e) => {
+                          const val = e.target.value
+                          onSupplierEditDataChange({
+                            ...supplierEditData,
+                            phone: val
+                          })
+                          validatePhoneNumber(val)
+                        }}
+                        onFocus={(e) => e.target.select()}
+                        className={cn("h-8 text-xs", phoneError && "border-destructive")}
+                      />
+                    </FormControl>
+                    {phoneError && <span className="text-[10px] text-destructive">{phoneError}</span>}
+                  </FormItem>
 
-                    <FormItem className="space-y-1">
-                      <FormLabel className="text-xs">Email</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="email"
-                          autoCapitalize="none"
-                          autoCorrect="off"
-                          placeholder="Nhập email"
-                          value={customerEditData?.email || ''}
-                          onChange={(e) => {
-                            const val = e.target.value
-                            onCustomerEditDataChange({ ...customerEditData, email: val })
-                            validateEmail(val)
-                          }}
-                          onFocus={(e) => e.target.select()}
-                          className={cn('h-8 text-xs', emailError && 'border-destructive')}
-                        />
-                      </FormControl>
-                      {emailError && <span className="text-[10px] text-destructive">{emailError}</span>}
-                    </FormItem>
+                  <FormItem className="space-y-1">
+                    <FormLabel className="text-xs">Email</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Nhập email"
+                        value={supplierEditData?.email || ''}
+                        onChange={(e) => {
+                          const val = e.target.value
+                          onSupplierEditDataChange({
+                            ...supplierEditData,
+                            email: val
+                          })
+                          validateEmail(val)
+                        }}
+                        onFocus={(e) => e.target.select()}
+                        className={cn("h-8 text-xs", emailError && "border-destructive")}
+                      />
+                    </FormControl>
+                    {emailError && <span className="text-[10px] text-destructive">{emailError}</span>}
+                  </FormItem>
 
-                    <FormItem className="space-y-1">
-                      <FormLabel className="text-xs">Địa chỉ</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Nhập địa chỉ"
-                          value={customerEditData?.address || ''}
-                          onChange={(e) => onCustomerEditDataChange({ ...customerEditData, address: e.target.value })}
-                          onFocus={(e) => e.target.select()}
-                          className="h-8 text-xs"
-                        />
-                      </FormControl>
-                    </FormItem>
+                  <FormItem className="space-y-1">
+                    <FormLabel className="text-xs">Địa chỉ</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Nhập địa chỉ"
+                        value={supplierEditData?.address || ''}
+                        onChange={(e) => onSupplierEditDataChange({
+                          ...supplierEditData,
+                          address: e.target.value
+                        })}
+                        onFocus={(e) => e.target.select()}
+                        className="h-8 text-xs"
+                      />
+                    </FormControl>
+                  </FormItem>
 
-                    <FormItem className="space-y-1">
-                      <FormLabel className="text-xs">CCCD <span className="text-destructive">*</span></FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Nhập số CCCD"
-                          value={customerEditData?.identityCard || ''}
-                          onChange={(e) => {
-                            const val = e.target.value.replace(/\D/g, '').slice(0, 12)
-                            onCustomerEditDataChange({ ...customerEditData, identityCard: val })
-                            validateIdentityCard(val)
-                          }}
-                          onFocus={(e) => e.target.select()}
-                          inputMode="numeric"
-                          className={cn('h-8 text-xs', identityCardError && 'border-destructive')}
-                        />
-                      </FormControl>
-                      {identityCardError && <span className="text-[10px] text-destructive">{identityCardError}</span>}
-                    </FormItem>
+                  <FormItem className="space-y-1">
+                    <FormLabel className="text-xs">Mã số thuế</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="MST"
+                        value={supplierEditData?.taxCode || ''}
+                        onChange={(e) => onSupplierEditDataChange({
+                          ...supplierEditData,
+                          taxCode: e.target.value
+                        })}
+                        onFocus={(e) => e.target.select()}
+                        className="h-8 text-xs"
+                      />
+                    </FormControl>
+                  </FormItem>
 
-                    <FormItem className="space-y-1">
-                      <FormLabel className="text-xs">Ngày cấp</FormLabel>
-                      <Popover open={openIdentityDatePicker} onOpenChange={setOpenIdentityDatePicker}>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant="outline"
-                              className={cn('h-8 w-full justify-start text-left font-normal text-xs', !customerEditData?.identityDate && 'text-muted-foreground')}
-                            >
-                              <Calendar className="mr-2 h-3 w-3" />
-                              {customerEditData?.identityDate
-                                ? new Date(customerEditData.identityDate).toLocaleDateString('vi-VN')
-                                : 'Chọn ngày cấp'}
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <DatePicker
-                            mode="single"
-                            selected={customerEditData?.identityDate ? new Date(customerEditData.identityDate) : undefined}
-                            onSelect={(date) => {
-                              onCustomerEditDataChange({ ...customerEditData, identityDate: date ? date.toISOString() : null })
-                              setOpenIdentityDatePicker(false)
-                            }}
-                            disabled={(date) => date > new Date()}
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </FormItem>
-
-                    <FormItem className="space-y-1">
-                      <FormLabel className="text-xs">Nơi cấp</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Nhập nơi cấp"
-                          value={customerEditData?.identityPlace || ''}
-                          onChange={(e) => onCustomerEditDataChange({ ...customerEditData, identityPlace: e.target.value })}
-                          onFocus={(e) => e.target.select()}
-                          className="h-8 text-xs"
-                        />
-                      </FormControl>
-                    </FormItem>
-
-                    <p className="text-[10px] text-muted-foreground italic">* Khách hàng sẽ được tạo tự động khi lưu đơn</p>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
+                  <p className="text-[10px] text-muted-foreground italic">
+                    * Nhà cung cấp sẽ được tạo tự động khi lưu đơn hàng nếu chưa có
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
 
           <Separator />
 
@@ -887,7 +486,7 @@ const PurchaseOrderSidebar = ({
               <FormItem className="mb-2">
                 <FormLabel>
                   Số hợp đồng
-                  {sourceType === 'supplier' && <span className="text-destructive"> *</span>}
+                  <span className="text-destructive"> *</span>
                 </FormLabel>
                 <FormControl>
                   <Input
@@ -1134,11 +733,11 @@ const PurchaseOrderSidebar = ({
               </div>
             </div>
           </div>
-        </div>
-      </ScrollArea>
+        </div >
+      </ScrollArea >
 
       {/* Footer Actions */}
-      <div className="p-4 border-t space-y-2">
+      < div className="p-4 border-t space-y-2" >
         <Button
           className="w-full"
           onClick={form.handleSubmit(onSubmit)}
@@ -1148,8 +747,8 @@ const PurchaseOrderSidebar = ({
           <IconDatabasePlus className="h-4 w-4 mr-2" />
           {isUpdate ? 'Cập nhật đơn hàng' : 'Tạo đơn đặt hàng'}
         </Button>
-      </div>
-    </div>
+      </div >
+    </div >
   )
 }
 
