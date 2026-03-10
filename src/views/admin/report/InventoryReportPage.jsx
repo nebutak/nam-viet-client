@@ -1,11 +1,83 @@
+import { useState, useEffect } from 'react'
 import { Layout, LayoutBody } from '@/components/custom/Layout'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Archive, Package, AlertTriangle, TrendingUp } from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { AlertCircle } from 'lucide-react'
+import api from '@/utils/axios'
+import InventoryFilters from './components/InventoryFilters'
+import InventoryKPICards from './components/InventoryKPICards'
+import InventoryCharts from './components/InventoryCharts'
+import InventoryDataTable from './components/InventoryDataTable'
+import PermissionDebug from './components/PermissionDebug'
 
 const InventoryReportPage = () => {
+    const [filters, setFilters] = useState({
+        warehouseId: null,
+        categoryId: null,
+        searchTerm: '',
+        showExpiring: false
+    })
+    const [data, setData] = useState(null)
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState(null)
+
+    // Check permissions
+    const permissions = JSON.parse(localStorage.getItem('permissionCodes') || '[]')
+    const hasAllPermissions = permissions.includes('GET_CATEGORY') && permissions.includes('GET_INVENTORY_REPORT')
+
+    // Fetch inventory report
+    const fetchInventoryReport = async () => {
+        setLoading(true)
+        setError(null)
+        try {
+            // Build query params
+            const params = {}
+            if (filters.warehouseId) params.warehouseId = filters.warehouseId
+            if (filters.categoryId) params.categoryId = filters.categoryId
+            if (filters.searchTerm) params.searchTerm = filters.searchTerm
+            if (filters.showExpiring) params.showExpiring = true
+
+            console.log('Fetching inventory report with params:', params)
+            const response = await api.get('/reports/inventory', { params })
+            console.log('Response:', response.data)
+            
+            // Check response structure
+            if (!response.data || !response.data.data) {
+                console.error('Invalid response structure:', response.data)
+                throw new Error('Invalid response structure from server')
+            }
+
+            const responseData = response.data.data
+            const filteredData = responseData.data || []
+
+            console.log('Filtered data:', filteredData.length, 'items')
+
+            setData({
+                ...responseData,
+                data: filteredData,
+                summary: {
+                    totalItems: filteredData.length,
+                    totalValue: filteredData.reduce((sum, item) => sum + (item.totalValue || 0), 0),
+                    totalQuantity: filteredData.reduce((sum, item) => sum + (item.availableQuantity || 0), 0),
+                    lowStockItems: filteredData.filter(item => item.isLowStock).length
+                }
+            })
+        } catch (err) {
+            console.error('Error fetching inventory report:', err)
+            console.error('Error details:', err.response?.data)
+            setError(err.response?.data?.message || err.message || 'Không thể tải báo cáo tồn kho')
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    // Fetch data when filters change
+    useEffect(() => {
+        fetchInventoryReport()
+    }, [filters])
+
     return (
         <Layout>
-            <LayoutBody className="flex flex-col" fixedHeight>
+            <LayoutBody className="flex flex-col overflow-y-auto">
                 <div className="mb-4 flex items-center justify-between">
                     <div>
                         <h2 className="text-2xl font-bold tracking-tight">Báo cáo Tồn kho</h2>
@@ -15,71 +87,49 @@ const InventoryReportPage = () => {
                     </div>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Tổng giá trị tồn kho</CardTitle>
-                            <Archive className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">0 ₫</div>
-                            <p className="text-xs text-muted-foreground">
-                                Tính theo giá nhập
-                            </p>
-                        </CardContent>
-                    </Card>
+                {/* Permission Debug - chỉ hiện khi thiếu quyền */}
+                {!hasAllPermissions && <PermissionDebug />}
 
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Số lượng sản phẩm</CardTitle>
-                            <Package className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">0</div>
-                            <p className="text-xs text-muted-foreground">
-                                Tổng số SKU trong kho
-                            </p>
-                        </CardContent>
-                    </Card>
+                {/* Error Alert */}
+                {error && (
+                    <Alert variant="destructive" className="mb-4">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>
+                            <div className="font-semibold mb-1">Lỗi khi tải dữ liệu</div>
+                            <div className="text-sm">{error}</div>
+                            {error.includes('403') && (
+                                <div className="text-sm mt-2">
+                                    💡 Lỗi 403 Forbidden: Bạn chưa có quyền truy cập. Vui lòng kiểm tra thông tin quyền ở trên.
+                                </div>
+                            )}
+                        </AlertDescription>
+                    </Alert>
+                )}
 
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Cảnh báo tồn kho</CardTitle>
-                            <AlertTriangle className="h-4 w-4 text-orange-500" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold text-orange-600">0</div>
-                            <p className="text-xs text-muted-foreground">
-                                Sản phẩm dưới mức tối thiểu
-                            </p>
-                        </CardContent>
-                    </Card>
+                {/* Filters */}
+                <InventoryFilters 
+                    filters={filters}
+                    onFilterChange={setFilters}
+                    loading={loading}
+                />
 
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Vòng quay kho</CardTitle>
-                            <TrendingUp className="h-4 w-4 text-green-500" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">0</div>
-                            <p className="text-xs text-muted-foreground">
-                                Lần/tháng
-                            </p>
-                        </CardContent>
-                    </Card>
-                </div>
+                {/* KPI Cards */}
+                <InventoryKPICards 
+                    summary={data?.summary}
+                    loading={loading}
+                />
 
-                <div className="mt-4 flex-1">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Tồn kho theo danh mục</CardTitle>
-                            <CardDescription>Phân bổ tồn kho theo từng danh mục sản phẩm</CardDescription>
-                        </CardHeader>
-                        <CardContent className="h-[400px] flex items-center justify-center text-muted-foreground">
-                            Biểu đồ sẽ được hiển thị tại đây
-                        </CardContent>
-                    </Card>
-                </div>
+                {/* Charts */}
+                <InventoryCharts 
+                    data={data}
+                    isLoading={loading}
+                />
+
+                {/* Data Table */}
+                <InventoryDataTable 
+                    data={data}
+                    isLoading={loading}
+                />
             </LayoutBody>
         </Layout>
     )
