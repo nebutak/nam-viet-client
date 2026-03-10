@@ -135,9 +135,10 @@ export const columns = [
       <DataTableColumnHeader column={column} title="Tồn kho" />
     ),
     cell: ({ row }) => {
+      const stock = Number(row.original?.currentStock)
       return (
         <div className="w-16 text-center">
-          {Number(row.original?.currentStock)}
+          {isNaN(stock) ? 0 : stock}
         </div>
       )
     },

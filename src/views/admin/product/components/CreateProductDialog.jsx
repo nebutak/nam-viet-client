@@ -27,6 +27,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { useDispatch, useSelector } from 'react-redux'
 import { createProductSchema } from '../schema'
 import { getTaxes } from '@/stores/TaxSlice'
+import { getMaterials } from '@/stores/MaterialSlice'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
   Select,
@@ -69,6 +70,7 @@ import { formatDateToYYYYMMDD } from '@/utils/date-format'
 import CreateSupplierDialog from '../../supplier/components/CreateSupplierDialog'
 import CreateCategoryDialog from '../../category/components/CreateCategoryDialog'
 import CreateUnitDialog from '../../unit/components/CreateUnitDialog'
+import MaterialSelectionDialog from './MaterialSelectionDialog'
 import { Loader2 } from 'lucide-react'
 
 const CreateProductDialog = ({
@@ -82,6 +84,7 @@ const CreateProductDialog = ({
   const loading = useSelector((state) => state.product.loading)
   const dispatch = useDispatch()
   const taxes = useSelector((state) => state.tax.taxes)
+  const materials = useSelector((state) => state.material.materials)
   const units = useSelector((state) => state.unit.units)
   const attributes = useSelector((state) => state.attribute.attributes)
   const categories = useSelector((state) => state.category.categories)
@@ -92,6 +95,7 @@ const CreateProductDialog = ({
   const [showCreateCategoryDialog, setShowCreateCategoryDialog] =
     useState(false)
   const [showCreateUnitDialog, setShowCreateUnitDialog] = useState(false)
+  const [showMaterialDialog, setShowMaterialDialog] = useState(false)
 
   const handleFileChange = (e) => {
     setSelectedFile(e.target.files?.[0] || null)
@@ -112,6 +116,7 @@ const CreateProductDialog = ({
     resolver: zodResolver(createProductSchema),
     defaultValues: {
       taxIds: [],
+      materialIds: [],
       attributeIdsWithValue: [defaultAttributeWithValue],
       // NEW
       unitConversions: [defaultUnitConversion],
@@ -126,11 +131,6 @@ const CreateProductDialog = ({
       note: '',
       type: 'goods',
       minStockLevel: '0',
-      salaryCoefficient: {
-        coefficient: '',
-        type: 'multiplier',
-        effectiveDate: new Date(),
-      },
       image: new File([], ''),
       hasExpiry: false,
       code: '',
@@ -148,6 +148,7 @@ const CreateProductDialog = ({
 
   useEffect(() => {
     dispatch(getTaxes())
+    dispatch(getMaterials())
     dispatch(getUnits())
     dispatch(getCategories())
     dispatch(getAttributes())
@@ -231,13 +232,7 @@ const CreateProductDialog = ({
         note: data.note,
         type: 'goods',
         minStockLevel: data.minStockLevel,
-        salaryCoefficient: {
-          coefficient: data.salaryCoefficient?.coefficient || 0,
-          type: data.salaryCoefficient?.type || 'multiplier',
-          effectiveDate: formatDateToYYYYMMDD(
-            data.salaryCoefficient?.effectiveDate || new Date(),
-          ),
-        },
+
         image: selectedFile,
         hasExpiry: data.hasExpiry,
         manageSerial: data.manageSerial,
@@ -828,6 +823,48 @@ const CreateProductDialog = ({
                             </FormLabel>
                           </FormItem>
                         ))}
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="materialIds"
+                  render={({ field }) => (
+                    <FormItem>
+                      <div className="mb-3">
+                        <FormLabel>Nguyên liệu sử dụng</FormLabel>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setShowMaterialDialog(true)}
+                          className="w-fit"
+                        >
+                          Chọn nguyên liệu ({field.value?.length || 0})
+                        </Button>
+
+                        {field.value?.length > 0 && (
+                          <div className="text-sm text-muted-foreground mt-2 border rounded-md p-3 max-h-32 overflow-y-auto">
+                            <strong>Đã chọn: </strong>
+                            {materials
+                              ?.filter((m) => field.value.map(String).includes(String(m.id)))
+                              ?.map((m) => m.name)
+                              .join(', ')}
+                          </div>
+                        )}
+                      </div>
+
+                      <MaterialSelectionDialog
+                        open={showMaterialDialog}
+                        onOpenChange={setShowMaterialDialog}
+                        materials={materials}
+                        initialSelectedIds={field.value}
+                        onConfirm={(ids) => field.onChange(ids)}
+                      />
+
                       <FormMessage />
                     </FormItem>
                   )}

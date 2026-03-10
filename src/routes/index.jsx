@@ -55,6 +55,7 @@ import FinancialReportPage from '@/views/admin/reports/financial/FinancialReport
 import ProductionReportPage from '@/views/admin/reports/production/ProductionReportPage'
 import SalaryPage from '@/views/admin/salary/SalaryPage'
 import SalaryCalculatePage from '@/views/admin/salary/SalaryCalculatePage'
+import WarrantyPage from '@/views/admin/warranty/WarrantyPage'
 
 const routes = [
   {
@@ -288,6 +289,11 @@ const routes = [
   {
     path: '/material',
     element: MaterialPage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/warranty',
+    element: WarrantyPage,
     layout: AdminLayout,
   },
   {

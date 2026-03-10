@@ -127,24 +127,28 @@ export const createProduct = createAsyncThunk(
   'product/create',
   async (data, { rejectWithValue, dispatch }) => {
     try {
-      const { image, code, name, basePrice, price, minStockLevel, ...rest } = data
+      const { image, code, name, basePrice, price, minStockLevel, ...rest } = data;
 
       const payload = {
-        sku: code,
+        code,
         productName: name,
-        productType: 'goods',
-        purchasePrice: basePrice,
-        sellingPriceRetail: price,
+        basePrice,
+        price,
         minStockLevel: minStockLevel ? Number(minStockLevel) : 0,
         ...rest
       }
 
-      const response = await api.post('/products', payload)
-      const newProduct = response.data.data
+      const formData = new FormData();
+      formData.append('data', JSON.stringify(payload));
 
       if (image && image instanceof File) {
-        await dispatch(uploadProductImages({ id: newProduct.id, files: [image] })).unwrap()
+        formData.append('image', image);
       }
+
+      const response = await api.post('/products', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      const newProduct = response.data.data
 
       await dispatch(getProducts()).unwrap()
       toast.success('Tạo sản phẩm thành công')
@@ -159,23 +163,27 @@ export const updateProduct = createAsyncThunk(
   'product/update',
   async ({ id, data }, { rejectWithValue, dispatch }) => {
     try {
-      const { image, code, name, basePrice, price, minStockLevel, ...rest } = data
+      const { image, code, name, basePrice, price, minStockLevel, ...rest } = data;
 
       const payload = {
-        sku: code,
+        code,
         productName: name,
-        productType: 'goods',
-        purchasePrice: basePrice,
-        sellingPriceRetail: price,
+        basePrice,
+        price,
         minStockLevel: minStockLevel ? Number(minStockLevel) : 0,
         ...rest
       }
 
-      await api.put(`/products/${id}`, payload)
+      const formData = new FormData();
+      formData.append('data', JSON.stringify(payload));
 
       if (image && image instanceof File) {
-        await dispatch(uploadProductImages({ id, files: [image] })).unwrap()
+        formData.append('image', image);
       }
+
+      await api.put(`/products/${id}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
 
       await dispatch(getProducts()).unwrap()
       toast.success('Cập nhật dữ liệu thành công')
@@ -296,18 +304,18 @@ export const productSlice = createSlice({
 
       // ── getProductDetail ─────────────────────────────────
       .addCase(getProductDetail.pending, (state) => {
-        state.loading = true
+        // Do not set global state.loading = true here because it will unmount the data table
+        // The dialog component handles its own isFetchingDetail state
         state.error = null
       })
       .addCase(getProductDetail.fulfilled, (state, action) => {
-        state.loading = false
         state.product = action.payload
       })
       .addCase(getProductDetail.rejected, (state, action) => {
-        state.loading = false
         state.error = action.payload?.message || action.payload || 'Lỗi không xác định'
         toast.error(state.error)
       })
+
 
       // ── createProduct ────────────────────────────────────
       .addCase(createProduct.pending, (state) => {

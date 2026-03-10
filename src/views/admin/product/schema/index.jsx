@@ -28,6 +28,11 @@ const baseCreateSchema = z.object({
     .nullable()
     .default([]),
 
+  materialIds: z
+    .array(z.union([z.string(), z.number()]))
+    .nullable()
+    .default([]),
+
   attributeIdsWithValue: z
     .array(
       z
@@ -58,6 +63,9 @@ const baseCreateSchema = z.object({
   name: z.string().nonempty('Tên là bắt buộc'),
   description: z.string().nullable(),
   note: z.string().nullable(),
+  minStockLevel: z
+    .union([z.string(), z.number()])
+    .transform((val) => parseNumber(val)),
 
   // salaryCoefficient: z.object({
   //   coefficient: z
@@ -180,7 +188,7 @@ const createProductSchema = baseCreateSchema.superRefine((data, ctx) => {
 const updateProductSchema = baseCreateSchema
   .extend({
     // Make image optional for update (user may not change image)
-    image: z.instanceof(File).optional(),
+    image: z.instanceof(File).nullable().optional(),
 
     attributeIdsWithValue: z
       .array(

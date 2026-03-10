@@ -11,6 +11,13 @@ import {
 } from '@/components/ui/dialog'
 import { PlusIcon } from '@radix-ui/react-icons'
 import { cn } from '@/lib/utils'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 import {
   Form,
@@ -46,14 +53,23 @@ const CreateCategoryDialog = ({
       categoryName: '',
       categoryCode: '',
       status: '',
-      type: '',
+      parentId: null,
     },
   })
+
+  // state.category.categories usually is { data: [...], meta: {...} } or [...]
+  const categoriesList = useSelector(
+    (state) => state.category.categories?.data || (Array.isArray(state.category.categories) ? state.category.categories : [])
+  )
 
   const dispatch = useDispatch()
   const onSubmit = async (data) => {
     try {
-      await dispatch(createCategory(data)).unwrap()
+      const payload = {
+        ...data,
+        parentId: data.parentId ? Number(data.parentId) : null,
+      }
+      await dispatch(createCategory(payload)).unwrap()
       form.reset()
       onOpenChange?.(false)
     } catch (error) {
@@ -117,31 +133,28 @@ const CreateCategoryDialog = ({
 
                 <FormField
                   control={form.control}
-                  name="type"
+                  name="parentId"
                   render={({ field }) => (
-                    <FormItem className="space-y-3">
-                      <FormLabel required={true}>Chọn loại danh mục</FormLabel>
-                      <FormControl>
-                        <RadioGroup
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                          className="flex flex-col space-y-1"
-                        >
-                          {types.map((type, index) => (
-                            <FormItem
-                              key={`type-${index}`}
-                              className="flex items-center space-x-3 space-y-0"
-                            >
-                              <FormControl>
-                                <RadioGroupItem value={type.value} />
-                              </FormControl>
-                              <FormLabel className="font-normal">
-                                {type.label}
-                              </FormLabel>
-                            </FormItem>
+                    <FormItem className="mb-2 space-y-1">
+                      <FormLabel>Danh mục cha</FormLabel>
+                      <Select
+                        onValueChange={(value) => field.onChange(value === 'none' ? null : value)}
+                        defaultValue={field.value?.toString() || ''}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="-- Không chọn --" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent className="z-[10010]">
+                          <SelectItem value="none">-- Không chọn --</SelectItem>
+                          {categoriesList.map((cat) => (
+                            <SelectItem key={cat.id} value={cat.id.toString()}>
+                              {cat.categoryName}
+                            </SelectItem>
                           ))}
-                        </RadioGroup>
-                      </FormControl>
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
