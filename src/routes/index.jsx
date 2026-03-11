@@ -30,6 +30,10 @@ import ProductPage from '../views/admin/product/ProductPage'
 import InventoryWarningPage from '../views/admin/inventory-warning/InventoryWarningPage'
 import AttributePage from '../views/admin/attribute/AttributePage'
 import TaxPage from '../views/admin/tax/TaxPage'
+import RevenuePage from '../views/admin/report/RevenuePage'
+import InventoryReportPage from '../views/admin/report/InventoryReportPage'
+import SalesReportPage from '../views/admin/report/SalesReportPage'
+import FinancialReportPage from '../views/admin/report/FinancialReportPage'
 
 import TicketPage from '@/views/admin/ticket/TicketPage'
 import TaskPage from '@/views/admin/task/TaskPage'
@@ -284,6 +288,27 @@ const routes = [
   {
     path: '/supplier',
     element: SupplierPage,
+    layout: AdminLayout,
+  },
+  // Báo cáo
+  {
+    path: '/revenue',
+    element: RevenuePage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/inventory-report',
+    element: InventoryReportPage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/sales-report',
+    element: SalesReportPage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/financial-report',
+    element: FinancialReportPage,
     layout: AdminLayout,
   },
   {
