@@ -142,7 +142,7 @@ const UpdateProductDialog = ({
       name: '',
       description: '',
       note: '',
-      type: 'goods',
+      type: product?.type || 'PRODUCT',
       minStockLevel: '0',
       source: '',
 
@@ -303,7 +303,7 @@ const UpdateProductDialog = ({
         name: data.name,
         description: data.description,
         note: data.note,
-        type: 'goods',
+        type: data.type,
         minStockLevel: data.minStockLevel,
 
         image: selectedFile,
@@ -955,7 +955,7 @@ const UpdateProductDialog = ({
                               <strong>Đã chọn: </strong>
                               {materials
                                 ?.filter((m) => field.value.map(String).includes(String(m.id)))
-                                ?.map((m) => m.name)
+                                ?.map((m) => m.productName)
                                 .join(', ')}
                             </div>
                           )}

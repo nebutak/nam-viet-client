@@ -169,7 +169,7 @@ export const sideLinks = [
     ]
   },
   {
-    title: 'Sản phẩm',
+    title: 'Nguyên liệu / Sản phẩm',
     icon: <PackageSearch size={20} strokeWidth={1.5} />,
     permission: [
       'GET_PRODUCT',
@@ -180,25 +180,13 @@ export const sideLinks = [
     ],
     sub: [
       {
-        title: 'Danh mục nguyên liệu',
-        href: '/category-material',
-        icon: <LayoutGrid size={18} strokeWidth={1.5} />,
-        permission: 'GET_CATEGORY',
-      },
-      {
-        title: 'Nguyên liệu',
-        href: '/material',
-        icon: <Box size={18} strokeWidth={1.5} />,
-        permission: 'GET_PRODUCT',
-      },
-      {
-        title: 'Danh mục sản phẩm',
+        title: 'Danh mục',
         href: '/category',
         icon: <LayoutGrid size={18} strokeWidth={1.5} />,
         permission: 'GET_CATEGORY',
       },
       {
-        title: 'Sản phẩm',
+        title: 'Nguyên liệu / Sản phẩm',
         href: '/product',
         icon: <Package size={18} strokeWidth={1.5} />,
         permission: 'GET_PRODUCT',

@@ -15,7 +15,9 @@ export function DeleteMultipleProductsDialog({
   onOpenChange,
   onConfirm,
   count,
+  type = 'PRODUCT',
 }) {
+  const label = type === 'PRODUCT' ? 'sản phẩm' : 'nguyên liệu'
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
@@ -23,7 +25,7 @@ export function DeleteMultipleProductsDialog({
           <AlertDialogTitle>Bạn có chắc chắn muốn xóa?</AlertDialogTitle>
           <AlertDialogDescription>
             Hành động này không thể hoàn tác. Bạn đang xóa{' '}
-            <span className="font-medium text-foreground">{count}</span> sản phẩm
+            <span className="font-medium text-foreground">{count}</span> {label}
             đã chọn và dữ liệu này sẽ bị xóa.
           </AlertDialogDescription>
         </AlertDialogHeader>

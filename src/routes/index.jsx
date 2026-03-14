@@ -14,7 +14,6 @@ import ActivePromotionPage from '../views/admin/promotion/ActivePromotionPage'
 import SupplierPage from '../views/admin/supplier/SupplierPage'
 import CustomerDebtPage from '@/views/admin/debt/CustomerDebtPage'
 import CategoryPage from '../views/admin/category/CategoryPage'
-import CategoryMaterialPage from '../views/admin/category-material/CategoryPage'
 import WarehousePage from '../views/admin/warehouse/WarehousePage'
 import UserPage from '../views/admin/user/UserPage' // Giữ nguyên UserPage cho trang User
 import RolePage from '../views/admin/role/RolePage'
@@ -34,7 +33,6 @@ import TaxPage from '../views/admin/tax/TaxPage'
 
 import TicketPage from '@/views/admin/ticket/TicketPage'
 import TaskPage from '@/views/admin/task/TaskPage'
-import MaterialPage from '@/views/admin/material/MaterialPage'
 import AttendancePage from '@/views/admin/attendance/AttendancePage'
 
 import OvertimePage from '@/views/admin/overtime/OvertimePage'
@@ -239,11 +237,6 @@ const routes = [
     layout: AdminLayout,
   },
   {
-    path: '/category-material',
-    element: CategoryMaterialPage,
-    layout: AdminLayout,
-  },
-  {
     path: '/warehouse-list',
     element: WarehousePage,
     layout: AdminLayout,
@@ -296,11 +289,6 @@ const routes = [
   {
     path: '/supplier',
     element: SupplierPage,
-    layout: AdminLayout,
-  },
-  {
-    path: '/material',
-    element: MaterialPage,
     layout: AdminLayout,
   },
   {

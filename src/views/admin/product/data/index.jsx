@@ -5,10 +5,12 @@ const PRODUCT_SOURCE = [
 ]
 
 const PRODUCT_TYPE = [
-  { id: 1, value: 'raw_material', name: 'Nguyên liệu' },
+  { id: 1, value: 'raw_material', name: 'Nguyên liệu (cũ)' },
   { id: 2, value: 'packaging', name: 'Bao bì' },
   { id: 3, value: 'finished_product', name: 'Thành phẩm' },
   { id: 4, value: 'goods', name: 'Hàng hoá' },
+  { id: 5, value: 'PRODUCT', name: 'Sản phẩm' },
+  { id: 6, value: 'MATERIAL', name: 'Nguyên liệu' },
 ]
 
 const SALARY_COEFFICIENT_TYPE = [

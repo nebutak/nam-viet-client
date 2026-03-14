@@ -90,6 +90,7 @@ const baseCreateSchema = z.object({
   // Price Sync fields
   syncEnabled: z.boolean().optional().default(false),
   syncExternalCode: z.string().optional().nullable(),
+  type: z.enum(['PRODUCT', 'MATERIAL']).optional().default('PRODUCT'),
 })
 
 const createProductSchema = baseCreateSchema.superRefine((data, ctx) => {

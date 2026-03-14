@@ -23,6 +23,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 const ImportProductDialog = ({
   open,
   onOpenChange,
+  type = 'PRODUCT',
   ...props
 }) => {
   const dispatch = useDispatch()
@@ -124,9 +125,9 @@ const ImportProductDialog = ({
           categoryCode: String(getVal(5)),
           unitCode: String(getVal(6)),
           supplierCode: String(getVal(7)),
-          type: String(getVal(8) || 'physical'),
-          description: String(getVal(9)),
-          note: String(getVal(10)),
+          type: type, // Use active tab type
+          description: String(getVal(8)),
+          note: String(getVal(9)),
           effectiveDate: effectiveDate,
           unitConversions: getUnitConversions(12)
         }
@@ -142,7 +143,7 @@ const ImportProductDialog = ({
       //   return
       // }
 
-      const payload = { items }
+      const payload = { items, type } // Pass type to backend as well
       const response = await dispatch(importProduct(payload)).unwrap()
 
       // Handle structured response even on success (200 OK)
@@ -165,7 +166,7 @@ const ImportProductDialog = ({
         )
       } else {
         toast.success(
-          response.message || `Đã import thành công ${items.length} sản phẩm`,
+          response.message || `Đã import thành công ${items.length} ${type === 'PRODUCT' ? 'sản phẩm' : 'nguyên liệu'}`,
         )
         onOpenChange(false)
         setFile(null)
@@ -244,14 +245,14 @@ const ImportProductDialog = ({
 
   const handleDownloadTemplate = async () => {
     try {
-      const response = await api.get('/product/import-template?type=excel', {
+      const response = await api.get(`/products/import-template?format=excel&type=${type}`, {
         responseType: 'blob',
       })
 
       const url = window.URL.createObjectURL(new Blob([response.data]))
       const link = document.createElement('a')
       link.href = url
-      link.setAttribute('download', 'product_import_template.xlsx')
+      link.setAttribute('download', `${type === 'PRODUCT' ? 'product' : 'material'}_import_template.xlsx`)
       document.body.appendChild(link)
       link.click()
       link.parentNode.removeChild(link)
@@ -266,9 +267,9 @@ const ImportProductDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange} {...props}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Import Excel Sản Phẩm</DialogTitle>
+          <DialogTitle>Import Excel {type === 'PRODUCT' ? 'Sản Phẩm' : 'Nguyên Liệu'}</DialogTitle>
           <DialogDescription>
-            Chọn file Excel chứa danh sách sản phẩm để nhập liệu.
+            Chọn file Excel chứa danh sách {type === 'PRODUCT' ? 'sản phẩm' : 'nguyên liệu'} để nhập liệu.
             <br />
             <span className="text-xs text-muted-foreground">Đảm bảo file theo đúng mẫu template.</span>
           </DialogDescription>

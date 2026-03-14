@@ -10,11 +10,14 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
 
-const DataTableViewOptions = ({ table }) => {
+const DataTableViewOptions = ({ table, type = 'PRODUCT' }) => {
+  const label = type === 'PRODUCT' ? 'sản phẩm' : 'nguyên liệu'
   const options = {
-    name: 'Tên sản phẩm',
-    code: 'Mã sản phẩm',
-    type: 'Loại sản phẩm',
+    productName: `Tên ${label}`,
+    code: `Mã ${label}`,
+    categoryId: 'Danh mục',
+    totalStock: 'Tồn kho',
+    type: 'Loại',
     price: 'Giá',
     updatedAt: 'Cập nhật',
   }

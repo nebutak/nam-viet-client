@@ -7,9 +7,11 @@ export const getMaterials = createAsyncThunk(
     'material/getMaterials',
     async (params = {}, { rejectWithValue }) => {
         try {
-            const response = await api.get('/materials', { params })
-            const { data, meta } = response.data
-            return { data, pagination: meta }
+            const response = await api.get('/products', { 
+                params: { ...params, type: 'MATERIAL' } 
+            })
+            const { data, pagination, summary } = response.data
+            return { data, pagination, summary }
         } catch (error) {
             const message = handleError(error)
             return rejectWithValue(message)
@@ -21,7 +23,7 @@ export const getMaterialById = createAsyncThunk(
     'material/getMaterialById',
     async (id, { rejectWithValue }) => {
         try {
-            const response = await api.get(`/materials/${id}`)
+            const response = await api.get(`/products/${id}`)
             return response.data.data
         } catch (error) {
             const message = handleError(error)
@@ -34,7 +36,7 @@ export const createMaterial = createAsyncThunk(
     'material/create',
     async (data, { rejectWithValue, dispatch }) => {
         try {
-            await api.post('/materials', data)
+            await api.post('/products', { ...data, type: 'MATERIAL' })
             await dispatch(getMaterials()).unwrap()
             toast.success('Thêm nguyên liệu thành công')
         } catch (error) {
@@ -48,7 +50,7 @@ export const deleteMaterial = createAsyncThunk(
     'material/delete',
     async (id, { rejectWithValue, dispatch }) => {
         try {
-            await api.delete(`/materials/${id}`)
+            await api.delete(`/products/${id}`)
             await dispatch(getMaterials()).unwrap()
             toast.success('Xóa nguyên liệu thành công')
         } catch (error) {
@@ -62,7 +64,7 @@ export const deleteMultipleMaterials = createAsyncThunk(
     'material/deleteMultiple',
     async (ids, { rejectWithValue, dispatch }) => {
         try {
-            await api.post('/materials/bulk-delete', { ids })
+            await api.post('/products/bulk-delete', { ids })
             await dispatch(getMaterials()).unwrap()
             toast.success('Xóa các nguyên liệu đã chọn thành công')
         } catch (error) {
@@ -77,7 +79,7 @@ export const updateMaterial = createAsyncThunk(
     async (updateData, { rejectWithValue, dispatch }) => {
         try {
             const { id, data } = updateData
-            await api.put(`/materials/${id}`, data)
+            await api.put(`/products/${id}`, { ...data, type: 'MATERIAL' })
             await dispatch(getMaterials()).unwrap()
             toast.success('Cập nhật nguyên liệu thành công')
         } catch (error) {

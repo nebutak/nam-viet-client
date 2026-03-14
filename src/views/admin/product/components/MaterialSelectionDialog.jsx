@@ -32,8 +32,8 @@ export default function MaterialSelectionDialog({
 
   const filteredMaterials = materials.filter(
     (m) =>
-      (m.name && normalizeText(m.name).includes(normalizeText(search))) ||
-      (m.materialCode && normalizeText(m.materialCode).includes(normalizeText(search)))
+      (m.productName && normalizeText(m.productName).includes(normalizeText(search))) ||
+      (m.code && normalizeText(m.code).includes(normalizeText(search)))
   );
 
   const toggleSelect = (id) => {
@@ -82,7 +82,7 @@ export default function MaterialSelectionDialog({
                     htmlFor={`mat-${material.id}`}
                     className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                   >
-                    {material.name} <span className="text-muted-foreground">({material.materialCode})</span>
+                    {material.productName} <span className="text-muted-foreground">({material.code})</span>
                   </label>
                 </div>
               ))}

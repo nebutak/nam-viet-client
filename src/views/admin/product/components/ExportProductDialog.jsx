@@ -28,6 +28,7 @@ const ExportProductDialog = ({
   open,
   onOpenChange,
   showTrigger = true,
+  type = 'PRODUCT',
   ...props
 }) => {
   const [showExportReview, setShowExportReview] = useState(false)
@@ -38,19 +39,20 @@ const ExportProductDialog = ({
   const handleReviewExport = async () => {
     setLoading(true)
     try {
-      const url = '/product'
+      const url = '/products' // Updated from /product to /products to match unified API
       const { data } = await api.get(url, {
         params: {
           limit: Number(limit),
           page: 1,
-          withDetails: true // Might need detail like stock/prices
+          type, // Pass type to filter
+          withDetails: true
         },
       })
 
-      const products = data.data?.data || data.data || []
+      const products = data?.data || [] // Adjusted response parsing
 
       if (!products.length) {
-        toast.warning('Danh sách sản phẩm trống')
+        toast.warning(`Danh sách ${type === 'PRODUCT' ? 'sản phẩm' : 'nguyên liệu'} trống`)
         return
       }
 
@@ -77,7 +79,7 @@ const ExportProductDialog = ({
 
       <DialogContent className="md:h-auto md:w-[320px] z-[100095]" overlayClassName="z-[100094]">
         <DialogHeader>
-          <DialogTitle>Xuất báo cáo sản phẩm</DialogTitle>
+          <DialogTitle>Xuất báo cáo {type === 'PRODUCT' ? 'sản phẩm' : 'nguyên liệu'}</DialogTitle>
           <DialogDescription>
             Chọn số lượng bản ghi để xuất file
           </DialogDescription>
@@ -119,6 +121,7 @@ const ExportProductDialog = ({
           onOpenChange={setShowExportReview}
           showTrigger={false}
           data={exportData}
+          type={type}
           closeExport={() => onOpenChange(false)}
         />
       )}

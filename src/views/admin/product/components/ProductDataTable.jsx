@@ -27,7 +27,7 @@ import { useDispatch } from 'react-redux'
 import { copyProduct, getProducts } from '@/stores/ProductSlice'
 import { toast } from 'sonner'
 
-const ProductDataTable = ({ columns, data, loading = false }) => {
+const ProductDataTable = ({ columns, data, type = 'PRODUCT', loading = false }) => {
   const [rowSelection, setRowSelection] = useState({})
   const [columnVisibility, setColumnVisibility] = useState({})
   const [columnFilters, setColumnFilters] = useState([])
@@ -77,7 +77,7 @@ const ProductDataTable = ({ columns, data, loading = false }) => {
   if (!isDesktop) {
     return (
       <div className="space-y-4">
-        <DataTableToolbar table={table} />
+        <DataTableToolbar table={table} type={type} />
 
         {loading ? (
           <div className="space-y-3">
@@ -116,7 +116,7 @@ const ProductDataTable = ({ columns, data, loading = false }) => {
 
   return (
     <div className="space-y-4">
-      <DataTableToolbar table={table} />
+      <DataTableToolbar table={table} type={type} />
 
       <div className="rounded-md border overflow-x-auto">
         <Table className="min-w-full">

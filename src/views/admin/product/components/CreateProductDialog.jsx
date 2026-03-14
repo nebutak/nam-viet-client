@@ -77,6 +77,7 @@ const CreateProductDialog = ({
   open,
   onOpenChange,
   showTrigger = true,
+  defaultType = 'PRODUCT',
   contentClassName,
   overlayClassName,
   ...props
@@ -129,7 +130,7 @@ const CreateProductDialog = ({
       name: '',
       description: '',
       note: '',
-      type: 'goods',
+      type: defaultType,
       minStockLevel: '0',
       image: new File([], ''),
       hasExpiry: false,
@@ -148,12 +149,17 @@ const CreateProductDialog = ({
 
   useEffect(() => {
     dispatch(getTaxes())
-    dispatch(getMaterials())
     dispatch(getUnits())
     dispatch(getCategories())
     dispatch(getAttributes())
     dispatch(getSuppliers())
   }, [dispatch])
+
+  useEffect(() => {
+    if (open) {
+      form.setValue('type', defaultType)
+    }
+  }, [open, defaultType, form])
 
   // Attributes field array
   const {
@@ -230,7 +236,7 @@ const CreateProductDialog = ({
         name: data.name,
         description: data.description,
         note: data.note,
-        type: 'goods',
+        type: data.type,
         minStockLevel: data.minStockLevel,
 
         image: selectedFile,
@@ -277,9 +283,11 @@ const CreateProductDialog = ({
         overlayClassName={overlayClassName}
       >
         <DialogHeader>
-          <DialogTitle>Thêm sản phẩm mới</DialogTitle>
+          <DialogTitle>
+            {defaultType === 'PRODUCT' ? 'Thêm sản phẩm mới' : 'Thêm nguyên liệu mới'}
+          </DialogTitle>
           <DialogDescription>
-            Điền vào chi tiết phía dưới để thêm sản phẩm mới
+            Điền vào chi tiết phía dưới để thêm {defaultType === 'PRODUCT' ? 'sản phẩm' : 'nguyên liệu'} mới
           </DialogDescription>
         </DialogHeader>
 
@@ -851,7 +859,7 @@ const CreateProductDialog = ({
                             <strong>Đã chọn: </strong>
                             {materials
                               ?.filter((m) => field.value.map(String).includes(String(m.id)))
-                              ?.map((m) => m.name)
+                              ?.map((m) => m.productName)
                               .join(', ')}
                           </div>
                         )}

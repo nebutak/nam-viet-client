@@ -3,9 +3,11 @@ import { ProductDataTable } from './components/ProductDataTable'
 import { useDispatch, useSelector } from 'react-redux'
 import { getProducts, updateProductInStore } from '@/stores/ProductSlice'
 import { useEffect, useState } from 'react'
-import { columns } from './components/Column'
+import { getColumns } from './components/Column'
 import useSocketEvent from '@/hooks/UseSocketEvent'
 import { toast } from 'sonner'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import CreateProductDialog from './components/CreateProductDialog'
 
 const ProductPage = () => {
   const dispatch = useDispatch()
@@ -19,9 +21,11 @@ const ProductPage = () => {
   })
   const [columnFilters, setColumnFilters] = useState([])
   const [globalFilter, setGlobalFilter] = useState('')
+  const [type, setType] = useState('PRODUCT')
+  const columns = getColumns(type)
 
   useEffect(() => {
-    document.title = 'Quản lý sản phẩm'
+    document.title = type === 'PRODUCT' ? 'Quản lý sản phẩm' : 'Quản lý nguyên liệu'
 
     const filtersParams = columnFilters.reduce((acc, filter) => {
       acc[filter.id] = filter.value.join ? filter.value.join(',') : filter.value
@@ -32,9 +36,10 @@ const ProductPage = () => {
       page: pagination.pageIndex + 1,
       limit: pagination.pageSize,
       search: globalFilter || undefined,
+      type,
       ...filtersParams
     }))
-  }, [dispatch, pagination.pageIndex, pagination.pageSize, columnFilters, globalFilter])
+  }, [dispatch, pagination.pageIndex, pagination.pageSize, columnFilters, globalFilter, type])
 
   // Listen for real-time price updates
   useSocketEvent({
@@ -56,8 +61,16 @@ const ProductPage = () => {
         <div className="mb-2 flex items-center justify-between space-y-2 px-2 sm:px-0">
           <div>
             <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
-              Danh sách sản phẩm
+              {type === 'PRODUCT' ? 'Danh sách sản phẩm' : 'Danh sách nguyên liệu'}
             </h2>
+          </div>
+          <div className="flex items-center gap-2">
+            <Tabs value={type} onValueChange={setType} className="w-[300px]">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="PRODUCT">Sản phẩm</TabsTrigger>
+                <TabsTrigger value="MATERIAL">Nguyên liệu</TabsTrigger>
+              </TabsList>
+            </Tabs>
           </div>
         </div>
         <div className="flex-1 overflow-auto px-2 sm:px-0">
@@ -66,6 +79,7 @@ const ProductPage = () => {
               data={products}
               columns={columns}
               loading={loading}
+              type={type}
               pagination={pagination}
               pageCount={serverPagination?.totalPages || 1}
               rowCount={serverPagination?.total || 0}

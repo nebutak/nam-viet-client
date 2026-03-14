@@ -41,29 +41,32 @@ const ExportProductView = ({
   open,
   onOpenChange,
   showTrigger = true,
+  data = [],
+  type = 'PRODUCT',
   ...props
 }) => {
   const handleExport = async () => {
     const workbook = new ExcelJS.Workbook()
-    const worksheet = workbook.addWorksheet('Danh sách Sản phẩm', {
+    const label = type === 'PRODUCT' ? 'Sản phẩm' : 'Nguyên liệu'
+    const worksheet = workbook.addWorksheet(`Danh sách ${label}`, {
       views: [{ showGridLines: true }],
     })
     const table = document.getElementById('exportProductTable')
 
     worksheet.mergeCells('A1:L1')
-    worksheet.getCell('A1').value = 'Báo cáo danh sách sản phẩm'
+    worksheet.getCell('A1').value = `Báo cáo danh sách ${label.toLowerCase()}`
 
     const rows = table.querySelectorAll('tr')
-    const data = []
+    const tableData = []
     rows.forEach((row) => {
       const rowData = []
       row.querySelectorAll('td, th').forEach((cell) => {
         rowData.push(cell.innerText.trim())
       })
-      data.push(rowData)
+      tableData.push(rowData)
     })
 
-    data.forEach((row, rowIndex) => {
+    tableData.forEach((row, rowIndex) => {
       const excelRow = worksheet.addRow(row)
 
       if (rowIndex > 0) {
@@ -112,8 +115,8 @@ const ExportProductView = ({
     // Độ rộng cột
     const customColumnWidths = [
       6,  // A STT
-      40, // B Tên sản phẩm
-      20, // C Mã sản phẩm
+      40, // B Tên
+      20, // C Mã
       25, // D Danh mục
       20, // E Loại
       20, // F Đơn vị gốc
@@ -151,7 +154,7 @@ const ExportProductView = ({
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `DanhSachSanPham.xlsx`
+    a.download = `DanhSach_${type === 'PRODUCT' ? 'SanPham' : 'NguyenLieu'}.xlsx`
     document.body.appendChild(a)
     a.click()
     onOpenChange(false)
@@ -173,7 +176,7 @@ const ExportProductView = ({
 
       <DialogContent className="md:h-auto md:max-w-full z-[100100]" overlayClassName="z-[100099]">
         <DialogHeader>
-          <DialogTitle>Danh sách sản phẩm xuất file</DialogTitle>
+          <DialogTitle>Danh sách {type === 'PRODUCT' ? 'sản phẩm' : 'nguyên liệu'} xuất file</DialogTitle>
         </DialogHeader>
 
         <div className="max-h-[65vh] overflow-auto md:max-h-[75vh]">
@@ -182,11 +185,11 @@ const ExportProductView = ({
               <TableHeader>
                 <TableRow className="bg-secondary text-xs whitespace-nowrap">
                   <TableHead className="w-8">STT</TableHead>
-                  <TableHead className="min-w-40">Tên sản phẩm</TableHead>
-                  <TableHead className="min-w-28">Mã sản phẩm</TableHead>
+                  <TableHead className="min-w-40">Tên {type === 'PRODUCT' ? 'sản phẩm' : 'nguyên liệu'}</TableHead>
+                  <TableHead className="min-w-28">Mã {type === 'PRODUCT' ? 'sản phẩm' : 'nguyên liệu'}</TableHead>
                   <TableHead className="min-w-32">Danh mục</TableHead>
                   <TableHead className="min-w-28">Loại</TableHead>
-                  <TableHead className="min-w-28">Đơn vị gốc</TableHead>
+                  <TableHead className="min-w-28">Đơn vị</TableHead>
                   <TableHead className="min-w-28">Tồn kho</TableHead>
                   <TableHead className="min-w-32">Giá nhập</TableHead>
                   <TableHead className="min-w-32">Giá bán</TableHead>
@@ -196,24 +199,23 @@ const ExportProductView = ({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {props?.data?.map((product) => {
-                  const baseUnitName = product?.baseUnit?.name || product?.prices?.[0]?.unitName || product?.prices?.[0]?.unit?.name || '—'
-                  const stockQuantity = product?.currentStock != null ? Number(product.currentStock) : (product?.productStocks?.[0]?.quantity ?? 0)
+                {data?.map((product) => {
+                  const unitName = product?.unit?.unitName || '—'
+                  const stockQuantity = product?.totalStock || 0
+                  const statusLabel = product.status === 'active' ? (type === 'PRODUCT' ? 'Đang bán' : 'Sử dụng') : (type === 'PRODUCT' ? 'Ngừng bán' : 'Ngừng sử dụng')
 
                   return (
                     <TableRow key={product.id}>
                       <TableCell>{indexTable++}</TableCell>
-                      <TableCell>{product.name}</TableCell>
+                      <TableCell>{product.productName}</TableCell>
                       <TableCell>{product.code}</TableCell>
-                      <TableCell>{product.category?.name || '—'}</TableCell>
-                      <TableCell>{product.type === 'digital' ? 'Phần mềm' : 'Vật lý'}</TableCell>
-                      <TableCell>{baseUnitName}</TableCell>
+                      <TableCell>{product.category?.categoryName || '—'}</TableCell>
+                      <TableCell>{type === 'PRODUCT' ? 'Sản phẩm' : 'Nguyên liệu'}</TableCell>
+                      <TableCell>{unitName}</TableCell>
                       <TableCell>{stockQuantity}</TableCell>
                       <TableCell>{moneyFormat(product.basePrice || 0)}</TableCell>
                       <TableCell>{moneyFormat(product.price || 0)}</TableCell>
-                      <TableCell>
-                        {product.status === 'published' ? 'Đang bán' : 'Ngừng bán'}
-                      </TableCell>
+                      <TableCell>{statusLabel}</TableCell>
                       <TableCell>{product.note || ''}</TableCell>
                       <TableCell>{dateFormat(product.createdAt)}</TableCell>
                     </TableRow>

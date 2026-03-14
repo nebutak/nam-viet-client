@@ -28,7 +28,7 @@ import { DeleteMultipleProductsDialog } from './DeleteMultipleProductsDialog'
 import { deleteMultipleProducts } from '@/stores/ProductSlice'
 import { TrashIcon } from '@radix-ui/react-icons'
 
-const DataTableToolbar = ({ table }) => {
+const DataTableToolbar = ({ table, type = 'PRODUCT' }) => {
   const isFiltered = table.getState().columnFilters.length > 0
   const [showCreateProductDialog, setShowCreateProductDialog] = useState(false)
   const [showImportDialog, setShowImportDialog] = useState(false)
@@ -41,8 +41,8 @@ const DataTableToolbar = ({ table }) => {
   const selectedRows = table.getSelectedRowModel().rows
 
   useEffect(() => {
-    dispatch(getCategories())
-  }, [dispatch])
+    dispatch(getCategories({ type }))
+  }, [dispatch, type])
 
   const handleDelete = async () => {
     const selectedIds = selectedRows.map((row) => row.original.id)
@@ -100,6 +100,7 @@ const DataTableToolbar = ({ table }) => {
                 open={showCreateProductDialog}
                 onOpenChange={setShowCreateProductDialog}
                 showTrigger={false}
+                defaultType={type}
               />
             )}
           </Can>
@@ -111,6 +112,7 @@ const DataTableToolbar = ({ table }) => {
             <ImportProductDialog
               open={showImportDialog}
               onOpenChange={setShowImportDialog}
+              type={type}
             />
           )}
         </Can>
@@ -144,7 +146,7 @@ const DataTableToolbar = ({ table }) => {
                 onClick={async () => {
                   const selectedRows = table.getSelectedRowModel().rows
                   if (selectedRows.length !== 1) {
-                    toast.warning('Vui lòng chọn một sản phẩm để sao chép')
+                    toast.warning(`Vui lòng chọn một ${type === 'PRODUCT' ? 'sản phẩm' : 'nguyên liệu'} để sao chép`)
                     return
                   }
 
@@ -212,11 +214,20 @@ const DataTableToolbar = ({ table }) => {
           </DropdownMenuContent>
         </DropdownMenu>
 
+        {showImportDialog && (
+          <ImportProductDialog
+            open={showImportDialog}
+            onOpenChange={setShowImportDialog}
+            type={type}
+          />
+        )}
+
         {showExportDialog && (
           <ExportProductDialog
             open={showExportDialog}
             onOpenChange={setShowExportDialog}
             showTrigger={false}
+            type={type}
           />
         )}
 
@@ -225,6 +236,7 @@ const DataTableToolbar = ({ table }) => {
           onOpenChange={setShowDeleteDialog}
           onConfirm={handleDelete}
           count={selectedRows.length}
+          type={type}
         />
       </div>
     )
@@ -286,7 +298,7 @@ const DataTableToolbar = ({ table }) => {
         onClick={async () => {
           const selectedRows = table.getSelectedRowModel().rows
           if (selectedRows.length !== 1) {
-            toast.warning('Vui lòng chọn một sản phẩm để sao chép')
+            toast.warning(`Vui lòng chọn một ${type === 'PRODUCT' ? 'sản phẩm' : 'nguyên liệu'} để sao chép`)
             return
           }
 
@@ -327,6 +339,8 @@ const DataTableToolbar = ({ table }) => {
             open={showCreateProductDialog}
             onOpenChange={setShowCreateProductDialog}
             showTrigger={false}
+            type={type}
+            defaultType={type}
           />
         )}
       </Can>
@@ -347,6 +361,7 @@ const DataTableToolbar = ({ table }) => {
             open={showExportDialog}
             onOpenChange={setShowExportDialog}
             showTrigger={false}
+            type={type}
           />
         )}
       </Can>
@@ -367,6 +382,7 @@ const DataTableToolbar = ({ table }) => {
           <ImportProductDialog
             open={showImportDialog}
             onOpenChange={setShowImportDialog}
+            type={type}
           />
         )}
       </Can>
@@ -376,9 +392,10 @@ const DataTableToolbar = ({ table }) => {
         onOpenChange={setShowDeleteDialog}
         onConfirm={handleDelete}
         count={selectedRows.length}
+        type={type}
       />
 
-      <DataTableViewOptions table={table} />
+      <DataTableViewOptions table={table} type={type} />
     </div>
   )
 }

@@ -13,7 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { getPublicUrl } from '@/utils/file'
 import { Package } from 'lucide-react'
 
-export const columns = [
+export const getColumns = (type) => [
   {
     id: 'select',
     header: ({ table }) => (
@@ -81,7 +81,10 @@ export const columns = [
   {
     accessorKey: 'productName',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Tên sản phẩm" />
+      <DataTableColumnHeader 
+        column={column} 
+        title={type === 'PRODUCT' ? 'Tên sản phẩm' : 'Tên nguyên liệu'} 
+      />
     ),
     cell: ({ row }) => {
       const imageUrl = row.original.image || row.original.document
@@ -127,7 +130,7 @@ export const columns = [
       return value.includes(row.original?.categoryId)
     },
     enableSorting: false,
-    enableHiding: false,
+    enableHiding: true,
   },
   {
     accessorKey: 'totalStock',
@@ -143,7 +146,7 @@ export const columns = [
       )
     },
     enableSorting: false,
-    enableHiding: false,
+    enableHiding: true,
   },
   {
     accessorKey: 'type',
