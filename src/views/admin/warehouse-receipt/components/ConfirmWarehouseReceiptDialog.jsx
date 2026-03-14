@@ -34,6 +34,7 @@ import { getInvoiceDetail } from '@/stores/InvoiceSlice'
 import { useDispatch, useSelector } from 'react-redux'
 import { getWarehouseReceiptDetail } from '@/stores/WarehouseReceiptSlice'
 import { getWarehouses } from '@/stores/WarehouseSlice'
+import { getInventory } from '@/stores/ProductSlice'
 import { toast } from 'sonner'
 import {
   Select,
@@ -43,6 +44,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import { Check, AlertTriangle } from 'lucide-react'
 
 const ConfirmWarehouseReceiptDialog = ({
   open,
@@ -61,6 +64,8 @@ const ConfirmWarehouseReceiptDialog = ({
   const [actualReceiptDate, setActualReceiptDate] = useState(() => new Date().toISOString().split('T')[0])
   const [selectedWarehouseId, setSelectedWarehouseId] = useState('')
   const [exportQuantities, setExportQuantities] = useState({}) // { itemDetailId: quantity }
+  const [inventoryData, setInventoryData] = useState([])
+  const [isFetchingInventory, setIsFetchingInventory] = useState(false)
 
   const warehouses = useSelector((state) => state.warehouse.warehouses) || []
 
@@ -98,6 +103,23 @@ const ConfirmWarehouseReceiptDialog = ({
           }
 
           setDetailInvoice(data)
+          
+          if (data.details && data.details.length > 0) {
+            const productIds = data.details
+              .map(item => item.productId)
+              .filter(id => !!id)
+              .join(',')
+            
+            if (productIds) {
+              setIsFetchingInventory(true)
+              dispatch(getInventory({ productIds, limit: 1000 }))
+                .unwrap()
+                .then(res => {
+                  setInventoryData(res.data || [])
+                })
+                .finally(() => setIsFetchingInventory(false))
+            }
+          }
         } catch (error) {
           console.error('Failed to fetch details:', error)
           toast.error('Không thể tải thông tin chi tiết')
@@ -111,6 +133,7 @@ const ConfirmWarehouseReceiptDialog = ({
     } else if (!open) {
       // Reset when closed
       setDetailInvoice(null)
+      setInventoryData([])
     }
   }, [open, invoice?.id, dispatch])
 
@@ -118,7 +141,7 @@ const ConfirmWarehouseReceiptDialog = ({
     let totalShipped = 0
     if (activeInvoice?.warehouseReceipts) {
       activeInvoice.warehouseReceipts.forEach(receipt => {
-        if (receipt.status !== 'cancelled' && receipt.status !== 'canceled') {
+        if (receipt.isPosted) {
           if (receipt.details) {
             const match = receipt.details.filter(d =>
               (d.invoiceItemId && d.invoiceItemId === item.id) ||
@@ -228,6 +251,34 @@ const ConfirmWarehouseReceiptDialog = ({
   const validItemsCount = activeInvoice.details?.filter(isItemSelectable).length || 0
   const selectedCount = Object.values(selectedItems).filter(Boolean).length
 
+  const getWarehouseStockStatus = (warehouseId) => {
+    if (!inventoryData?.length) return null
+
+    const warehouseInv = inventoryData.filter(inv => (inv.warehouseId || inv.warehouse?.id) === Number(warehouseId))
+    const availableProductIds = warehouseInv
+      .filter(inv => (Number(inv.quantity) - Number(inv.reservedQuantity)) > 0)
+      .map(inv => inv.productId || inv.product?.id)
+    
+    const invoiceProducts = activeInvoice?.details || []
+    // Use fallback for item.productId
+    const totalDistinctProducts = [...new Set(invoiceProducts.map(i => i.productId || i.product?.id))].filter(id => !!id).length
+    
+    const productsInStock = invoiceProducts.filter(item => 
+      availableProductIds.includes(item.productId || item.product?.id)
+    )
+    const distinctProductsInStock = [...new Set(productsInStock.map(p => p.productId || p.product?.id))].filter(id => !!id).length
+
+    return {
+      availableCount: distinctProductsInStock,
+      totalCount: totalDistinctProducts,
+      hasSome: distinctProductsInStock > 0,
+      isFullyAvailable: distinctProductsInStock === totalDistinctProducts && totalDistinctProducts > 0,
+    }
+  }
+
+  // Lọc chỉ lấy kho sản phẩm
+  const productWarehouses = warehouses.filter(w => w.warehouseType === 'product')
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -271,11 +322,47 @@ const ConfirmWarehouseReceiptDialog = ({
                 <SelectValue placeholder="Chọn kho chứa sản phẩm" />
               </SelectTrigger>
               <SelectContent>
-                {warehouses.map((w) => (
-                  <SelectItem key={w.id} value={String(w.id)}>
-                    {w.warehouseName} ({w.warehouseCode})
-                  </SelectItem>
-                ))}
+                {productWarehouses.map((warehouse) => {
+                  const stockStatus = getWarehouseStockStatus(warehouse.id)
+                  const isDisabled = !stockStatus || stockStatus.availableCount === 0
+
+                  return (
+                    <SelectItem 
+                      key={warehouse.id} 
+                      value={warehouse.id.toString()}
+                      disabled={isDisabled}
+                    >
+                      <div className="flex flex-col">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-slate-900">{warehouse.warehouseName}</span>
+                          <span className="text-xs text-slate-500">({warehouse.warehouseCode})</span>
+                          {stockStatus?.isFullyAvailable && (
+                            <Badge variant="success" className="h-5 px-1.5 text-[10px] font-bold uppercase tracking-wider">
+                              Đủ hàng
+                            </Badge>
+                          )}
+                        </div>
+                        
+                        {stockStatus ? (
+                          <div className={`mt-0.5 flex items-center gap-1.5 text-[11px] ${stockStatus.availableCount > 0 ? 'text-emerald-600' : 'text-slate-400'}`}>
+                            {stockStatus.availableCount > 0 ? (
+                              <>
+                                <Check className="h-3 w-3" />
+                                <span>Sẵn có {stockStatus.availableCount}/{stockStatus.totalCount} loại sản phẩm</span>
+                              </>
+                            ) : (
+                              <span>Không có sẵn sản phẩm nào trong đơn hàng</span>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-slate-400">
+                            <span>Đang kiểm tra tồn kho...</span>
+                          </div>
+                        )}
+                      </div>
+                    </SelectItem>
+                  )
+                })}
               </SelectContent>
             </Select>
           </div>
@@ -501,7 +588,7 @@ const ConfirmWarehouseReceiptDialog = ({
           <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-800">
             <p className="font-medium text-xs">⚠️ Lưu ý:</p>
             <ul className="ml-4 mt-1 list-disc space-y-1 text-xs">
-              <li>Phiếu xuất kho sẽ ở trạng thái <strong>Nháp</strong></li>
+              <li>Phiếu xuất kho sẽ ở trạng thái <strong>Chưa ghi sổ (isPosted: false)</strong></li>
               <li>Tồn kho chỉ bị trừ sau khi thực hiện <strong>Ghi sổ</strong></li>
             </ul>
           </div>

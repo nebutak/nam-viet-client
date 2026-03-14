@@ -39,7 +39,7 @@ export function ExportDetailDialog({ transaction, open, onOpenChange }) {
                         <span className="font-mono text-lg font-bold text-primary">
                             {transaction.transactionCode || `#${transaction.id}`}
                         </span>
-                        <StatusBadge status={transaction.status} />
+                        <StatusBadge isPosted={transaction.isPosted} />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4 rounded-lg border p-3 bg-muted/30">

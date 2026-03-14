@@ -183,9 +183,9 @@ const InvoiceDialog = ({
   // Handle contract product selection (REMOVED)
 
   useEffect(() => {
-    dispatch(getProducts())
+    dispatch(getProducts({ type: 'PRODUCT' }))
     dispatch(getCustomers())
-    dispatch(getCategories())
+    dispatch(getCategories({ type: 'PRODUCT' }))
     dispatch(getSetting('sharing_ratio'))
     dispatch(getUsers())
   }, [dispatch])

@@ -58,12 +58,12 @@ export const createExportTransaction = createAsyncThunk(
     }
 )
 
-export const approveTransaction = createAsyncThunk(
-    'stockTransaction/approve',
+export const postTransaction = createAsyncThunk(
+    'stockTransaction/post',
     async ({ id, notes }, { rejectWithValue }) => {
         try {
-            const response = await api.put(`/stock-transactions/${id}/approve`, { notes })
-            toast.success('Đã duyệt phiếu thành công')
+            const response = await api.put(`/stock-transactions/${id}/post`, { notes })
+            toast.success('Ghi sổ phiếu thành công')
             return response.data.data
         } catch (error) {
             const message = handleError(error)
@@ -73,20 +73,6 @@ export const approveTransaction = createAsyncThunk(
     }
 )
 
-export const cancelTransaction = createAsyncThunk(
-    'stockTransaction/cancel',
-    async ({ id, reason }, { rejectWithValue }) => {
-        try {
-            const response = await api.put(`/stock-transactions/${id}/cancel`, { reason })
-            toast.success('Đã hủy phiếu')
-            return response.data.data
-        } catch (error) {
-            const message = handleError(error)
-            toast.error(message)
-            return rejectWithValue(message)
-        }
-    }
-)
 
 // ─── Slice ────────────────────────────────────────────────────
 const initialState = {
@@ -113,12 +99,12 @@ const stockTransactionSlice = createSlice({
         clearError: (state) => {
             state.error = null
         },
-        // Optimistically update status in list
-        updateTransactionStatus: (state, action) => {
-            const { id, status } = action.payload
+        // Optimistically update isPosted in list
+        updateTransactionPosted: (state, action) => {
+            const { id, isPosted } = action.payload
             const idx = state.transactions.findIndex((t) => t.id === id)
             if (idx !== -1) {
-                state.transactions[idx] = { ...state.transactions[idx], status }
+                state.transactions[idx] = { ...state.transactions[idx], isPosted }
             }
         },
     },
@@ -172,30 +158,20 @@ const stockTransactionSlice = createSlice({
             .addCase(createExportTransaction.rejected, handleActionRejected)
 
         builder
-            .addCase(approveTransaction.pending, handleActionPending)
-            .addCase(approveTransaction.fulfilled, (state, action) => {
+            .addCase(postTransaction.pending, handleActionPending)
+            .addCase(postTransaction.fulfilled, (state, action) => {
                 state.actionLoading = false
                 if (action.payload) {
                     const idx = state.transactions.findIndex((t) => t.id === action.payload.id)
                     if (idx !== -1) state.transactions[idx] = action.payload
                 }
             })
-            .addCase(approveTransaction.rejected, handleActionRejected)
+            .addCase(postTransaction.rejected, handleActionRejected)
 
-        builder
-            .addCase(cancelTransaction.pending, handleActionPending)
-            .addCase(cancelTransaction.fulfilled, (state, action) => {
-                state.actionLoading = false
-                if (action.payload) {
-                    const idx = state.transactions.findIndex((t) => t.id === action.payload.id)
-                    if (idx !== -1) state.transactions[idx] = action.payload
-                }
-            })
-            .addCase(cancelTransaction.rejected, handleActionRejected)
     },
 })
 
-export const { clearCurrentTransaction, clearError, updateTransactionStatus } =
+export const { clearCurrentTransaction, clearError, updateTransactionPosted } =
     stockTransactionSlice.actions
 
 export default stockTransactionSlice.reducer

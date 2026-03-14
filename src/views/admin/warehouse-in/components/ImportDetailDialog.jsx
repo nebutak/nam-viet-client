@@ -44,7 +44,7 @@ export function ImportDetailDialog({ transaction, open, onOpenChange }) {
                         <span className="font-mono text-lg font-bold text-primary">
                             {transaction.transactionCode || `#${transaction.id}`}
                         </span>
-                        <StatusBadge status={transaction.status} />
+                        <StatusBadge isPosted={transaction.isPosted} />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4 rounded-lg border p-3 bg-muted/30">
@@ -131,12 +131,6 @@ export function ImportDetailDialog({ transaction, open, onOpenChange }) {
                         </div>
                     </div>
 
-                    {transaction.cancelReason && (
-                        <div className="rounded-md border border-red-200 px-3 py-2 bg-red-50">
-                            <p className="text-xs text-red-600 font-medium mb-1">Lý do hủy</p>
-                            <p className="text-sm text-red-700">{transaction.cancelReason}</p>
-                        </div>
-                    )}
                 </div>
             </DialogContent>
         </Dialog>

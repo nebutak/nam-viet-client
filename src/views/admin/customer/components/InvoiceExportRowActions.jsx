@@ -12,7 +12,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { MoreHorizontal, Eye, CheckCircle, XCircle } from 'lucide-react'
-import { approveTransaction, cancelTransaction, getStockTransactionById } from '@/stores/StockTransactionSlice'
+import { postTransaction, getStockTransactionById } from '@/stores/StockTransactionSlice'
 import { ExportDetailDialog } from '../../warehouse-out/components/ExportDetailDialog'
 
 export function InvoiceExportRowActions({ row, onRefresh }) {
@@ -22,12 +22,7 @@ export function InvoiceExportRowActions({ row, onRefresh }) {
 
     const [showDetail, setShowDetail] = useState(false)
     const [detailData, setDetailData] = useState(null)
-    const [showApprove, setShowApprove] = useState(false)
-    const [showCancel, setShowCancel] = useState(false)
-    const [cancelReason, setCancelReason] = useState('')
-
-    const isDraft = transaction.status === 'draft' || transaction.status === 'pending'
-    const canCancel = transaction.status === 'draft' || transaction.status === 'pending'
+    const isPosted = transaction.isPosted
 
     const refresh = () => {
         if (onRefresh) onRefresh()
@@ -39,18 +34,10 @@ export function InvoiceExportRowActions({ row, onRefresh }) {
         setShowDetail(true)
     }
 
-    const handleApprove = async () => {
-        await dispatch(approveTransaction({ id: transaction.id, notes: '' })).unwrap()
+    const handlePost = async () => {
+        await dispatch(postTransaction({ id: transaction.id, notes: '' })).unwrap()
         refresh()
         setShowApprove(false)
-    }
-
-    const handleCancel = async () => {
-        if (!cancelReason.trim()) return
-        await dispatch(cancelTransaction({ id: transaction.id, reason: cancelReason })).unwrap()
-        refresh()
-        setShowCancel(false)
-        setCancelReason('')
     }
 
     return (
@@ -60,47 +47,20 @@ export function InvoiceExportRowActions({ row, onRefresh }) {
             <AlertDialog open={showApprove} onOpenChange={setShowApprove}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Duyệt phiếu xuất kho?</AlertDialogTitle>
+                        <AlertDialogTitle>Ghi sổ phiếu xuất kho?</AlertDialogTitle>
                         <AlertDialogDescription>
                             Phiếu <b>{transaction.transactionCode || `#${transaction.id}`}</b> sẽ được ghi sổ và tồn kho sẽ được giảm.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>Hủy</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleApprove} disabled={actionLoading}>
-                            {actionLoading ? 'Đang duyệt...' : 'Duyệt'}
+                        <AlertDialogAction onClick={handlePost} disabled={actionLoading}>
+                            {actionLoading ? 'Đang ghi sổ...' : 'Ghi sổ'}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
 
-            <AlertDialog open={showCancel} onOpenChange={setShowCancel}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Hủy phiếu xuất kho?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Phiếu sẽ được đánh dấu đã hủy và vẫn lưu trong lịch sử.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <div className="px-6 pb-2">
-                        <Input
-                            placeholder="Lý do hủy (bắt buộc)..."
-                            value={cancelReason}
-                            onChange={(e) => setCancelReason(e.target.value)}
-                        />
-                    </div>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Đóng</AlertDialogCancel>
-                        <AlertDialogAction
-                            onClick={handleCancel}
-                            disabled={actionLoading || !cancelReason.trim()}
-                            className="bg-destructive hover:bg-destructive/90"
-                        >
-                            {actionLoading ? 'Đang hủy...' : 'Xác nhận hủy'}
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
 
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -113,21 +73,12 @@ export function InvoiceExportRowActions({ row, onRefresh }) {
                         <Eye className="mr-2 h-4 w-4 text-muted-foreground" />
                         Xem chi tiết
                     </DropdownMenuItem>
-                    {isDraft && (
+                    {!isPosted && (
                         <>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={() => setShowApprove(true)} className="text-green-700 hover:text-green-700">
                                 <CheckCircle className="mr-2 h-4 w-4" />
-                                Duyệt phiếu
-                            </DropdownMenuItem>
-                        </>
-                    )}
-                    {canCancel && (
-                        <>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => setShowCancel(true)} className="text-destructive hover:text-destructive">
-                                <XCircle className="mr-2 h-4 w-4" />
-                                Hủy phiếu
+                                Ghi sổ phiếu
                             </DropdownMenuItem>
                         </>
                     )}

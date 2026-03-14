@@ -33,6 +33,18 @@ export const getLowStockProducts = createAsyncThunk(
   },
 )
 
+export const getInventory = createAsyncThunk(
+  'product/getInventory',
+  async (params = {}, { rejectWithValue }) => {
+    try {
+      const response = await api.get('/inventory', { params })
+      return response.data
+    } catch (error) {
+      return rejectWithValue(handleError(error))
+    }
+  },
+)
+
 export const getProductById = createAsyncThunk(
   'product/getById',
   async (id, { rejectWithValue }) => {

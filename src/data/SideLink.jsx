@@ -103,6 +103,12 @@ export const sideLinks = [
         icon: <CreditCard size={18} strokeWidth={1.5} />,
         permission: 'GET_PAYMENT',
       },
+      {
+        title: 'Phiếu chi của tôi',
+        href: '/payment-user',
+        icon: <CreditCard size={18} strokeWidth={1.5} />,
+        permission: 'GET_PAYMENT_USER',
+      },
     ],
   },
   {
