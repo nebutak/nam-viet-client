@@ -28,7 +28,7 @@ import { DeleteMultipleProductsDialog } from './DeleteMultipleProductsDialog'
 import { deleteMultipleProducts } from '@/stores/ProductSlice'
 import { TrashIcon } from '@radix-ui/react-icons'
 
-const DataTableToolbar = ({ table, type = 'PRODUCT' }) => {
+const DataTableToolbar = ({ table, type = 'PRODUCT', hideCreateProduct = false }) => {
   const isFiltered = table.getState().columnFilters.length > 0
   const [showCreateProductDialog, setShowCreateProductDialog] = useState(false)
   const [showImportDialog, setShowImportDialog] = useState(false)
@@ -79,31 +79,33 @@ const DataTableToolbar = ({ table, type = 'PRODUCT' }) => {
             <span className="ml-2 font-bold">{selectedRows.length}</span>
           </Button>
         ) : (
-          <Can
-            permission={[
-              'CREATE_PRODUCT',
-              'GET_SUPPLIER',
-              'GET_CATEGORY',
-              'GET_UNIT',
-            ]}
-          >
-            <Button
-              size="sm"
-              onClick={() => setShowCreateProductDialog(true)}
-              className="h-8 px-2 bg-green-600 hover:bg-green-700 text-white"
+          !hideCreateProduct && (
+            <Can
+              permission={[
+                'CREATE_PRODUCT',
+                'GET_SUPPLIER',
+                'GET_CATEGORY',
+                'GET_UNIT',
+              ]}
             >
-              <PlusIcon className="size-4" aria-hidden="true" />
-            </Button>
+              <Button
+                size="sm"
+                onClick={() => setShowCreateProductDialog(true)}
+                className="h-8 px-2 bg-green-600 hover:bg-green-700 text-white"
+              >
+                <PlusIcon className="size-4" aria-hidden="true" />
+              </Button>
 
-            {showCreateProductDialog && (
-              <CreateProductDialog
-                open={showCreateProductDialog}
-                onOpenChange={setShowCreateProductDialog}
-                showTrigger={false}
-                defaultType={type}
-              />
-            )}
-          </Can>
+              {showCreateProductDialog && (
+                <CreateProductDialog
+                  open={showCreateProductDialog}
+                  onOpenChange={setShowCreateProductDialog}
+                  showTrigger={false}
+                  defaultType={type}
+                />
+              )}
+            </Can>
+          )
         )}
 
         <Can permission="CREATE_PRODUCT">
@@ -317,33 +319,35 @@ const DataTableToolbar = ({ table, type = 'PRODUCT' }) => {
         Sao chép
       </Button>
 
-      <Can
-        permission={[
-          'CREATE_PRODUCT',
-          'GET_SUPPLIER',
-          'GET_CATEGORY',
-          'GET_UNIT',
-        ]}
-      >
-        <Button
-          className="mx-2 bg-green-600 hover:bg-green-700 text-white"
-          size="sm"
-          onClick={() => setShowCreateProductDialog(true)}
+      {!hideCreateProduct && (
+        <Can
+          permission={[
+            'CREATE_PRODUCT',
+            'GET_SUPPLIER',
+            'GET_CATEGORY',
+            'GET_UNIT',
+          ]}
         >
-          <PlusIcon className="mr-2 size-4" aria-hidden="true" />
-          Thêm mới
-        </Button>
+          <Button
+            className="mx-2 bg-green-600 hover:bg-green-700 text-white"
+            size="sm"
+            onClick={() => setShowCreateProductDialog(true)}
+          >
+            <PlusIcon className="mr-2 size-4" aria-hidden="true" />
+            Thêm mới
+          </Button>
 
-        {showCreateProductDialog && (
-          <CreateProductDialog
-            open={showCreateProductDialog}
-            onOpenChange={setShowCreateProductDialog}
-            showTrigger={false}
-            type={type}
-            defaultType={type}
-          />
-        )}
-      </Can>
+          {showCreateProductDialog && (
+            <CreateProductDialog
+              open={showCreateProductDialog}
+              onOpenChange={setShowCreateProductDialog}
+              showTrigger={false}
+              type={type}
+              defaultType={type}
+            />
+          )}
+        </Can>
+      )}
 
       <Can permission="GET_PRODUCT">
         <Button

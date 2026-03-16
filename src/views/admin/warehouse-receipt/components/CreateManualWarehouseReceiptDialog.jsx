@@ -52,21 +52,26 @@ import { cn } from '@/lib/utils'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { getProducts } from '@/stores/ProductSlice'
 import { createWarehouseReceipt, getWarehouseReceipts } from '@/stores/WarehouseReceiptSlice'
 import { getCustomers } from '@/stores/CustomerSlice'
 import { getSuppliers } from '@/stores/SupplierSlice'
-import { PlusIcon, Trash2, Check, ChevronsUpDown, Search, CheckIcon } from 'lucide-react'
+import { getWarehouses } from '@/stores/WarehouseSlice'
+import { PlusIcon, Trash2, Check, CheckIcon, Search } from 'lucide-react'
+import api from '@/utils/axios'
 import { CaretSortIcon } from '@radix-ui/react-icons'
 import { toast } from 'sonner'
 import { receiptTypes, businessTypes } from '../data'
 import { moneyFormat } from '@/utils/money-format'
+import { useMediaQuery } from '@/hooks/UseMediaQuery'
+import { getPublicUrl } from '@/utils/file'
 
 const formSchema = z.object({
   receiptType: z.coerce.number(),
   businessType: z.string().min(1, 'Vui lòng chọn loại nghiệp vụ'),
+  warehouseId: z.string().min(1, 'Vui lòng chọn kho'),
   receiptDate: z.date(),
   actualReceiptDate: z.date().optional().nullable(),
   reason: z.string().optional(),
@@ -74,29 +79,32 @@ const formSchema = z.object({
   partnerId: z.string().optional(),
 })
 
-import { useMediaQuery } from '@/hooks/UseMediaQuery'
-import { getPublicUrl } from '@/utils/file'
-
 const CreateManualWarehouseReceiptDialog = ({
   open,
   onOpenChange,
   showTrigger = true,
   onSuccess,
+  defaultReceiptType = 1,
+  triggerLabel,
 }) => {
   const dispatch = useDispatch()
   const { products, loading: productsLoading } = useSelector((state) => state.product)
   const { customers } = useSelector((state) => state.customer)
   const { suppliers } = useSelector((state) => state.supplier)
+  const { warehouses } = useSelector((state) => state.warehouse)
   const [loading, setLoading] = useState(false)
   const [selectedProducts, setSelectedProducts] = useState([])
   const [openProductSearch, setOpenProductSearch] = useState(false)
+  const [openPartnerPopover, setOpenPartnerPopover] = useState(false)
+  const [inventoryMap, setInventoryMap] = useState({}) // productId -> quantity
   const isMobile = useMediaQuery('(max-width: 768px)')
 
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      receiptType: 1, // Default: Import
+      receiptType: defaultReceiptType, // 1: Import, 2: Export
       businessType: '',
+      warehouseId: '',
       receiptDate: new Date(),
       actualReceiptDate: new Date(),
       reason: '',
@@ -106,6 +114,7 @@ const CreateManualWarehouseReceiptDialog = ({
   })
 
   const receiptType = form.watch('receiptType')
+  const selectedWarehouseId = form.watch('warehouseId')
 
   // Filter business types based on receipt type
   const filteredBusinessTypes = useMemo(() => {
@@ -118,6 +127,43 @@ const CreateManualWarehouseReceiptDialog = ({
     }
     return []
   }, [receiptType])
+
+  // Fetch inventory for selected warehouse
+  const fetchInventory = useCallback(async (warehouseId) => {
+    if (!warehouseId) {
+      setInventoryMap({})
+      return
+    }
+    try {
+      const res = await api.get('/inventory', { params: { warehouseId, limit: 10000 } })
+      const data = res.data?.data || []
+      const map = {}
+      data.forEach(inv => {
+        map[inv.productId] = Number(inv.quantity) - Number(inv.reservedQuantity || 0)
+      })
+      setInventoryMap(map)
+    } catch (err) {
+      console.error('Failed to fetch inventory:', err)
+      setInventoryMap({})
+    }
+  }, [])
+
+  useEffect(() => {
+    if (selectedWarehouseId) {
+      fetchInventory(selectedWarehouseId)
+    } else {
+      setInventoryMap({})
+    }
+  }, [selectedWarehouseId, fetchInventory])
+
+  // Check if any product has insufficient stock (for export)
+  const hasInsufficientStock = useMemo(() => {
+    if (receiptType !== 2) return false // Only check for export
+    return selectedProducts.some(item => {
+      const stock = inventoryMap[item.productId] ?? 0
+      return stock < item.quantity
+    })
+  }, [receiptType, selectedProducts, inventoryMap])
 
   useEffect(() => {
     // Reset business type when receipt type changes
@@ -133,6 +179,7 @@ const CreateManualWarehouseReceiptDialog = ({
       if (products.length === 0) dispatch(getProducts())
       if (customers.length === 0) dispatch(getCustomers())
       if (suppliers.length === 0) dispatch(getSuppliers())
+      if (!warehouses || warehouses.length === 0) dispatch(getWarehouses({ limit: 1000 }))
     }
   }, [open, dispatch, products.length, customers.length, suppliers.length])
 
@@ -142,11 +189,13 @@ const CreateManualWarehouseReceiptDialog = ({
       return
     }
 
-    const baseUnitId = product.baseUnitId || product.prices?.[0]?.unitId
+    // Backend trả về product.unit (relation), không phải baseUnit/baseUnitId
+    const unitId = product.unitId || product.unit?.id
+    const unitName = product.unit?.unitName || product.unit?.name || '—'
+
     // Default movement based on receipt type
     let defaultMovement = 'in'
     if (receiptType === 2) defaultMovement = 'out' // Export
-    // Adjustment defaults to 'in' (surplus) initially, user can change
 
     // Determine default price
     // Import (1) -> Prefer basePrice (Cost)
@@ -162,16 +211,14 @@ const CreateManualWarehouseReceiptDialog = ({
       ...prev,
       {
         productId: product.id,
-        productName: product.name,
-        code: product.code,
+        productName: product.productName || product.name,
+        code: product.productCode || product.code,
         image: product.image,
-        unitId: baseUnitId,
-        unitName: product.baseUnit?.name || product.prices?.[0]?.unitName || '—',
+        unitId: unitId,
+        unitName: unitName,
         quantity: 1,
         price: defaultPrice,
         movement: defaultMovement,
-        batchNumber: '',
-        expiryDate: null,
         note: '',
         product: product // Keep full product ref for unit conversion lookup
       }
@@ -213,27 +260,31 @@ const CreateManualWarehouseReceiptDialog = ({
 
     setLoading(true)
     try {
+      // Validate stock for export
+      if (receiptType === 2 && hasInsufficientStock) {
+        toast.error('Tồn kho không đủ cho một hoặc nhiều sản phẩm')
+        setLoading(false)
+        return
+      }
+
       const details = selectedProducts.map(item => ({
         productId: item.productId,
-        unitId: item.unitId,
-        movement: receiptType === 1 ? 'in' : 'out',
-        qtyActual: item.quantity,
-        unitPrice: item.price,
-        batchNumber: item.product?.hasExpiry ? item.batchNumber : undefined,
-        expiryDate: item.product?.hasExpiry && item.expiryDate ? item.expiryDate.toISOString().split('T')[0] : undefined,
-        note: item.note
+        quantity: Number(item.quantity) || 0,
+        unitPrice: Number(item.price) || 0,
+        notes: item.note || undefined,
       }))
 
       const payload = {
+        warehouseId: Number(data.warehouseId),
+        reason: data.reason || undefined,
+        notes: data.note || undefined,
+        referenceType: data.businessType || undefined,
+        details,
+        // partnerId đi kèm referenceType để backend biết partner (nếu có)
+        ...(data.receiptType === 1 && data.partnerId && { referenceId: Number(data.partnerId) }),
+        ...(data.receiptType === 2 && data.partnerId && { referenceId: Number(data.partnerId) }),
+        // Pass receiptType cho slice biết dùng /import hay /export
         receiptType: data.receiptType,
-        businessType: data.businessType,
-
-        actualReceiptDate: data.actualReceiptDate ? data.actualReceiptDate.toISOString().split('T')[0] : null,
-        reason: data.reason,
-        note: data.note,
-        details: details,
-        ...(data.receiptType === 1 && data.partnerId && { supplierId: Number(data.partnerId) }),
-        ...(data.receiptType === 2 && data.partnerId && { customerId: Number(data.partnerId) })
       }
 
       await dispatch(createWarehouseReceipt(payload)).unwrap()
@@ -246,7 +297,6 @@ const CreateManualWarehouseReceiptDialog = ({
       if (onSuccess) onSuccess()
     } catch (error) {
       console.error(error)
-      // Toast error is handled in slice usually, but safety net:
       toast.error(error?.message || 'Tạo phiếu thất bại')
     } finally {
       setLoading(false)
@@ -292,7 +342,7 @@ const CreateManualWarehouseReceiptDialog = ({
         <DialogTrigger asChild>
           <Button variant="outline" size="sm" className="hidden sm:flex">
             <PlusIcon className="mr-2 h-4 w-4" />
-            Tạo phiếu
+            {triggerLabel || 'Tạo phiếu'}
           </Button>
         </DialogTrigger>
       )}
@@ -304,7 +354,7 @@ const CreateManualWarehouseReceiptDialog = ({
         )}
       >
         <DialogHeader className={cn(isMobile && "px-4 pt-4")}>
-          <DialogTitle>Tạo phiếu kho thủ công</DialogTitle>
+          <DialogTitle>{receiptType === 2 ? 'Tạo phiếu xuất kho' : 'Tạo phiếu nhập kho'}</DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
@@ -364,25 +414,29 @@ const CreateManualWarehouseReceiptDialog = ({
                   )}
                 />
 
-
-
                 <FormField
                   control={form.control}
-                  name="actualReceiptDate"
+                  name="warehouseId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Ngày nhận hàng thực tế</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="date"
-                          value={field.value ? (field.value instanceof Date ? field.value.toISOString().split('T')[0] : field.value) : ''}
-                          onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value) : null)}
-                        />
-                      </FormControl>
+                      <FormLabel>Kho</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Chọn kho" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {(warehouses || []).map(w => (
+                            <SelectItem key={w.id} value={String(w.id)}>{w.warehouseName}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+
 
                 <FormField
                   control={form.control}
@@ -390,7 +444,7 @@ const CreateManualWarehouseReceiptDialog = ({
                   render={({ field }) => (
                     <FormItem className="flex flex-col mt-2">
                       <FormLabel className="mb-0.5">{receiptType === 1 ? 'Nhà cung cấp' : 'Khách hàng'}</FormLabel>
-                      <Popover>
+                      <Popover open={openPartnerPopover} onOpenChange={setOpenPartnerPopover}>
                         <PopoverTrigger asChild>
                           <FormControl>
                             <Button
@@ -404,8 +458,8 @@ const CreateManualWarehouseReceiptDialog = ({
                               <span className="truncate">
                                 {field.value
                                   ? receiptType === 1
-                                    ? suppliers.find((s) => s.id.toString() === field.value.toString())?.name
-                                    : customers.find((c) => c.id.toString() === field.value.toString())?.name
+                                    ? suppliers.find((s) => s.id.toString() === field.value.toString())?.supplierName
+                                    : customers.find((c) => c.id.toString() === field.value.toString())?.customerName
                                   : `Chọn ${receiptType === 1 ? 'nhà cung cấp' : 'khách hàng'}`}
                               </span>
                               <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -422,12 +476,13 @@ const CreateManualWarehouseReceiptDialog = ({
                                   suppliers.map((s) => (
                                     <CommandItem
                                       key={s.id}
-                                      value={`${s.name} ${s.phone} ${s.id}`} /* Thêm id vào value để search & select chính xác nếu trùng tên */
+                                      value={`${s.supplierName} ${s.id}`}
                                       onSelect={() => {
                                         form.setValue("partnerId", s.id.toString())
+                                        setOpenPartnerPopover(false)
                                       }}
                                     >
-                                      {s.name} - {s.phone}
+                                      {s.supplierName}
                                       <CheckIcon
                                         className={cn(
                                           "ml-auto h-4 w-4",
@@ -442,12 +497,13 @@ const CreateManualWarehouseReceiptDialog = ({
                                   customers.map((c) => (
                                     <CommandItem
                                       key={c.id}
-                                      value={`${c.name} ${c.phone} ${c.id}`}
+                                      value={`${c.customerName} ${c.id}`}
                                       onSelect={() => {
                                         form.setValue("partnerId", c.id.toString())
+                                        setOpenPartnerPopover(false)
                                       }}
                                     >
-                                      {c.name} - {c.phone}
+                                      {c.customerName}
                                       <CheckIcon
                                         className={cn(
                                           "ml-auto h-4 w-4",
@@ -493,8 +549,8 @@ const CreateManualWarehouseReceiptDialog = ({
                         Thêm sản phẩm...
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-[400px] p-0" align="end">
-                      <Command shouldFilter={false}> {/* Client side filtering manually if needed, or rely on command default */}
+                    <PopoverContent className="w-[420px] p-0" align="end">
+                      <Command shouldFilter={false}>
                         <CommandInput placeholder="Tìm kiếm sản phẩm..." />
                         <CommandList>
                           <CommandEmpty>Không tìm thấy sản phẩm.</CommandEmpty>
@@ -502,16 +558,30 @@ const CreateManualWarehouseReceiptDialog = ({
                             {products.map((product) => (
                               <CommandItem
                                 key={product.id}
-                                value={product.name + ' ' + product.code} // Searchable string
+                                value={(product.productName || product.name || '') + ' ' + (product.productCode || product.code || '')}
                                 onSelect={() => handleAddProduct(product)}
+                                className="flex items-center gap-3 py-2"
                               >
-                                <div className='flex flex-col'>
-                                  <span>{product.name}</span>
-                                  <span className='text-xs text-muted-foreground'>{product.code} - Tồn: {product.productStocks?.[0]?.quantity || 0}</span>
+                                <div className="h-10 w-10 shrink-0 overflow-hidden rounded-md border bg-muted">
+                                  {product.image ? (
+                                    <img
+                                      src={getPublicUrl(product.image)}
+                                      alt={product.productName || product.name}
+                                      className="h-full w-full object-cover"
+                                    />
+                                  ) : (
+                                    <div className="flex h-full w-full items-center justify-center bg-muted text-muted-foreground">
+                                      <span className="text-[9px] leading-tight px-0.5 text-center">No img</span>
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex flex-col flex-1 min-w-0">
+                                  <span className="font-medium text-sm truncate">{product.productName || product.name}</span>
+                                  <span className="text-xs text-muted-foreground">{product.productCode || product.code} · Tồn: {product.productStocks?.[0]?.quantity ?? 0}</span>
                                 </div>
                                 <Check
                                   className={cn(
-                                    "ml-auto h-4 w-4",
+                                    "h-4 w-4 shrink-0",
                                     selectedProducts.some(p => p.productId === product.id) ? "opacity-100" : "opacity-0"
                                   )}
                                 />
@@ -520,6 +590,7 @@ const CreateManualWarehouseReceiptDialog = ({
                           </CommandGroup>
                         </CommandList>
                       </Command>
+
                     </PopoverContent>
                   </Popover>
                 </div>
@@ -532,7 +603,10 @@ const CreateManualWarehouseReceiptDialog = ({
                           Chưa có sản phẩm nào được chọn
                         </div>
                       ) : (
-                        selectedProducts.map((item, index) => (
+                        selectedProducts.map((item, index) => {
+                          const stock = inventoryMap[item.productId] ?? 0
+                          const isInsufficient = receiptType === 2 && stock < item.quantity
+                          return (
                           <div key={item.productId} className="p-3 space-y-3 bg-card">
                             {/* Row 1: Info & Remove */}
                             <div className="flex justify-between items-start gap-2">
@@ -565,30 +639,12 @@ const CreateManualWarehouseReceiptDialog = ({
                               </Button>
                             </div>
 
-                            {/* Row 2: Unit & Movement */}
-                            <div className="grid grid-cols-2 gap-2">
+                            {/* Row 2: Unit, Quantity & Stock */}
+                            <div className="grid grid-cols-3 gap-2">
                               <div className="space-y-1">
                                 <label className="text-[10px] text-muted-foreground uppercase">ĐVT</label>
-                                <Select
-                                  value={String(item.unitId)}
-                                  onValueChange={(val) => handleProductChange(index, 'unitId', Number(val))}
-                                >
-                                  <SelectTrigger className="h-8 text-xs">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {getUnitOptions(item.product).map(u => (
-                                      <SelectItem key={u.value} value={String(u.value)} className="text-xs">{u.label}</SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
+                                <div className="h-8 flex items-center text-sm">{item.unitName || '—'}</div>
                               </div>
-
-
-                            </div>
-
-                            {/* Row 3: Quantity & Price */}
-                            <div className="grid grid-cols-2 gap-2">
                               <div className="space-y-1">
                                 <label className="text-[10px] text-muted-foreground uppercase">Số lượng</label>
                                 <Input
@@ -601,42 +657,17 @@ const CreateManualWarehouseReceiptDialog = ({
                                 />
                               </div>
                               <div className="space-y-1">
-                                <label className="text-[10px] text-muted-foreground uppercase">
-                                  {receiptType === 2 ? 'Đơn giá bán' : 'Đơn giá vốn'}
-                                </label>
-                                <MoneyInputQuick
-                                  className="h-8 text-sm text-right"
-                                  value={item.price}
-                                  onChange={(val) => handleProductChange(index, 'price', val)}
-                                />
+                                <label className="text-[10px] text-muted-foreground uppercase">Tồn kho</label>
+                                <div className={cn(
+                                  "h-8 flex items-center text-sm font-medium",
+                                  isInsufficient ? "text-red-500 font-bold" : "text-foreground"
+                                )}>
+                                  {selectedWarehouseId ? (isInsufficient ? <span className="text-red-500 font-bold">{stock} (Thiếu)</span> : stock) : '—'}
+                                </div>
                               </div>
                             </div>
 
-                            {/* Row 4: Batch & Expiry (if applicable) */}
-                            {item.product?.hasExpiry && (
-                              <div className="grid grid-cols-2 gap-2 mt-2">
-                                <div className="space-y-1">
-                                  <label className="text-[10px] text-muted-foreground uppercase">Số Lô</label>
-                                  <Input
-                                    className="h-8 text-sm"
-                                    value={item.batchNumber}
-                                    onChange={(e) => handleProductChange(index, 'batchNumber', e.target.value)}
-                                    placeholder="Số lô..."
-                                  />
-                                </div>
-                                <div className="space-y-1">
-                                  <label className="text-[10px] text-muted-foreground uppercase">Hạn SD</label>
-                                  <Input
-                                    type="date"
-                                    className="h-8 text-sm"
-                                    value={item.expiryDate ? (item.expiryDate instanceof Date ? item.expiryDate.toISOString().split('T')[0] : item.expiryDate) : ''}
-                                    onChange={(e) => handleProductChange(index, 'expiryDate', e.target.value ? new Date(e.target.value) : null)}
-                                  />
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Row 5: Note */}
+                            {/* Row 3: Note */}
                             <div className="space-y-1 mt-2">
                               <label className="text-[10px] text-muted-foreground uppercase">Ghi chú</label>
                               <Input
@@ -647,25 +678,21 @@ const CreateManualWarehouseReceiptDialog = ({
                               />
                             </div>
                           </div>
-                        ))
+                          )
+                        })
                       )}
                     </div>
                   ) : (
                     <div className="overflow-x-auto">
-                      <Table className="min-w-[800px]">
+                      <Table className="min-w-[700px]">
                         <TableHeader>
                           <TableRow>
                             <TableHead className="w-[50px]">#</TableHead>
                             <TableHead className="w-[60px]">Ảnh</TableHead>
                             <TableHead>Sản phẩm</TableHead>
                             <TableHead className="w-[100px]">Đơn vị</TableHead>
-
-                            <TableHead className="w-[100px]">Số lượng</TableHead>
-                            <TableHead className="w-[150px]">
-                              {receiptType === 2 ? 'Đơn giá bán' : 'Đơn giá vốn'}
-                            </TableHead>
-                            <TableHead className="w-[120px]">Số Lô</TableHead>
-                            <TableHead className="w-[150px]">Hạn SD</TableHead>
+                            <TableHead className="w-[120px]">Số lượng</TableHead>
+                            <TableHead className="w-[100px]">Tồn kho</TableHead>
                             <TableHead>Ghi chú</TableHead>
                             <TableHead className="w-[50px]"></TableHead>
                           </TableRow>
@@ -678,7 +705,10 @@ const CreateManualWarehouseReceiptDialog = ({
                               </TableCell>
                             </TableRow>
                           ) : (
-                            selectedProducts.map((item, index) => (
+                            selectedProducts.map((item, index) => {
+                              const stock = inventoryMap[item.productId] ?? 0
+                              const isInsufficient = receiptType === 2 && stock < item.quantity
+                              return (
                               <TableRow key={item.productId}>
                                 <TableCell>{index + 1}</TableCell>
                                 <TableCell>
@@ -701,23 +731,8 @@ const CreateManualWarehouseReceiptDialog = ({
                                   <div className="text-xs text-muted-foreground">{item.code}</div>
                                 </TableCell>
                                 <TableCell>
-                                  <Select
-                                    value={String(item.unitId)}
-                                    onValueChange={(val) => handleProductChange(index, 'unitId', Number(val))}
-                                  >
-                                    <SelectTrigger className="h-8">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {getUnitOptions(item.product).map(u => (
-                                        <SelectItem key={u.value} value={String(u.value)}>{u.label}</SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
+                                  <span className="text-sm">{item.unitName || '—'}</span>
                                 </TableCell>
-
-
-
                                 <TableCell>
                                   <Input
                                     type="number"
@@ -729,34 +744,15 @@ const CreateManualWarehouseReceiptDialog = ({
                                   />
                                 </TableCell>
                                 <TableCell>
-                                  <MoneyInputQuick
-                                    className="h-8 text-right"
-                                    value={item.price}
-                                    onChange={(val) => handleProductChange(index, 'price', val)}
-                                  />
-                                </TableCell>
-                                <TableCell>
-                                  {item.product?.hasExpiry ? (
-                                    <Input
-                                      className="h-8"
-                                      value={item.batchNumber}
-                                      onChange={(e) => handleProductChange(index, 'batchNumber', e.target.value)}
-                                      placeholder="Số lô..."
-                                    />
+                                  {selectedWarehouseId ? (
+                                    <span className={cn(
+                                      "text-sm font-medium",
+                                      isInsufficient ? "text-red-500 font-bold" : ""
+                                    )}>
+                                      {isInsufficient ? <span className="text-red-500 font-bold">{stock}</span> : stock}
+                                    </span>
                                   ) : (
-                                    <span className="text-xs text-muted-foreground">-</span>
-                                  )}
-                                </TableCell>
-                                <TableCell>
-                                  {item.product?.hasExpiry ? (
-                                    <Input
-                                      type="date"
-                                      className="h-8 text-xs"
-                                      value={item.expiryDate ? (item.expiryDate instanceof Date ? item.expiryDate.toISOString().split('T')[0] : item.expiryDate) : ''}
-                                      onChange={(e) => handleProductChange(index, 'expiryDate', e.target.value ? new Date(e.target.value) : null)}
-                                    />
-                                  ) : (
-                                    <span className="text-xs text-muted-foreground">-</span>
+                                    <span className="text-xs text-muted-foreground">—</span>
                                   )}
                                 </TableCell>
                                 <TableCell>
@@ -773,7 +769,8 @@ const CreateManualWarehouseReceiptDialog = ({
                                   </Button>
                                 </TableCell>
                               </TableRow>
-                            ))
+                              )
+                            })
                           )}
                         </TableBody>
                       </Table>
@@ -800,7 +797,9 @@ const CreateManualWarehouseReceiptDialog = ({
               <DialogClose asChild>
                 <Button type="button" variant="outline">Hủy</Button>
               </DialogClose>
-              <Button type="submit" loading={loading}>Lưu phiếu</Button>
+              <Button type="submit" loading={loading} disabled={loading || (receiptType === 2 && hasInsufficientStock)}>
+                {receiptType === 2 && hasInsufficientStock ? 'Tồn kho không đủ' : 'Lưu phiếu'}
+              </Button>
             </DialogFooter>
           </form>
         </Form>
