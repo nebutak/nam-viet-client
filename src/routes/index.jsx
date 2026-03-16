@@ -56,6 +56,7 @@ import FinancialReportPage from '@/views/admin/reports/financial/FinancialReport
 import ProductionReportPage from '@/views/admin/reports/production/ProductionReportPage'
 import SalaryPage from '@/views/admin/salary/SalaryPage'
 import SalaryCalculatePage from '@/views/admin/salary/SalaryCalculatePage'
+import SalaryDetailPage from '@/views/admin/salary/SalaryDetailPage'
 import WarrantyPage from '@/views/admin/warranty/WarrantyPage'
 import DeliveryPage from '@/views/admin/delivery/DeliveryPage'
 
@@ -78,6 +79,11 @@ const routes = [
   {
     path: '/salary/calculate',
     element: SalaryCalculatePage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/salary/:id',
+    element: SalaryDetailPage,
     layout: AdminLayout,
   },
   {
