@@ -7,41 +7,62 @@ export const getWarehouseReceipts = createAsyncThunk(
   'warehouseReceipt/get-warehouse-receipts',
   async ({ search, fromDate = null, toDate = null, page = 1, limit = 100, receiptType, status = null, creator = null } = {}, { rejectWithValue }) => {
     try {
-      const response = await api.get('/warehouse-receipts', {
+      // Map receiptType (1=nhập, 2=xuất) sang transactionType của stock-transactions API
+      const txTypeFilter = { 1: 'import', 2: 'export' }
+      const transactionType = receiptType != null ? txTypeFilter[receiptType] : undefined
+
+      const response = await api.get('/stock-transactions', {
         params: {
           search,
           fromDate: fromDate ?? undefined,
           toDate: toDate ?? undefined,
           page,
           limit,
-          receiptType,
+          transactionType,
           status: Array.isArray(status) && status.length > 0 ? status.join(',') : status,
           creator: Array.isArray(creator) && creator.length > 0 ? creator.join(',') : creator,
         },
       })
       const responseData = response.data
-      let data = responseData?.data?.data
-      let pagination = responseData?.data?.pagination
+      let data = responseData?.data
+      const meta = responseData?.meta
 
       if (!Array.isArray(data) && Array.isArray(responseData?.data)) {
         data = responseData.data
-        pagination = responseData.pagination || responseData
       }
 
-      if (!data && Array.isArray(responseData)) {
-        data = responseData
-      }
+      data = Array.isArray(data) ? data : []
 
-      data = data || []
+      // Map stock-transaction fields → legacy WarehouseReceipt shape expected by Column.jsx
+      const receiptTypeMap = { import: 1, export: 2 }
+      data = data.map((tx) => ({
+        ...tx,
+        // Core identity
+        code: tx.transactionCode,
+        receiptType: receiptTypeMap[tx.transactionType] ?? 1,
+        // Status: map isPosted boolean to status string
+        status: tx.isPosted ? 'posted' : 'draft',
+        // Dates
+        receiptDate: tx.createdAt,
+        updatedAt: tx.updatedAt ?? tx.createdAt,
+        // Totals
+        totalAmount: tx.totalValue ?? 0,
+        totalQuantity: tx.details?.reduce((sum, d) => sum + Number(d.quantity ?? 0), 0) ?? 0,
+        // Partner names (stock-transactions has no supplier/customer relation, keep null)
+        supplier: tx.supplier ?? null,
+        customer: tx.customer ?? null,
+        // Reason / notes
+        reason: tx.reason ?? null,
+      }))
 
-      const meta = pagination ? {
-        ...pagination,
-        last_page: pagination.totalPages,
-        current_page: pagination.page,
-        per_page: pagination.limit
+      const pagination = meta ? {
+        ...meta,
+        last_page: meta.totalPages,
+        current_page: meta.page,
+        per_page: meta.limit
       } : undefined
 
-      return { data, meta }
+      return { data, meta: pagination }
     } catch (error) {
       const message = handleError(error)
       return rejectWithValue(message)
@@ -49,11 +70,12 @@ export const getWarehouseReceipts = createAsyncThunk(
   },
 )
 
+
 export const getWarehouseReceiptById = createAsyncThunk(
   'warehouseReceipt/get-warehouse-receipt-by-id',
   async (id, { rejectWithValue }) => {
     try {
-      const response = await api.get(`/warehouse-receipts/${id}`)
+      const response = await api.get(`/stock-transactions/${id}`)
       return response.data.data
     } catch (error) {
       const message = handleError(error)
@@ -68,7 +90,10 @@ export const createWarehouseReceipt = createAsyncThunk(
   'warehouseReceipt/create-warehouse-receipt',
   async (data, { rejectWithValue }) => {
     try {
-      await api.post('/warehouse-receipts', data)
+      // data.receiptType: 1=import, 2=export — chỉ dùng để chọn endpoint, không gửi vào body
+      const { receiptType, ...body } = data
+      const endpoint = receiptType === 2 ? '/stock-transactions/export' : '/stock-transactions/import'
+      await api.post(endpoint, body)
       toast.success('Thêm mới thành công')
     } catch (error) {
       const message = handleError(error)
@@ -81,7 +106,7 @@ export const updateWarehouseReceipt = createAsyncThunk(
   'warehouseReceipt/update-warehouse-receipt',
   async ({ id, data }, { rejectWithValue }) => {
     try {
-      await api.put(`/warehouse-receipts/${id}`, data)
+      await api.put(`/stock-transactions/${id}`, data)
       toast.success('Cập nhật thành công')
     } catch (error) {
       const message = handleError(error)
@@ -94,7 +119,7 @@ export const deleteWarehouseReceipt = createAsyncThunk(
   'warehouseReceipt/delete-warehouse-receipt',
   async (id, { rejectWithValue }) => {
     try {
-      await api.delete(`/warehouse-receipts/${id}`)
+      await api.delete(`/stock-transactions/${id}`)
       toast.success('Xóa thành công')
       return id
     } catch (error) {
@@ -108,7 +133,8 @@ export const deleteMultipleWarehouseReceipts = createAsyncThunk(
   'warehouseReceipt/deleteMultiple',
   async (ids, { rejectWithValue }) => {
     try {
-      await api.post('/warehouse-receipts/bulk-delete', { ids })
+      // Xóa lần lượt từng giao dịch (stock-transactions không có bulk-delete)
+      await Promise.all(ids.map((id) => api.delete(`/stock-transactions/${id}`)))
       toast.success('Xóa các phiếu kho đã chọn thành công')
       return ids
     } catch (error) {
@@ -121,7 +147,7 @@ export const postWarehouseReceipt = createAsyncThunk(
   'warehouseReceipt/post-warehouse-receipt',
   async (id, { rejectWithValue }) => {
     try {
-      await api.post(`/warehouse-receipts/${id}/post`)
+      await api.put(`/stock-transactions/${id}/post`)
       toast.success('Duyệt phiếu thành công')
       return id
     } catch (error) {
@@ -135,7 +161,8 @@ export const cancelWarehouseReceipt = createAsyncThunk(
   'warehouseReceipt/cancel-warehouse-receipt',
   async (id, { rejectWithValue }) => {
     try {
-      await api.post(`/warehouse-receipts/${id}/cancel`)
+      // stock-transactions không có endpoint cancel riêng; dùng delete hoặc update status
+      await api.delete(`/stock-transactions/${id}`)
       toast.success('Hủy phiếu thành công')
       return id
     } catch (error) {
@@ -150,7 +177,7 @@ export const generateWarehouseReceiptFromPO = createAsyncThunk(
   async ({ purchaseOrderId, selectedItemIds }, { rejectWithValue }) => {
     try {
       const response = await api.post(
-        '/warehouse-receipts/generate-from-purchase-order',
+        '/stock-transactions/generate-from-purchase-order',
         {
           purchaseOrderId,
           selectedItemIds,
@@ -170,7 +197,7 @@ export const generateWarehouseReceiptFromInvoice = createAsyncThunk(
   async ({ invoiceId, selectedItemIds, type = 'retail' }, { rejectWithValue }) => {
     try {
       const response = await api.post(
-        '/warehouse-receipts/generate-from-invoice',
+        '/stock-transactions/generate-from-invoice',
         {
           invoiceId,
           selectedItemIds,

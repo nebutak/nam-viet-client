@@ -22,14 +22,13 @@ import { createImportTransaction, getStockTransactions } from '@/stores/StockTra
 import { getProducts } from '@/stores/ProductSlice'
 import { toast } from 'sonner'
 import { useNavigate } from 'react-router-dom'
+import api from '@/utils/axios'
 
 const detailSchema = z.object({
     productId: z.coerce.number().int().positive('Chọn sản phẩm'),
     quantity: z.coerce.number().positive('SL phải > 0'),
     unitPrice: z.coerce.number().min(0).optional(),
     totalPrice: z.coerce.number().min(0).optional(),
-    batchNumber: z.string().optional(),
-    expiryDate: z.string().min(1, 'Vui lòng nhập ngày'),
     notes: z.string().optional(),
 })
 
@@ -72,7 +71,7 @@ export default function CreateImportDialog({
             warehouseId: undefined,
             reason: '',
             notes: '',
-            details: [{ productId: '', quantity: 1, unitPrice: 0, totalPrice: 0, batchNumber: '', expiryDate: '', notes: '' }],
+            details: [{ productId: '', quantity: 1, unitPrice: 0, totalPrice: 0, notes: '' }],
         },
     })
 
@@ -89,13 +88,6 @@ export default function CreateImportDialog({
                     form.setValue(`details.0.productId`, Number(prefillProductId));
                     form.setValue(`details.0.unitPrice`, product.purchasePrice || 0);
                     form.setValue(`details.0.totalPrice`, (product.purchasePrice || 0) * 1);
-
-                    const dateRaw = new Date();
-                    const yy = String(dateRaw.getFullYear()).slice(-2);
-                    const mm = String(dateRaw.getMonth() + 1).padStart(2, '0');
-                    const dd = String(dateRaw.getDate()).padStart(2, '0');
-                    const randomStr = Math.random().toString(36).substring(2, 6).toUpperCase();
-                    form.setValue(`details.0.batchNumber`, `LOT-${yy}${mm}${dd}-${randomStr}`);
                 }
             }
         }
@@ -104,6 +96,33 @@ export default function CreateImportDialog({
     const warehouseId = form.watch('warehouseId');
     const details = form.watch('details');
     const warnedProducts = useRef(new Set());
+    
+    // Inventory state for stock column
+    const [inventoryMap, setInventoryMap] = useState({});
+
+    useEffect(() => {
+        if (!warehouseId) {
+            setInventoryMap({});
+            return;
+        }
+        
+        async function fetchInventory() {
+            try {
+                const res = await api.get('/inventory', { params: { warehouseId, limit: 10000 } });
+                const data = res.data?.data || [];
+                const map = {};
+                data.forEach(inv => {
+                    map[inv.productId] = Number(inv.quantity) - Number(inv.reservedQuantity || 0);
+                });
+                setInventoryMap(map);
+            } catch (err) {
+                console.error('Failed to fetch inventory:', err);
+                setInventoryMap({});
+            }
+        }
+        
+        fetchInventory();
+    }, [warehouseId]);
 
     useEffect(() => {
         if (!warehouseId || !warehouses.length || !products.length || !details?.length) {
@@ -149,17 +168,6 @@ export default function CreateImportDialog({
             form.setValue(`details.${idx}.unitPrice`, product.purchasePrice || 0);
             const qty = form.getValues(`details.${idx}.quantity`) || 1;
             form.setValue(`details.${idx}.totalPrice`, (product.purchasePrice || 0) * qty);
-
-            // Generate auto batch number if empty
-            const currentBatch = form.getValues(`details.${idx}.batchNumber`);
-            if (!currentBatch) {
-                const dateRaw = new Date();
-                const yy = String(dateRaw.getFullYear()).slice(-2);
-                const mm = String(dateRaw.getMonth() + 1).padStart(2, '0');
-                const dd = String(dateRaw.getDate()).padStart(2, '0');
-                const randomStr = Math.random().toString(36).substring(2, 6).toUpperCase();
-                form.setValue(`details.${idx}.batchNumber`, `LOT-${yy}${mm}${dd}-${randomStr}`);
-            }
         }
     };
 
@@ -188,18 +196,12 @@ export default function CreateImportDialog({
 
     const onSubmit = async (values) => {
         try {
-            // Remove totalPrice before sending to backend, though backend will just ignore it.
+            // Remove totalPrice before sending to backend
             const formattedValues = {
                 ...values,
                 details: values.details.map(d => {
                     const { totalPrice, ...rest } = d;
-                    // Backend validation requires expiryDate to be YYYY-MM-DD or missing
-                    if (!rest.expiryDate) {
-                        delete rest.expiryDate;
-                    }
-                    if (!rest.batchNumber) {
-                        delete rest.batchNumber;
-                    }
+                    // Remove empty notes
                     if (!rest.notes) {
                         delete rest.notes;
                     }
@@ -275,7 +277,7 @@ export default function CreateImportDialog({
                             <div className="flex items-center justify-between mb-2">
                                 <p className="font-semibold text-sm">Danh sách mặt hàng</p>
                                 <Button type="button" size="sm" variant="outline" className="h-7 gap-1"
-                                    onClick={() => append({ productId: '', quantity: 1, unitPrice: 0, totalPrice: 0, batchNumber: '', expiryDate: '', notes: '' })}>
+                                    onClick={() => append({ productId: '', quantity: 1, unitPrice: 0, totalPrice: 0, notes: '' })}>
                                     <PlusCircle className="h-3.5 w-3.5" /> Thêm mặt hàng
                                 </Button>
                             </div>
@@ -336,6 +338,17 @@ export default function CreateImportDialog({
                                                 </FormItem>
                                             )} />
                                         </div>
+                                        {/* Stock (Tồn kho) */}
+                                        <div className="col-span-6 md:col-span-1">
+                                            <div className="space-y-2">
+                                                <FormLabel className="text-xs">Tồn kho</FormLabel>
+                                                <div className="h-8 flex items-center text-sm font-medium">
+                                                    {form.watch(`details.${idx}.productId`) && warehouseId ? 
+                                                        (inventoryMap[form.watch(`details.${idx}.productId`)] ?? 0)
+                                                    : '—'}
+                                                </div>
+                                            </div>
+                                        </div>
                                         {/* Qty */}
                                         <div className="col-span-6 md:col-span-1">
                                             <FormField control={form.control} name={`details.${idx}.quantity`} render={({ field: f }) => (
@@ -366,24 +379,17 @@ export default function CreateImportDialog({
                                                 </FormItem>
                                             )} />
                                         </div>
-                                        {/* Batch */}
+                                        {/* Note */}
                                         <div className="col-span-6 md:col-span-2">
-                                            <FormField control={form.control} name={`details.${idx}.batchNumber`} render={({ field: f }) => (
+                                            <FormField control={form.control} name={`details.${idx}.notes`} render={({ field: f }) => (
                                                 <FormItem>
-                                                    <FormLabel className="text-xs">Số lô</FormLabel>
-                                                    <FormControl><Input className="h-8 text-xs" placeholder="LOT-..." {...f} /></FormControl>
+                                                    <FormLabel className="text-xs">Ghi chú</FormLabel>
+                                                    <FormControl><Input className="h-8 text-xs" placeholder="Ghi chú..." {...f} /></FormControl>
                                                 </FormItem>
                                             )} />
                                         </div>
                                         {/* Remove */}
-                                        <div className="col-span-2 flex gap-1">
-                                            <FormField control={form.control} name={`details.${idx}.expiryDate`} render={({ field: f }) => (
-                                                <FormItem className="flex-1">
-                                                    <FormLabel className="text-xs">HSD *</FormLabel>
-                                                    <FormControl><Input type="date" className="h-8 text-xs" {...f} /></FormControl>
-                                                    <FormMessage className="text-[10px]" />
-                                                </FormItem>
-                                            )} />
+                                        <div className="col-span-2 flex justify-end gap-1">
                                             {fields.length > 1 && (
                                                 <Button type="button" variant="ghost" size="icon" className="h-8 w-8 self-end text-destructive hover:text-destructive"
                                                     onClick={() => remove(idx)}>
@@ -397,7 +403,7 @@ export default function CreateImportDialog({
                         </div>
 
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Hủy</Button>
+                            <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>Hủy</Button>
                             <Button type="submit" disabled={actionLoading}>
                                 {actionLoading ? 'Đang lưu...' : 'Tạo Phiếu'}
                             </Button>

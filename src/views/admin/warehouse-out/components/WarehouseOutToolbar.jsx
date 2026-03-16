@@ -1,10 +1,11 @@
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Cross2Icon } from '@radix-ui/react-icons'
-import { useSelector } from 'react-redux'
+import { useSelector, useDispatch } from 'react-redux'
 import { useState, useEffect } from 'react'
 import { transactionStatuses } from '../data'
-import CreateExportDialog from './CreateExportDialog'
+import CreateManualWarehouseReceiptDialog from '@/views/admin/warehouse-receipt/components/CreateManualWarehouseReceiptDialog'
+import { getStockTransactions } from '@/stores/StockTransactionSlice'
 
 export function WarehouseOutToolbar({
     table,
@@ -13,8 +14,10 @@ export function WarehouseOutToolbar({
     columnFilters,
     setColumnFilters,
 }) {
+    const dispatch = useDispatch()
     const warehouses = useSelector((s) => s.warehouse.warehouses || [])
     const [searchInput, setSearchInput] = useState(globalFilter || '')
+    const [openCreateDialog, setOpenCreateDialog] = useState(false)
 
     useEffect(() => {
         const t = setTimeout(() => setGlobalFilter(searchInput), 500)
@@ -30,6 +33,10 @@ export function WarehouseOutToolbar({
     const selectedStatus = columnFilters.find((f) => f.id === 'status')?.value || ''
     const selectedWarehouse = columnFilters.find((f) => f.id === 'warehouseId')?.value || ''
     const isFiltered = columnFilters.length > 0 || !!globalFilter
+
+    const handleSuccess = () => {
+        dispatch(getStockTransactions({ transactionType: 'export', limit: 20, page: 1 }))
+    }
 
     return (
         <div className="flex items-center justify-between">
@@ -67,7 +74,14 @@ export function WarehouseOutToolbar({
                     </Button>
                 )}
             </div>
-            <CreateExportDialog />
+            <CreateManualWarehouseReceiptDialog
+                open={openCreateDialog}
+                onOpenChange={setOpenCreateDialog}
+                showTrigger={true}
+                defaultReceiptType={2}
+                triggerLabel="Tạo phiếu xuất"
+                onSuccess={handleSuccess}
+            />
         </div>
     )
 }
