@@ -155,7 +155,6 @@ const ViewWarehouseReceiptDialog = ({
           unitId: d.unitId,
           qtyDocument: parseFloat(d.qtyDocument) || 0, // Ensure numbers
           qtyActual: parseFloat(d.qtyActual) || 0, // Ensure numbers
-          unitPrice: d.unitPrice
         }))
       }
 
@@ -258,7 +257,7 @@ const ViewWarehouseReceiptDialog = ({
                           className="font-medium text-primary cursor-pointer hover:underline hover:text-blue-600"
                           onClick={() => setShowInvoiceDialog(true)}
                         >
-                          {receipt.invoice.code}
+                          {receipt.invoice.orderCode || receipt.invoice.code}
                         </p>
                       </div>
                     )}
@@ -431,9 +430,6 @@ const ViewWarehouseReceiptDialog = ({
                                   </>
                                 )}
 
-                                <div className="text-sm font-medium">
-                                  {moneyFormat(detail.totalAmount)}
-                                </div>
                               </div>
                             </div>
 
@@ -458,12 +454,6 @@ const ViewWarehouseReceiptDialog = ({
                               maximumFractionDigits: 2,
                             }
                           )}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <strong>Tổng tiền:</strong>
-                        <span className="font-medium text-primary">
-                          {moneyFormat(receipt?.totalAmount)}
                         </span>
                       </div>
                     </div>
