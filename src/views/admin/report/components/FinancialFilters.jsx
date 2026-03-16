@@ -31,7 +31,7 @@ const FinancialFilters = ({ filters, onFilterChange, loading = false }) => {
                   type="date"
                   value={filters.fromDate || ''}
                   onChange={(e) => handleDateChange('fromDate', e.target.value)}
-                  className="h-11 pl-10 px-4 text-base border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800 transition-all duration-200"
+                  className="h-11 pl-10 px-4 text-base border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:border-green-500 focus:ring-2 focus:ring-green-200 dark:focus:ring-green-800 transition-all duration-200"
                 />
               </div>
               <span className="flex items-center text-gray-500">-</span>
@@ -41,7 +41,7 @@ const FinancialFilters = ({ filters, onFilterChange, loading = false }) => {
                   type="date"
                   value={filters.toDate || ''}
                   onChange={(e) => handleDateChange('toDate', e.target.value)}
-                  className="h-11 pl-10 px-4 text-base border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800 transition-all duration-200"
+                  className="h-11 pl-10 px-4 text-base border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:border-green-500 focus:ring-2 focus:ring-green-200 dark:focus:ring-green-800 transition-all duration-200"
                 />
               </div>
             </div>
@@ -52,7 +52,7 @@ const FinancialFilters = ({ filters, onFilterChange, loading = false }) => {
             <Button 
               onClick={() => onFilterChange({ ...filters })}
               disabled={loading}
-              className="h-11 px-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
+              className="h-11 px-4 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
             >
               {loading ? 'Đang tải...' : 'Tìm kiếm'}
             </Button>
