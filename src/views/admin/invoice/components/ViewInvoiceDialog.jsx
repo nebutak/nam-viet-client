@@ -59,11 +59,13 @@ import { updateReceiptStatus, getReceiptQRCode } from '@/stores/ReceiptSlice'
 import UpdateReceiptStatusDialog from '../../receipt/components/UpdateReceiptStatusDialog'
 import { DeleteReceiptDialog } from '../../receipt/components/DeleteReceiptDialog'
 import { warehouseReceiptStatuses } from '../../warehouse-receipt/data'
+import { deliveryStatuses, settlementStatuses } from '../../delivery/data'
 import PrintInvoiceView from './PrintInvoiceView'
 import MobileInvoiceActions from './MobileInvoiceActions'
 import PaymentQRCodeDialog from '../../receipt/components/PaymentQRCodeDialog'
 import { Badge } from '@/components/ui/badge'
 import CustomerDetailDialog from '../../customer/components/CustomerDetailDialog'
+import CreateDeliveryDialog from '../../delivery/components/CreateDeliveryDialog'
 
 const ViewInvoiceDialog = ({ invoiceId, showTrigger = true, onEdit, onSuccess, contentClassName, overlayClassName, ...props }) => {
   const isDesktop = useMediaQuery('(min-width: 768px)')
@@ -229,6 +231,24 @@ const ViewInvoiceDialog = ({ invoiceId, showTrigger = true, onEdit, onSuccess, c
     return warehouseReceiptStatuses.find((s) => s.value === statusValue)
   }
 
+  const getDeliveryStatusObj = (statusValue) => {
+    return deliveryStatuses.find((s) => s.value === statusValue)
+  }
+
+  const getDeliveryStatusColor = (statusValue) => {
+    switch (statusValue) {
+      case 'pending': return 'bg-yellow-100 text-yellow-700'
+      case 'in_transit': return 'bg-blue-100 text-blue-700'
+      case 'delivered': return 'bg-green-100 text-green-700'
+      case 'failed': return 'bg-red-100 text-red-700'
+      default: return 'bg-gray-100 text-gray-700'
+    }
+  }
+
+  const getSettlementStatusObj = (statusValue) => {
+    return settlementStatuses.find((s) => s.value === statusValue)
+  }
+
   const [selectedWarehouseReceipt, setSelectedWarehouseReceipt] = useState(null)
   const [showUpdateWarehouseReceiptStatus, setShowUpdateWarehouseReceiptStatus] = useState(false)
 
@@ -261,11 +281,14 @@ const ViewInvoiceDialog = ({ invoiceId, showTrigger = true, onEdit, onSuccess, c
   const [receiptToEdit, setReceiptToEdit] = useState(null)
   const [warehouseLoading, setWarehouseLoading] = useState(false)
 
+  // Delivery Dialog State
+  const [showCreateDeliveryDialog, setShowCreateDeliveryDialog] = useState(false)
+
 
   const handleCreateWarehouseReceipt = () => {
     const invoiceStatus = invoice?.orderStatus
-    if (invoiceStatus !== 'preparing') {
-      toast.warning('Chỉ có thể tạo phiếu xuất kho cho đơn hàng đã duyệt')
+    if (invoiceStatus !== 'preparing' && invoiceStatus !== 'delivering') {
+      toast.warning('Chỉ có thể tạo phiếu xuất kho cho đơn hàng đã duyệt hoặc đang giao hàng')
       return
     }
 
@@ -310,7 +333,7 @@ const ViewInvoiceDialog = ({ invoiceId, showTrigger = true, onEdit, onSuccess, c
       }
 
       const payload = {
-        receiptType: 2, 
+        receiptType: 2,
         businessType: 'sale_out',
         actualReceiptDate: actualReceiptDate || null,
         reason: reason || `Xuất kho cho đơn bán ${invoice.orderCode}`,
@@ -358,6 +381,21 @@ const ViewInvoiceDialog = ({ invoiceId, showTrigger = true, onEdit, onSuccess, c
     setShowReceiptDialog(true)
   }
 
+  const handleCreateDelivery = () => {
+    // Only allow for preparing or delivering invoices
+    if (!['preparing', 'delivering'].includes(invoice?.orderStatus)) {
+      toast.warning('Chỉ có thể tạo phiếu giao hàng cho đơn hàng đã duyệt hoặc đang giao')
+      return
+    }
+
+    if (invoice?.isPickupOrder) {
+      toast.warning('Đây là đơn hàng tại chỗ, không cần tạo phiếu giao hàng')
+      return
+    }
+
+    setShowCreateDeliveryDialog(true)
+  }
+
 
 
   const getWarehouseReceiptStatusColor = (statusValue) => {
@@ -401,8 +439,22 @@ const ViewInvoiceDialog = ({ invoiceId, showTrigger = true, onEdit, onSuccess, c
           }}
         >
           <DialogHeader className={cn(!isDesktop && "px-4 pt-4")}>
-            <DialogTitle className={cn(!isDesktop && "text-base")}>
-              Thông tin chi tiết đơn bán: <span className={cn(!isDesktop && "block")}>{invoice?.orderCode}</span>
+            <DialogTitle className={cn("flex items-center gap-2", !isDesktop && "text-base flex-wrap")}>
+              <span>Thông tin chi tiết đơn bán:</span>
+              <span className="font-bold">{invoice?.orderCode}</span>
+              {invoice && (
+                invoice.isPickupOrder ? (
+                  <Badge variant="outline" className="ml-1 h-6 bg-blue-50 text-blue-700 border-blue-200">
+                    <Store className="mr-1 h-3.5 w-3.5" />
+                    Tại cửa hàng
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="ml-1 h-6 bg-purple-50 text-purple-700 border-purple-200">
+                    <Truck className="mr-1 h-3.5 w-3.5" />
+                    Đơn bán cần giao
+                  </Badge>
+                )
+              )}
             </DialogTitle>
           </DialogHeader>
 
@@ -754,28 +806,17 @@ const ViewInvoiceDialog = ({ invoiceId, showTrigger = true, onEdit, onSuccess, c
                                         </span>
                                         {statusObj?.label || 'Không xác định'}
                                       </Badge>
-                                          <Badge
-                                            variant="outline"
-                                            className={`cursor-default select-none border-0 ${paymentStatusObj?.color || 'text-gray-500'}`}
-                                          >
-                                            <span className="mr-1 inline-flex h-4 w-4 items-center justify-center">
-                                              {paymentStatusObj?.icon ? <paymentStatusObj.icon className="h-4 w-4" /> : null}
-                                            </span>
-                                            {paymentStatusObj?.label || 'Không xác định'}
-                                          </Badge>
+                                      <Badge
+                                        variant="outline"
+                                        className={`cursor-default select-none border-0 ${paymentStatusObj?.color || 'text-gray-500'}`}
+                                      >
+                                        <span className="mr-1 inline-flex h-4 w-4 items-center justify-center">
+                                          {paymentStatusObj?.icon ? <paymentStatusObj.icon className="h-4 w-4" /> : null}
+                                        </span>
+                                        {paymentStatusObj?.label || 'Không xác định'}
+                                      </Badge>
 
-                                          {invoice.isPickupOrder ? (
-                                            <Badge variant="outline" className="cursor-default select-none border-0 bg-blue-50 text-blue-700 hover:bg-blue-50">
-                                              <Store className="mr-1 h-3.5 w-3.5" />
-                                              Tại cửa hàng
-                                            </Badge>
-                                          ) : (
-                                            <Badge variant="outline" className="cursor-default select-none border-0 bg-purple-50 text-purple-700 hover:bg-purple-50">
-                                              <Truck className="mr-1 h-3.5 w-3.5" />
-                                              Chờ giao hàng
-                                            </Badge>
-                                          )}
-                                        </>
+                                    </>
                                   )
                                 })()}
                               </div>
@@ -1205,7 +1246,7 @@ const ViewInvoiceDialog = ({ invoiceId, showTrigger = true, onEdit, onSuccess, c
                         <div className="space-y-4">
                           <div className="flex items-center justify-between">
                             <h3 className="font-semibold">Phiếu xuất kho</h3>
-                            {invoice?.orderStatus === 'preparing' ? (
+                            {(invoice?.orderStatus === 'preparing' || invoice?.orderStatus === 'delivering') ? (
                               <Button
                                 size="sm"
                                 className="h-8 gap-1 bg-green-600 text-white hover:bg-green-700 border-transparent"
@@ -1412,6 +1453,123 @@ const ViewInvoiceDialog = ({ invoiceId, showTrigger = true, onEdit, onSuccess, c
                         </div>
                       </>
 
+                      {/* ========== THEO DÕI GIAO HÀNG ========== */}
+                      {!invoice?.isPickupOrder && (
+                        <>
+                          <Separator className="my-4" />
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                              <h3 className="font-semibold">Theo dõi giao hàng</h3>
+                              {['preparing', 'delivering'].includes(invoice?.orderStatus) && (
+                                <Button
+                                  size="sm"
+                                  className="h-8 gap-1 bg-blue-600 text-white hover:bg-blue-700 border-transparent"
+                                  onClick={handleCreateDelivery}
+                                >
+                                  <Truck className="h-4 w-4" />
+                                  <span>Tạo chuyến</span>
+                                </Button>
+                              )}
+                            </div>
+
+                            {invoice?.deliveries && invoice.deliveries.length > 0 ? (
+                              isDesktop ? (
+                                <div className="overflow-x-auto rounded-lg border">
+                                  <Table className="min-w-full">
+                                    <TableHeader>
+                                      <TableRow className="bg-secondary text-xs">
+                                        <TableHead className="w-8">STT</TableHead>
+                                        <TableHead className="min-w-32">Mã chuyến</TableHead>
+                                        <TableHead className="min-w-32">Nhân viên</TableHead>
+                                        <TableHead className="min-w-32">Trạng thái</TableHead>
+                                        <TableHead className="min-w-32">Đối soát</TableHead>
+                                        <TableHead className="min-w-32">Tiền COD</TableHead>
+                                        <TableHead className="min-w-32">Ngày tạo</TableHead>
+                                      </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                      {invoice.deliveries.map((delivery, index) => (
+                                        <TableRow key={delivery.id}>
+                                          <TableCell className="text-center text-sm">{index + 1}</TableCell>
+                                          <TableCell className="font-medium text-blue-600">
+                                            {delivery.deliveryCode}
+                                          </TableCell>
+                                          <TableCell className="text-sm">
+                                            {delivery.deliveryStaff?.fullName || '—'}
+                                          </TableCell>
+                                          <TableCell>
+                                            <span
+                                              className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium ${getDeliveryStatusColor(delivery.deliveryStatus)}`}
+                                            >
+                                              {getDeliveryStatusObj(delivery.deliveryStatus)?.icon &&
+                                                React.createElement(getDeliveryStatusObj(delivery.deliveryStatus).icon, { className: "h-3 w-3" })
+                                              }
+                                              {getDeliveryStatusObj(delivery.deliveryStatus)?.label || delivery.deliveryStatus}
+                                            </span>
+                                          </TableCell>
+                                          <TableCell>
+                                            <div className={cn(
+                                              "flex items-center gap-1.5 rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-wider",
+                                              getSettlementStatusObj(delivery.settlementStatus)?.color
+                                            )}>
+                                              <span className={cn("h-1.5 w-1.5 rounded-full", getSettlementStatusObj(delivery.settlementStatus)?.dotColor)} />
+                                              {getSettlementStatusObj(delivery.settlementStatus)?.label || delivery.settlementStatus}
+                                            </div>
+                                          </TableCell>
+                                          <TableCell className="text-sm">
+                                            {moneyFormat(delivery.codAmount || 0)}
+                                          </TableCell>
+                                          <TableCell className="text-sm">
+                                            {dateFormat(delivery.createdAt, true)}
+                                          </TableCell>
+                                        </TableRow>
+                                      ))}
+                                    </TableBody>
+                                  </Table>
+                                </div>
+                              ) : (
+                                <div className="grid grid-cols-1 gap-3">
+                                  {invoice.deliveries.map((delivery) => (
+                                    <div key={delivery.id} className="rounded-lg border p-3 space-y-2 text-sm bg-muted/10">
+                                      <div className="flex justify-between items-center">
+                                        <span className="font-bold text-blue-600">{delivery.deliveryCode}</span>
+                                        <span className={cn(
+                                          "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                                          getDeliveryStatusColor(delivery.deliveryStatus)
+                                        )}>
+                                          {getDeliveryStatusObj(delivery.deliveryStatus)?.label || delivery.deliveryStatus}
+                                        </span>
+                                      </div>
+                                      <div className="flex justify-between text-xs">
+                                        <span className="text-muted-foreground">Nhân viên:</span>
+                                        <span>{delivery.deliveryStaff?.fullName || '—'}</span>
+                                      </div>
+                                      <div className="flex justify-between text-xs">
+                                        <span className="text-muted-foreground">COD:</span>
+                                        <span className="font-semibold">{moneyFormat(delivery.codAmount || 0)}</span>
+                                      </div>
+                                      <div className="flex justify-between text-xs pt-1 border-t border-dashed">
+                                        <span className="text-muted-foreground">Đối soát:</span>
+                                        <span className={cn(
+                                          "inline-flex items-center gap-1 font-medium",
+                                          getSettlementStatusObj(delivery.settlementStatus)?.color.replace(/bg-[^ ]+/, '').trim()
+                                        )}>
+                                          {getSettlementStatusObj(delivery.settlementStatus)?.label || delivery.settlementStatus}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )
+                            ) : (
+                              <div className="text-center text-sm text-muted-foreground italic py-2">
+                                Chưa có thông tin chuyến giao hàng
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      )}
+
                       <Separator className="my-4" />
 
                       <div className={cn(
@@ -1549,7 +1707,7 @@ const ViewInvoiceDialog = ({ invoiceId, showTrigger = true, onEdit, onSuccess, c
                                 </div>
                                 <div className="flex items-start gap-2">
                                   <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
-                                  <span className="text-xs text-muted-foreground italic">
+                                  <span className="text-xs text-muted-foreground">
                                     {invoice?.deliveryAddress || 'Chưa cập nhật'}
                                   </span>
                                 </div>
@@ -1646,7 +1804,17 @@ const ViewInvoiceDialog = ({ invoiceId, showTrigger = true, onEdit, onSuccess, c
                     Tạo Phiếu Thu
                   </Button>
                 )}
-                {invoice?.orderStatus === 'preparing' && (
+                {(!invoice.isPickupOrder && ['preparing', 'delivering'].includes(invoice?.orderStatus)) && (
+                  <Button
+                    size="sm"
+                    className={cn("gap-2 bg-blue-600 text-white hover:bg-blue-700", !isDesktop && "w-full")}
+                    onClick={handleCreateDelivery}
+                  >
+                    <Truck className="h-4 w-4" />
+                    Giao hàng
+                  </Button>
+                )}
+                {(invoice?.orderStatus === 'preparing' || invoice?.orderStatus === 'delivering') && (
                   <Button
                     size="sm"
                     className={cn("gap-2 bg-orange-600 text-white hover:bg-orange-700", !isDesktop && "w-full")}
@@ -1719,6 +1887,7 @@ const ViewInvoiceDialog = ({ invoiceId, showTrigger = true, onEdit, onSuccess, c
             onEdit={onEdit}
             handleCreateReceipt={handleCreateReceipt}
             handleCreateWarehouseReceipt={handleCreateWarehouseReceipt}
+            handleCreateDelivery={handleCreateDelivery}
             handlePrintInvoice={handlePrintInvoice}
 
             handleDeleteInvoice={handleDeleteInvoice}
@@ -1910,6 +2079,19 @@ const ViewInvoiceDialog = ({ invoiceId, showTrigger = true, onEdit, onSuccess, c
           />
         )
       }
+
+      {/* Create Delivery Dialog */}
+      <CreateDeliveryDialog
+        open={showCreateDeliveryDialog}
+        onOpenChange={setShowCreateDeliveryDialog}
+        invoice={invoice}
+        onSuccess={() => {
+          fetchData()
+          onSuccess?.()
+        }}
+        contentClassName="z-[100010]"
+        overlayClassName="z-[100009]"
+      />
 
     </>
   )

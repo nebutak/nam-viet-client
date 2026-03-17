@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/sheet'
 import { PlusIcon } from '@radix-ui/react-icons'
 import { IconPlus, IconFileTypePdf } from '@tabler/icons-react'
-import { Pencil, Trash2, Printer, X } from 'lucide-react'
+import { Pencil, Trash2, Printer, X, Truck } from 'lucide-react'
 import { toast } from 'sonner'
 import ConfirmActionButton from '@/components/custom/ConfirmActionButton'
 import { Separator } from '@/components/ui/separator'
@@ -20,6 +20,7 @@ const MobileInvoiceActions = ({
   onEdit,
   handleCreateReceipt,
   handleCreateWarehouseReceipt,
+  handleCreateDelivery,
   handlePrintInvoice,
   handleDeleteInvoice,
   onCloseDialog,
@@ -54,7 +55,7 @@ const MobileInvoiceActions = ({
           </SheetHeader>
           <div className="flex flex-col gap-3">
             {/* Receipt & Warehouse Actions */}
-            {(!['pending', 'draft', 'cancelled', 'delivered', 'rejected'].includes(invoice?.status) && invoice?.paymentStatus !== 'paid') && (
+            {(!['pending', 'cancelled', 'completed'].includes(invoice?.orderStatus) && invoice?.paymentStatus !== 'paid') && (
               <div className="grid grid-cols-2 gap-3">
                 <Button
                   className="bg-green-600 text-white hover:bg-green-700 h-auto py-3 flex-col gap-1"
@@ -63,7 +64,7 @@ const MobileInvoiceActions = ({
                   <PlusIcon className="h-5 w-5" />
                   <span className="text-xs">Tạo Phiếu Thu</span>
                 </Button>
-                {invoice?.status === 'accepted' && (
+                {invoice?.orderStatus === 'preparing' && (
                   <Button
                     className="bg-orange-600 text-white hover:bg-orange-700 h-auto py-3 flex-col gap-1"
                     onClick={() => handleAction(handleCreateWarehouseReceipt)}
@@ -73,6 +74,17 @@ const MobileInvoiceActions = ({
                   </Button>
                 )}
               </div>
+            )}
+
+            {/* Delivery Action */}
+            {(!invoice.isPickupOrder && ['preparing', 'delivering'].includes(invoice?.orderStatus)) && (
+              <Button
+                className="bg-blue-600 text-white hover:bg-blue-700 h-auto py-3 flex-row gap-2"
+                onClick={() => handleAction(handleCreateDelivery)}
+              >
+                <Truck className="h-5 w-5" />
+                <span className="text-sm font-semibold">Giao hàng</span>
+              </Button>
             )}
 
             <Separator />
@@ -96,7 +108,7 @@ const MobileInvoiceActions = ({
 
             {/* Edit/Delete Actions */}
             <div className="grid grid-cols-2 gap-3">
-              {invoice.status === 'pending' && (
+              {invoice.orderStatus === 'pending' && (
                 <Button
                   className="bg-orange-600 text-white hover:bg-orange-700 w-full"
                   onClick={() => handleAction(onEdit)}
@@ -106,7 +118,7 @@ const MobileInvoiceActions = ({
                 </Button>
               )}
 
-              {(canDelete && ['pending', 'rejected', 'cancelled'].includes(invoice.status)) && (
+              {(canDelete && ['pending', 'cancelled', 'rejected'].includes(invoice.orderStatus)) && (
                 <ConfirmActionButton
                   title="Xác nhận xóa"
                   description="Bạn có chắc chắn muốn xóa đơn bán này?"
@@ -116,7 +128,7 @@ const MobileInvoiceActions = ({
                   overlayClassName="z-[100019]"
                   confirmBtnVariant="destructive"
                 >
-                  <Button variant="destructive" className={invoice.status === 'pending' ? "w-full" : "w-full col-span-2"}>
+                  <Button variant="destructive" className={invoice.orderStatus === 'pending' ? "w-full" : "w-full col-span-2"}>
                     <Trash2 className="mr-2 h-4 w-4" />
                     Xóa
                   </Button>

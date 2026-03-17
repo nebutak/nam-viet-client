@@ -16,9 +16,8 @@ export default function DeliveryPage() {
   return (
     <div className='flex-col md:flex h-full'>
       <div className='flex-1 space-y-4 p-8 pt-6'>
-        <div className='flex items-center justify-between space-y-2'>
-          <h2 className='text-3xl font-bold tracking-tight flex items-center gap-2'>
-            <IconTruck size={32} className="text-blue-600" />
+        <div className='flex items-center justify-between space-y-2 mb-4'>
+          <h2 className='text-2xl font-bold tracking-tight'>
             Quản lý giao hàng
           </h2>
         </div>

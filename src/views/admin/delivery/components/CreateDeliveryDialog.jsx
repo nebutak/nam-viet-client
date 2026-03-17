@@ -30,7 +30,7 @@ import { Button } from '@/components/custom/Button'
 import { Textarea } from '@/components/ui/textarea'
 import { getUsers } from '@/stores/UserSlice'
 import { createDelivery } from '@/stores/DeliverySlice'
-import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
 
 const formSchema = z.object({
   orderId: z.number(),
@@ -42,7 +42,7 @@ const formSchema = z.object({
   notes: z.string().optional(),
 })
 
-export default function CreateDeliveryDialog({ open, onOpenChange, invoice, onSuccess }) {
+export default function CreateDeliveryDialog({ open, onOpenChange, invoice, onSuccess, contentClassName, overlayClassName }) {
   const dispatch = useDispatch()
   const { users } = useSelector((state) => state.user)
   const [loading, setLoading] = useState(false)
@@ -95,7 +95,7 @@ export default function CreateDeliveryDialog({ open, onOpenChange, invoice, onSu
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className={cn("sm:max-w-[500px]", contentClassName)} overlayClassName={overlayClassName}>
         <DialogHeader>
           <DialogTitle>Tạo phiếu giao hàng - {invoice?.orderCode}</DialogTitle>
         </DialogHeader>
