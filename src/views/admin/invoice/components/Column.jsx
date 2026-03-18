@@ -266,7 +266,7 @@ export const columns = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Trạng thái" />
     ),
-    cell: function Cell({ row }) {
+    cell: function Cell({ row, table }) {
       const dispatch = useDispatch()
       const [openUpdateStatus, setOpenUpdateStatus] = useState(false)
       const currentStatus = row.original.orderStatus
@@ -276,39 +276,33 @@ export const columns = [
         (s) => s.value === paymentStatus
       )
 
-      const handleSubmit = async (nextStatus) => {
+      const handleSubmit = async (nextStatus, _, reason) => {
         try {
           const result = await dispatch(
-            updateInvoiceStatus({ id: row.original.id, status: nextStatus }),
+            updateInvoiceStatus({ 
+              id: row.original.id, 
+              status: nextStatus,
+              reason: reason
+            }),
           ).unwrap()
 
-          // Handle warehouseInfo response when status changes to rejected
-          if (nextStatus === 'rejected' && result?.warehouseInfo) {
+          // Handle warehouseInfo response when status changes for rejected/cancelled
+          if (result?.warehouseInfo) {
             const { warehouseInfo } = result
-
-            if (warehouseInfo.message) {
-              toast.info(warehouseInfo.message, { duration: 5000 })
-            }
-
-            if (warehouseInfo.hasPayments) {
-              toast.warning('Đơn hàng đã có thanh toán, vui lòng kiểm tra phiếu thu', {
-                duration: 5000,
-              })
-            }
-
+            if (warehouseInfo.message) toast.info(warehouseInfo.message, { duration: 5000 })
+            if (warehouseInfo.hasPayments) toast.warning('Đơn hàng đã có thanh toán, vui lòng kiểm tra phiếu thu', { duration: 5000 })
             if (warehouseInfo.returnReceiptCode) {
-              toast.success(
-                `Đã tạo phiếu nhập trả hàng: ${warehouseInfo.returnReceiptCode}`,
-                { duration: 6000 }
-              )
+              toast.success(`Đã tạo phiếu nhập trả hàng: ${warehouseInfo.returnReceiptCode}`, { duration: 6000 })
             }
           }
 
-          toast.success('Cập nhật trạng thái đơn bán thành công')
           setOpenUpdateStatus(false)
+          if (table && table.options && table.options.meta) {
+            table.options.meta.onSuccess?.()
+          }
         } catch (error) {
           console.log('Submit error: ', error)
-          toast.error('Cập nhật trạng thái thất bại')
+          throw error
         }
       }
 
@@ -320,6 +314,7 @@ export const columns = [
               onOpenChange={setOpenUpdateStatus}
               invoiceId={row.original.id}
               currentStatus={currentStatus}
+              isPickupOrder={row.original.isPickupOrder}
               paymentStatus={paymentStatus}
               statuses={statuses}
               onSubmit={handleSubmit}

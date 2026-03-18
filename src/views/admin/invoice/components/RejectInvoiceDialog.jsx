@@ -11,26 +11,36 @@ import {
 } from '@/components/ui/dialog'
 import { updateInvoiceStatus } from '@/stores/InvoiceSlice'
 import { IconCircleX } from '@tabler/icons-react'
+import { useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { toast } from 'sonner'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
 
-const RejectInvoiceDialog = ({ invoice, showTrigger = true, open, onOpenChange }) => {
+const RejectInvoiceDialog = ({ invoice, showTrigger = true, open, onOpenChange, onSuccess }) => {
   const dispatch = useDispatch()
   const loading = useSelector((state) => state.invoice.loading)
+  const [reason, setReason] = useState('Hủy theo yêu cầu của khách hàng')
 
   const handleReject = async (id) => {
+    if (!reason || reason.trim().length < 10) {
+      toast.error('Lý do hủy đơn phải có ít nhất 10 ký tự')
+      return
+    }
+
     try {
       await dispatch(
         updateInvoiceStatus({
           id: id,
-          status: 'rejected',
+          status: 'cancelled',
+          reason: reason.trim()
         }),
       ).unwrap()
-      toast.success('Đã hủy hóa đơn thành công')
       onOpenChange?.(false)
+      onSuccess?.()
+      setReason('') // Reset reason
     } catch (error) {
       console.log('Reject error: ', error)
-      // Toast error is handled in slice usually, or add here if needed
     }
   }
 
@@ -49,10 +59,20 @@ const RejectInvoiceDialog = ({ invoice, showTrigger = true, open, onOpenChange }
           <DialogDescription>
             Hành động này sẽ chuyển trạng thái đơn bán <strong>{invoice?.code}</strong> sang{' '}
             <span className="font-bold text-red-600">Đã hủy</span>.
-            <br />
-            Bạn có chắc chắn muốn tiếp tục?
           </DialogDescription>
         </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="grid gap-2">
+            <Label htmlFor="reason">Lý do hủy đơn <span className="text-red-500">*</span></Label>
+            <Textarea
+              id="reason"
+              placeholder="Nhập lý do hủy đơn (tối thiểu 10 ký tự)..."
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              className="min-h-[100px]"
+            />
+          </div>
+        </div>
         <DialogFooter className="gap-2 sm:space-x-0">
           <Button variant="outline" onClick={() => onOpenChange?.(false)}>
             Đóng

@@ -314,7 +314,7 @@ const ExportInvoiceView = ({
               </TableHeader>
               <TableBody>
                 {props?.data.map((invoice) =>
-                  invoice.invoiceItems.map((invoiceItem) => (
+                  (invoice.details || []).map((invoiceItem) => (
                     <TableRow key={`${invoice.id}-${invoiceItem.id}`}>
                       <TableCell>{indexTable++}</TableCell>
                       <TableCell>{invoice.orderCode || invoice.code}</TableCell>
@@ -327,13 +327,13 @@ const ExportInvoiceView = ({
                                 invoice.salesContract?.status === 'liquidated' ? 'Đã thanh lý' :
                                   invoice.salesContract?.status ?? '—'
                       }</TableCell>
-                      <TableCell>{invoice.customerName}</TableCell>
-                      <TableCell>{invoice.customerPhone}</TableCell>
-                      <TableCell>{invoice.customerAddress}</TableCell>
-                      <TableCell>{invoice.user?.fullName}</TableCell>
-                      <TableCell>{invoiceItem.productName}</TableCell>
+                      <TableCell>{invoice.customer?.customerName || '—'}</TableCell>
+                      <TableCell>{invoice.customer?.phone || '—'}</TableCell>
+                      <TableCell>{invoice.customer?.address || '—'}</TableCell>
+                      <TableCell>{invoice.creator?.fullName || '—'}</TableCell>
+                      <TableCell>{invoiceItem.product?.productName || '—'}</TableCell>
                       <TableCell>{moneyFormat(invoiceItem.quantity, false)}</TableCell>
-                      <TableCell>{invoiceItem.unitName}</TableCell>
+                      <TableCell>{invoiceItem.unitName || invoiceItem.product?.unit || '—'}</TableCell>
                       <TableCell>
                         {moneyFormat(invoiceItem.price, false)}
                       </TableCell>
@@ -344,9 +344,7 @@ const ExportInvoiceView = ({
                       <TableCell>
                         {invoiceItem.taxRate != null
                           ? `${invoiceItem.taxRate}%`
-                          : invoiceItem.taxes?.length > 0
-                            ? invoiceItem.taxes.map(t => `${t.percentage}%`).join(', ')
-                            : '—'}
+                          : '—'}
                       </TableCell>
                       {/* Tiền Thuế */}
                       <TableCell>
@@ -364,17 +362,17 @@ const ExportInvoiceView = ({
                       </TableCell>
                       <TableCell>
                         {moneyFormat(
-                          (Number(invoiceItem.totalAmount || 0)),
+                          (Number(invoiceItem.total || 0)),
                           false
                         )}
                       </TableCell>
                       <TableCell>
-                        {moneyFormat(invoice.totalAmount || invoice.amount, false)}
+                        {moneyFormat(invoice.totalAmount || 0, false)}
                       </TableCell>
                       <TableCell>
                         {(() => {
                           const paymentStatus = invoice.paymentStatus
-                          const totalAmount = parseFloat(invoice.totalAmount || invoice.amount || 0)
+                          const totalAmount = parseFloat(invoice.totalAmount || 0)
                           const paidAmount = parseFloat(invoice.paidAmount || 0)
                           const remainingAmount = totalAmount - paidAmount
 
@@ -411,10 +409,10 @@ const ExportInvoiceView = ({
                                   : invoice.status}
                       </TableCell>
                       <TableCell>
-                        {invoice.invoiceDate ? dateFormat(invoice.invoiceDate, false) : '—'}
+                        {invoice.orderDate ? dateFormat(invoice.orderDate, false) : '—'}
                       </TableCell>
                       <TableCell>
-                        {dateFormat(invoiceItem.createdAt, false)}
+                        {dateFormat(invoice.createdAt, false)}
                       </TableCell>
                       <TableCell>{invoice.salesContract?.liquidationValue != null ? moneyFormat(invoice.salesContract.liquidationValue, false) : '—'}</TableCell>
                       <TableCell>{invoice.salesContract?.liquidationDate ? dateFormat(invoice.salesContract.liquidationDate, false) : '—'}</TableCell>

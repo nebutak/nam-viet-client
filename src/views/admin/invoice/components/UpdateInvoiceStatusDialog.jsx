@@ -16,6 +16,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { toast } from 'sonner'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
 import { AlertCircle } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { cn } from '@/lib/utils'
@@ -27,6 +29,7 @@ const UpdateInvoiceStatusDialog = ({
   currentStatus,
   paymentStatus,
   statuses = [],
+  isPickupOrder,
   onSubmit,
   className,
   overlayClassName,
@@ -39,11 +42,13 @@ const UpdateInvoiceStatusDialog = ({
   )
 
   const [status, setStatus] = useState(currentStatus || '')
+  const [reason, setReason] = useState('Hủy theo yêu cầu của khách hàng')
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     if (!open) return
     setStatus(currentStatus || '')
+    setReason('Hủy theo yêu cầu của khách hàng')
   }, [open, currentStatus])
 
   const selectedStatusObj = useMemo(
@@ -62,9 +67,14 @@ const UpdateInvoiceStatusDialog = ({
       return
     }
 
+    if (status === 'cancelled' && (!reason || reason.trim().length < 10)) {
+      toast.error('Lý do hủy đơn phải có ít nhất 10 ký tự')
+      return
+    }
+
     try {
       setLoading(true)
-      await onSubmit?.(status, invoiceId)
+      await onSubmit?.(status, invoiceId, reason.trim())
       onOpenChange(false)
     } finally {
       setLoading(false)
@@ -88,6 +98,9 @@ const UpdateInvoiceStatusDialog = ({
       // Hide 'completed' status as it is automated
       if (s.value === 'completed') return false
 
+      // Hidden status "delivering" if "isPickupOrder" is true
+      if (isPickupOrder && s.value === 'delivering') return false
+
       // Permission check for 'accepted' (approve)
       if (s.value === 'preparing') {
         if (!canApprove) return false
@@ -107,7 +120,7 @@ const UpdateInvoiceStatusDialog = ({
 
       return true
     })
-  }, [statuses, currentStatus])
+  }, [statuses, currentStatus, isPickupOrder])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -177,6 +190,19 @@ const UpdateInvoiceStatusDialog = ({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+        )}
+
+        {!isActionDisabled && status === 'cancelled' && (
+          <div className="space-y-2 mt-4">
+            <Label htmlFor="cancel-reason">Lý do hủy đơn <span className="text-red-500">*</span></Label>
+            <Textarea
+              id="cancel-reason"
+              placeholder="Nhập lý do hủy đơn (tối thiểu 10 ký tự)..."
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              className="min-h-[100px]"
+            />
           </div>
         )}
 

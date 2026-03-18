@@ -118,16 +118,7 @@ export const deleteInvoice = createAsyncThunk(
   'invoice/delete-invoice',
   async (id, { rejectWithValue, dispatch }) => {
     try {
-      const deleteAdminInvoices = JSON.parse(
-        localStorage.getItem('permissionCodes') || '[]',
-      ).includes('DELETE_INVOICE')
-
-      deleteAdminInvoices
-        ? await api.delete(`/invoices/${id}/delete`)
-        : await api.delete(`/invoices/${id}/delete-by-user`)
-
-      // Just notify success, let the component handle refresh with current pagination
-      toast.success('Xóa thành công')
+      await api.delete(`/invoices/${id}`)
       return id
     } catch (error) {
       const message = handleError(error)
@@ -142,7 +133,6 @@ export const deleteMultipleInvoices = createAsyncThunk(
     try {
       await api.post('/invoices/bulk-delete', { ids })
       await dispatch(getInvoices({})).unwrap()
-      toast.success('Xóa các đơn bán đã chọn thành công')
     } catch (error) {
       return rejectWithValue(handleError(error))
     }
@@ -154,7 +144,6 @@ export const createInvoice = createAsyncThunk(
   async (dataToSend, { rejectWithValue }) => {
     try {
       const response = await api.post('/invoices', dataToSend)
-      toast.success('Tạo đơn bán thành công')
       const { data } = response.data
       return data
     } catch (error) {
@@ -172,7 +161,6 @@ export const updateInvoice = createAsyncThunk(
         `/invoices/${dataToSend.invoiceId}/update-pending`,
         dataToSend,
       )
-      toast.success('Cập nhật thành công')
       const { data } = response.data
       return data
     } catch (error) {
@@ -192,9 +180,9 @@ export const updateInvoiceStatus = createAsyncThunk(
       } else if (data.status === 'completed') {
         response = await api.put(`/invoices/${data.id}/complete`, data)
       } else if (data.status === 'cancelled') {
-        response = await api.put(`/invoices/${data.id}/cancel`, data)
+        response = await api.put(`/invoices/${data.id}/cancel`, { reason: data.reason })
       } else if (data.status === 'pending') {
-        // Revert to pending - check if endpoint exists or just handle it
+        // Revert to pending
         response = await api.post(`/invoices/${data.id}/revert`)
       } else {
         response = await api.put(`/invoices/${data.id}`, data)
@@ -203,6 +191,7 @@ export const updateInvoiceStatus = createAsyncThunk(
       return response.data
     } catch (error) {
       const message = handleError(error)
+      toast.error(message?.message || message || 'Cập nhật trạng thái thất bại')
       return rejectWithValue(message)
     }
   },
@@ -282,8 +271,7 @@ export const invoiceSlice = createSlice({
       })
       .addCase(deleteInvoice.rejected, (state, action) => {
         state.loading = false
-        state.error = action.payload.message || 'Lỗi không xác định'
-        toast.error(state.error)
+        state.error = action.payload || 'Lỗi không xác định'
       })
       .addCase(deleteInvoice.pending, (state) => {
         state.loading = true
@@ -294,8 +282,7 @@ export const invoiceSlice = createSlice({
       })
       .addCase(createInvoice.rejected, (state, action) => {
         state.loading = false
-        state.error = action.payload.message || 'Lỗi không xác định'
-        toast.error(state.error)
+        state.error = action.payload || 'Lỗi không xác định'
       })
       .addCase(createInvoice.pending, (state) => {
         state.loading = true
@@ -313,8 +300,7 @@ export const invoiceSlice = createSlice({
       })
       .addCase(updateInvoice.rejected, (state, action) => {
         state.loading = false
-        state.error = action.payload.message || 'Lỗi không xác định'
-        toast.error(state.error)
+        state.error = action.payload || 'Lỗi không xác định'
       })
       .addCase(updateInvoice.pending, (state) => {
         state.loading = true
@@ -325,8 +311,7 @@ export const invoiceSlice = createSlice({
       })
       .addCase(importInvoice.rejected, (state, action) => {
         state.loading = false
-        state.error = action.payload.message || 'Lỗi không xác định'
-        toast.error(state.error)
+        state.error = action.payload || 'Lỗi không xác định'
       })
       .addCase(importInvoice.pending, (state) => {
         state.loading = true
@@ -337,13 +322,12 @@ export const invoiceSlice = createSlice({
         const { id, status } = action.meta.arg
         const index = state.invoices.findIndex((inv) => inv.id === id)
         if (index !== -1) {
-          state.invoices[index].status = status
+          state.invoices[index].orderStatus = status
         }
       })
       .addCase(updateInvoiceStatus.rejected, (state, action) => {
         state.loading = false
-        state.error = action.payload.message || 'Lỗi không xác định'
-        toast.error(state.error)
+        state.error = action.payload || 'Lỗi không xác định'
       })
       .addCase(updateInvoiceStatus.pending, (state) => {
         // Do not set global loading to true to prevent table remounting which closes dialogs

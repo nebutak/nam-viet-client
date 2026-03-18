@@ -38,7 +38,7 @@ const ExportInvoiceDialog = ({
     // Gọi api lấy thông tin hóa đơn từ filters.fromDate đến filters.toDate
     try {
       // Kiểm tra page hiện tại là hóa đơn hay hóa đơn của tôi
-      const url = isMyInvoice ? '/invoice/by-user' : '/invoice'
+      const url = isMyInvoice ? '/invoices/by-user' : '/invoices'
 
       const { data } = await api.get(url, {
         headers: {

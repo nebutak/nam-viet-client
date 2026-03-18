@@ -41,6 +41,7 @@ const InvoiceDataTable = ({
   onDeleted,
   columnFilters = [], // Add columnFilters prop
   onColumnFiltersChange, // Add onColumnFiltersChange prop
+  onSuccess,
 }) => {
   const isMobile = useMediaQuery('(max-width: 768px)')
   const [rowSelection, setRowSelection] = useState({})
@@ -99,6 +100,7 @@ const InvoiceDataTable = ({
     meta: {
       onView,
       onDeleted,
+      onSuccess,
     },
     enableRowSelection: true,
     onRowSelectionChange: setRowSelection,

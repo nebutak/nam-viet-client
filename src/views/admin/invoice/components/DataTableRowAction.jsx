@@ -169,6 +169,11 @@ const DataTableRowActions = ({ row, table }) => {
           onOpenChange={setShowRejectInvoiceDialog}
           invoice={row.original}
           showTrigger={false}
+          onSuccess={() => {
+            if (table.options.meta?.onSuccess) {
+              table.options.meta.onSuccess()
+            }
+          }}
         />
       )}
 
@@ -294,7 +299,7 @@ const DataTableRowActions = ({ row, table }) => {
 
           <DropdownMenuSeparator />
 
-          {(row?.original?.orderStatus === 'pending' || row?.original?.orderStatus === 'cancelled') && (
+          {(row?.original?.orderStatus === 'pending' || row?.original?.orderStatus === 'rejected' || row?.original?.orderStatus === 'cancelled') && (
             <Can permission="DELETE_INVOICE" permission2="DELETE_INVOICE_USER" isOwner={true} ownerId={row?.original?.createdById || row?.original?.creator?.id}>
               <DropdownMenuItem
                 onSelect={() => setShowDeleteInvoiceDialog(true)}

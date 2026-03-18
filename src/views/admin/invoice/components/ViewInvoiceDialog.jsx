@@ -191,15 +191,13 @@ const ViewInvoiceDialog = ({ invoiceId, showTrigger = true, onEdit, onSuccess, c
   const [showViewProductDialog, setShowViewProductDialog] = useState(false)
   const [selectedProductId, setSelectedProductId] = useState(null)
 
-  const handleUpdateStatus = async (status, id) => {
+  const handleUpdateStatus = async (status, id, reason) => {
     try {
-      await dispatch(updateInvoiceStatus({ id, status })).unwrap()
-      toast.success('Cập nhật trạng thái đơn bán thành công')
+      await dispatch(updateInvoiceStatus({ id, status, reason })).unwrap()
       fetchData()
       onSuccess?.()
     } catch (error) {
       console.log('Update status error: ', error)
-      toast.error('Cập nhật trạng thái thất bại')
     }
   }
 

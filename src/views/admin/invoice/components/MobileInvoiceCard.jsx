@@ -152,16 +152,14 @@ const MobileInvoiceCard = ({
 
   const isDuplicate = invoice?.creditNotes?.length > 0
 
-  const handleStatusUpdate = async (nextStatus) => {
+  const handleStatusUpdate = async (nextStatus, _, reason) => {
     try {
       await dispatch(
-        updateInvoiceStatus({ id: invoice.id, status: nextStatus }),
+        updateInvoiceStatus({ id: invoice.id, status: nextStatus, reason }),
       ).unwrap()
-      toast.success('Cập nhật trạng thái đơn bán thành công')
       setShowUpdateStatusDialog(false)
     } catch (error) {
       console.log('Submit error: ', error)
-      toast.error('Cập nhật trạng thái thất bại')
     }
   }
 
@@ -466,7 +464,7 @@ const MobileInvoiceCard = ({
                 </DropdownMenuItem>
               )}
 
-              {status === 'pending' || status === 'rejected' || status === 'cancelled' && (
+              {(status === 'pending' || status === 'rejected' || status === 'cancelled') && (
                 <Can permission="DELETE_INVOICE" permission2="DELETE_INVOICE_USER" isOwner={true} ownerId={invoice?.createdById || invoice?.user?.id}>
                   <DropdownMenuItem
                     onClick={() => setShowDeleteDialog(true)}

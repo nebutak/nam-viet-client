@@ -67,6 +67,7 @@ const InvoicePage = () => {
   }, [dispatch, filters, pageIndex, pageSize, debouncedSearch, columnFilters])
 
   const refreshData = () => {
+    console.log('InvoicePage: refreshData called')
     // Extract status and user filters
     const statusFilter = columnFilters.find((f) => f.id === 'status')?.value
     const userFilter = columnFilters.find((f) => f.id === 'user')?.value
@@ -156,6 +157,7 @@ const InvoicePage = () => {
             }}
             columnFilters={columnFilters}
             onColumnFiltersChange={setColumnFilters}
+            onSuccess={refreshData}
           />
         </div>
 

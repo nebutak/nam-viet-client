@@ -320,7 +320,7 @@ const ImportInvoiceDialog = ({
 
   const handleDownloadTemplate = async () => {
     try {
-      const response = await api.get('/invoice/import-template?type=excel', {
+      const response = await api.get('/invoices/import-template?type=excel', {
         responseType: 'blob',
       })
 

@@ -60,7 +60,8 @@ const MyInvoicePage = () => {
   }, [fullName, dispatch, filters, pageIndex, pageSize, debouncedSearch, columnFilters])
 
   const refreshData = () => {
-    // Extract status filter
+    console.log('MyInvoicePage: refreshData called')
+    // Extract status and filter
     const statusFilter = columnFilters.find((f) => f.id === 'status')?.value
 
     dispatch(getMyInvoices({
@@ -134,6 +135,7 @@ const MyInvoicePage = () => {
               columnFilters={columnFilters}
               onColumnFiltersChange={setColumnFilters}
               onCreated={refreshData}
+              onSuccess={refreshData}
             />
           )}
 
