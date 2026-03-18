@@ -13,12 +13,26 @@ import {
 } from '@/components/ui/form'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Plus, Search, ShoppingCart as CartIcon, LayoutGrid, Edit } from 'lucide-react'
+import { Check, ChevronsUpDown, Plus, LayoutGrid, Edit } from 'lucide-react'
 import { useDispatch, useSelector } from 'react-redux'
 import { getProducts } from '@/stores/ProductSlice'
-import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { getSuppliers } from '@/stores/SupplierSlice'
+import { getCategories } from '@/stores/CategorySlice'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import { moneyFormat } from '@/utils/money-format'
 
 import { createPurchaseOrderSchema } from '../schema'
 import { createPurchaseOrder, updatePurchaseOrder, getPurchaseOrderDetail } from '@/stores/PurchaseOrderSlice'
@@ -27,7 +41,7 @@ import { paymentMethods } from '../../receipt/data'
 import { useMediaQuery } from '@/hooks/UseMediaQuery'
 
 // Components
-import CategorySidebar from '../../invoice/components/CategorySidebar'
+import MaterialCategorySidebar from './MaterialCategorySidebar'
 import ProductGrid from '../../invoice/components/ProductGrid'
 import PurchaseOrderSidebar from './PurchaseOrderSidebar'
 import PurchaseOrderCart from './PurchaseOrderCart'
@@ -45,6 +59,18 @@ const PurchaseOrderDialog = ({
 }) => {
   const dispatch = useDispatch()
   const products = useSelector((state) => state.product.products)
+  // Ensure products have totalStock (defaulting to 0 if missing)
+  const processedProducts = useMemo(() => {
+    return products.map(p => {
+      return {
+        ...p,
+        totalStock: Number(p.totalStock || p.currentStock || 0),
+      }
+    })
+  }, [products])
+  const flatCategories = useSelector((state) =>
+    state.category.categories.filter(c => c.type === 'MATERIAL')
+  )
   const suppliers = useSelector((state) => state.supplier.suppliers)
   const loading = useSelector((state) => state.purchaseOrder.loading)
   const authUserWithRoleHasPermissions =
@@ -57,6 +83,7 @@ const PurchaseOrderDialog = ({
   const [mobileView, setMobileView] = useState('products') // 'products' | 'cart'
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const [openCombobox, setOpenCombobox] = useState(false)
   const [filteredProducts, setFilteredProducts] = useState([])
 
   // Data States
@@ -83,11 +110,6 @@ const PurchaseOrderDialog = ({
     description: '',
   })
 
-  // Contract Printing
-  const [isPrintContract, setIsPrintContract] = useState(false)
-  const [contractNumber, setContractNumber] = useState('')
-  const [showContractPreview, setShowContractPreview] = useState(false)
-  const [contractPreviewData, setContractPreviewData] = useState(null)
 
   // Create Product Dialog State
   const [showCreateProduct, setShowCreateProduct] = useState(false)
@@ -101,7 +123,6 @@ const PurchaseOrderDialog = ({
       note: '',
       paymentMethod: paymentMethods[0].value,
       paymentNote: '',
-      contractNumber: '',
       paymentTerms: '',
       expectedDeliveryDate: null,
       isAutoApprove: true,
@@ -128,14 +149,15 @@ const PurchaseOrderDialog = ({
   // Fetch Products & Suppliers
   useEffect(() => {
     if (open) {
-      dispatch(getProducts())
+      dispatch(getProducts({ type: 'MATERIAL' }))
       dispatch(getSuppliers())
+      dispatch(getCategories({ type: 'MATERIAL' }))
     }
   }, [dispatch, open])
 
   // Populate Data for Update
   useEffect(() => {
-    if (open && isUpdateMode && targetOrder && products.length > 0) {
+    if (open && isUpdateMode && targetOrder && processedProducts.length > 0) {
       // 1. Set Form Values
       form.reset({
         supplierId: targetOrder.supplierId?.toString() || '',
@@ -144,20 +166,18 @@ const PurchaseOrderDialog = ({
         note: targetOrder.note || '',
         paymentMethod: targetOrder.paymentMethod || 'transfer',
         paymentNote: targetOrder.paymentNote || '',
-        contractNumber: targetOrder.externalOrderCode || '',
         paymentTerms: targetOrder.terms || '',
         expectedDeliveryDate: targetOrder.expectedDeliveryDate ? new Date(targetOrder.expectedDeliveryDate) : null,
         isAutoApprove: true, // Keep default even for update or map if backend provides
       })
 
-      setContractNumber(targetOrder.externalOrderCode || '')
       setExpectedDeliveryDate(targetOrder.expectedDeliveryDate ? new Date(targetOrder.expectedDeliveryDate) : null)
 
       // 2. Set Supplier
       if (targetOrder.supplier) {
         setSelectedSupplier(targetOrder.supplier)
         setSupplierEditData({
-          name: targetOrder.supplier.name,
+          name: targetOrder.supplier.supplierName || targetOrder.supplier.name,
           phone: targetOrder.supplier.phone,
           email: targetOrder.supplier.email,
           address: targetOrder.supplier.address,
@@ -177,7 +197,7 @@ const PurchaseOrderDialog = ({
       // Taxes reconstruction skipped as per Update logic
 
       items.forEach(item => {
-        const product = products.find(p => p.id === item.productId)
+        const product = processedProducts.find(p => p.id === item.productId)
         if (product) {
           productList.push(product)
           const pid = product.id
@@ -191,7 +211,7 @@ const PurchaseOrderDialog = ({
           nextNotes[pid] = item.note || ''
           nextPriceOverrides[pid] = item.unitPrice
 
-          nextBasePrices[pid] = product.price
+          nextBasePrices[pid] = product.basePrice || product.price
         }
       })
 
@@ -253,37 +273,38 @@ const PurchaseOrderDialog = ({
 
   // ====== CATEGORY LOGIC ======
   const categories = useMemo(() => {
-    if (!products || products.length === 0) return []
-    const categoryMap = new Map()
-    products.forEach(product => {
-      const categoryId = product.categoryId || 'uncategorized'
-      const categoryName = product.category?.name || 'Chưa phân loại'
-      if (!categoryMap.has(categoryId)) {
-        categoryMap.set(categoryId, {
-          id: categoryId,
-          name: categoryName,
-          icon: product.category?.icon,
-          count: 0
-        })
+    if (!flatCategories?.length) return []
+
+    const map = {}
+    const roots = []
+
+    for (const cat of flatCategories) {
+      map[cat.id] = { ...cat, children: [] }
+    }
+
+    for (const cat of flatCategories) {
+      if (cat.parentId && map[cat.parentId]) {
+        map[cat.parentId].children.push(map[cat.id])
+      } else {
+        roots.push(map[cat.id])
       }
-      const category = categoryMap.get(categoryId)
-      category.count++
-    })
-    return Array.from(categoryMap.values())
-  }, [products])
+    }
+
+    return roots
+  }, [flatCategories])
 
   const productCounts = useMemo(() => {
     const counts = {}
-    products.forEach(product => {
+    processedProducts.forEach(product => {
       const categoryId = product.categoryId || 'uncategorized'
       counts[categoryId] = (counts[categoryId] || 0) + 1
     })
     return counts
-  }, [products])
+  }, [processedProducts])
 
   // ====== PRODUCT FILTERING ======
   useEffect(() => {
-    let filtered = products
+    let filtered = processedProducts
 
     if (selectedCategory !== 'all') {
       filtered = filtered.filter(p => (p.categoryId || 'uncategorized') === selectedCategory)
@@ -292,20 +313,20 @@ const PurchaseOrderDialog = ({
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase()
       filtered = filtered.filter(p =>
-        p.name.toLowerCase().includes(query) ||
+        (p.productName || p.name).toLowerCase().includes(query) ||
         p.code?.toLowerCase().includes(query)
       )
     }
 
     setFilteredProducts(filtered)
-  }, [selectedCategory, products, searchQuery])
+  }, [selectedCategory, processedProducts, searchQuery])
 
   // ====== UNIT HELPERS ======
   const getBaseUnitId = (product) =>
-    product?.baseUnitId || product?.prices?.[0]?.unitId || null
+    product?.unitId || product?.baseUnitId || product?.prices?.[0]?.unitId || null
 
   const getBaseUnitName = (product) =>
-    product?.baseUnit?.name || product?.prices?.[0]?.unitName || '—'
+    product?.unit?.unitName || product?.unit?.name || product?.baseUnit?.name || product?.prices?.[0]?.unitName || '—'
 
   const getUnitOptions = useCallback((product) => {
     const baseId = getBaseUnitId(product)
@@ -323,10 +344,11 @@ const PurchaseOrderDialog = ({
       const factor = Number(c?.conversionFactor || 0)
       options.push({
         unitId: uId,
-        unitName: c?.unit?.name || '—',
+        unitName: c?.unit?.unitName || c?.unit?.name || '—',
         factor: factor > 0 ? factor : 1,
       })
     }
+    // unique by unitId
     const map = new Map()
     for (const o of options) {
       if (!map.has(o.unitId)) map.set(o.unitId, o)
@@ -365,7 +387,7 @@ const PurchaseOrderDialog = ({
 
       if (priceOverrides[pid] != null) return Number(priceOverrides[pid] || 0)
 
-      const basePrice = Number(baseUnitPrices[pid] ?? product?.price ?? 0)
+      const basePrice = Number(baseUnitPrices[pid] ?? product?.basePrice ?? product?.price ?? 0)
       return factor > 0 ? basePrice / factor : basePrice
     },
     [baseUnitPrices, priceOverrides, selectedUnitIds, getFactor],
@@ -380,7 +402,7 @@ const PurchaseOrderDialog = ({
     } else {
       setSelectedProducts(prev => [...prev, product])
       setQuantities(prev => ({ ...prev, [product.id]: 1 }))
-      setBaseUnitPrices(prev => ({ ...prev, [product.id]: product.price }))
+      setBaseUnitPrices(prev => ({ ...prev, [product.id]: product.basePrice || product.price }))
       setDiscountRates(prev => ({ ...prev, [product.id]: 0 }))
 
       const defaultUnit = getBaseUnitId(product) || product?.prices?.[0]?.unitId
@@ -413,7 +435,7 @@ const PurchaseOrderDialog = ({
     if (supplier) {
       form.setValue('supplierId', supplier.id.toString())
       setSupplierEditData({
-        name: supplier.name,
+        name: supplier.supplierName || supplier.name,
         phone: supplier.phone || '',
         email: supplier.email || '',
         address: supplier.address || '',
@@ -494,7 +516,7 @@ const PurchaseOrderDialog = ({
     const price = getDisplayPrice(product)
     const basePrice = price * quantity
     const selectedProductTaxes = selectedTaxes[productId] || []
-    const taxes = product?.prices?.[0]?.taxes || []
+    const taxes = product?.taxes || product?.prices?.[0]?.taxes || []
 
     return taxes
       .filter((tax) => selectedProductTaxes.includes(tax.id))
@@ -551,10 +573,6 @@ const PurchaseOrderDialog = ({
       return
     }
 
-    if (!contractNumber) {
-      toast.error('Vui lòng nhập số hợp đồng')
-      return
-    }
 
     if (supplierEditData) {
       const phoneRegex = /^(0)(2|3|5|7|8|9)([0-9]{8,9})$/
@@ -630,7 +648,7 @@ const PurchaseOrderDialog = ({
       orderDate: data.orderDate ? new Date(data.orderDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
       expectedDeliveryDate: formattedDate,
       expectedReturnDate: formattedDate,
-      externalOrderCode: contractNumber,
+      externalOrderCode: '',
       terms: data.paymentTerms,
       otherCosts: otherExpenses.price,
       isPrintContract: false,
@@ -660,12 +678,13 @@ const PurchaseOrderDialog = ({
         const updatePayload = {
           ...commonPayload,
           purchaseOrderId: targetOrder.id,
-          items: items.map(item => ({
+          taxRate: 0,
+          details: items.map(item => ({
             productId: item.productId,
             unitId: item.unitId,
             quantity: item.quantity,
             unitPrice: item.unitPrice,
-            note: item.note
+            notes: item.note || '',
           })),
         }
         await dispatch(updatePurchaseOrder(updatePayload)).unwrap()
@@ -674,6 +693,7 @@ const PurchaseOrderDialog = ({
         // CREATE PAYLOAD
         const createPayload = {
           ...commonPayload,
+          taxRate: 0, // Default tax rate, can be enhanced later
           taxAmount: calculateTotalTax(),
           amount: calculateTotalAmount(),
           discount: calculateTotalDiscount(),
@@ -681,7 +701,13 @@ const PurchaseOrderDialog = ({
           totalAmount: calculateTotalAmount(),
           paymentStatus: 'unpaid',
           paidAmount: 0,
-          items: items,
+          details: items.map(item => ({
+            productId: item.productId,
+            unitId: item.unitId,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            notes: item.note || '',
+          })),
           createdBy: authUserWithRoleHasPermissions.id,
         }
         const newOrder = await dispatch(createPurchaseOrder(createPayload)).unwrap()
@@ -752,19 +778,72 @@ const PurchaseOrderDialog = ({
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col overflow-hidden">
               {mobileView === 'products' ? (
+                /* View 1: Product Selection (Columns 1+2) */
                 <div className="flex-1 flex flex-col overflow-hidden">
-                  <div className="p-4 border-b bg-background/80 backdrop-blur-sm">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Tìm kiếm sản phẩm..."
-                        className="pl-9"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                      />
-                    </div>
+                  {/* Search Bar */}
+                  <div className="p-4 border-b bg-background/80 backdrop-blur-sm z-30 relative">
+                    <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={openCombobox}
+                          className="w-full justify-between"
+                        >
+                          {searchQuery ? searchQuery : "Tìm kiếm nguyên liệu..."}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[calc(100vw-32px)] p-0 z-[1001]" align="start">
+                        <Command shouldFilter={false}>
+                          <CommandInput
+                            placeholder="Nhập tên hoặc mã nguyên liệu..."
+                            value={searchQuery}
+                            onValueChange={setSearchQuery}
+                          />
+                          <CommandList>
+                            <CommandEmpty>Không tìm thấy nguyên liệu.</CommandEmpty>
+                            <CommandGroup heading="Gợi ý">
+                              {filteredProducts.slice(0, 10).map((product) => {
+                                const isSelected = selectedProducts.some(p => p.id === product.id)
+                                return (
+                                  <CommandItem
+                                    key={product.id}
+                                    value={product.productName || product.name}
+                                    onSelect={() => {
+                                      handleAddProduct(product)
+                                      setOpenCombobox(false)
+                                      setSearchQuery('')
+                                    }}
+                                  >
+                                    <div className="flex items-center gap-2 w-full">
+                                      <Check
+                                        className={cn(
+                                          "mr-2 h-4 w-4",
+                                          isSelected ? "opacity-100" : "opacity-0"
+                                        )}
+                                      />
+                                      <div className='flex-1'>
+                                        <div className='font-medium'>{product.productName || product.name}</div>
+                                        <div className='text-xs text-muted-foreground flex flex-wrap gap-2 mt-1'>
+                                          <span>{product.code}</span>
+                                          <span>•</span>
+                                          <span>Tồn: {product.totalStock ?? product.currentStock ?? 0}</span>
+                                          <span>•</span>
+                                          <span className='text-primary'>{moneyFormat(product.basePrice || product.price)}</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </CommandItem>
+                                )
+                              })}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                     <div className="mt-3 text-xs text-muted-foreground">
-                      Hiển thị {filteredProducts.length} / {products.length} sản phẩm
+                      Hiển thị {filteredProducts.length} / {products.length} nguyên liệu
                     </div>
                   </div>
 
@@ -789,8 +868,20 @@ const PurchaseOrderDialog = ({
                       <div className="flex-1 overflow-x-auto">
                         <div className="flex gap-2">
                           <button type="button" onClick={() => setSelectedCategory('all')} className={cn("px-3 py-1.5 rounded-full text-xs whitespace-nowrap transition-all", selectedCategory === 'all' ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:bg-muted/80")}>Tất cả</button>
-                          {categories.map((category) => (
-                            <button key={category.id} type="button" onClick={() => setSelectedCategory(category.id)} className={cn("px-3 py-1.5 rounded-full text-xs whitespace-nowrap transition-all", selectedCategory === category.id ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:bg-muted/80")}>{category.name}</button>
+                          {flatCategories.map((category) => (
+                            <button
+                              key={category.id}
+                              type="button"
+                              onClick={() => setSelectedCategory(category.id)}
+                              className={cn(
+                                "px-3 py-1.5 rounded-full text-xs whitespace-nowrap transition-all",
+                                selectedCategory === category.id
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-muted/50 text-muted-foreground hover:bg-muted/80"
+                              )}
+                            >
+                              {category.categoryName}
+                            </button>
                           ))}
                         </div>
                       </div>
@@ -892,25 +983,76 @@ const PurchaseOrderDialog = ({
       <DialogContent className="max-w-screen w-screen p-0 m-0 h-[calc(100vh-64px)] md:max-h-screen md:h-screen">
         <DialogHeader className="px-6 pt-4">
           <DialogTitle>{isUpdateMode ? 'Cập nhật đơn đặt hàng' : 'Tạo đơn đặt hàng mới'}</DialogTitle>
-          <DialogDescription>{isUpdateMode ? 'Chỉnh sửa thông tin đơn đặt hàng' : 'Chọn sản phẩm và điền thông tin để tạo đơn đặt hàng'}</DialogDescription>
+          <DialogDescription>{isUpdateMode ? 'Chỉnh sửa thông tin đơn đặt hàng' : 'Chọn nguyên liệu và điền thông tin để tạo đơn đặt hàng'}</DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col overflow-hidden border-t">
             <div className="flex flex-1 overflow-hidden">
-              <div className="flex flex-col flex-1">
-                <div className="p-4 border-b bg-background/80 backdrop-blur-sm">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Tìm kiếm sản phẩm..."
-                      className="pl-9"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                  </div>
+              <div className="flex flex-col w-[700px] shrink-0 border-r">
+                <div className="p-4 border-b bg-background/80 backdrop-blur-sm z-30 relative">
+                  <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={openCombobox}
+                        className="w-full justify-between"
+                      >
+                        {searchQuery ? searchQuery : "Tìm kiếm nguyên liệu..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[660px] p-0 z-[1001]" align="start">
+                      <Command shouldFilter={false}>
+                        <CommandInput
+                          placeholder="Nhập tên hoặc mã nguyên liệu..."
+                          value={searchQuery}
+                          onValueChange={setSearchQuery}
+                        />
+                        <CommandList>
+                          <CommandEmpty>Không tìm thấy nguyên liệu.</CommandEmpty>
+                          <CommandGroup heading="Gợi ý">
+                            {filteredProducts.slice(0, 10).map((product) => {
+                              const isSelected = selectedProducts.some(p => p.id === product.id)
+                              return (
+                                <CommandItem
+                                  key={product.id}
+                                  value={product.productName || product.name}
+                                  onSelect={() => {
+                                    handleAddProduct(product)
+                                    setOpenCombobox(false)
+                                    setSearchQuery('')
+                                  }}
+                                >
+                                  <div className="flex items-center gap-2 w-full">
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        isSelected ? "opacity-100" : "opacity-0"
+                                      )}
+                                    />
+                                    <div className='flex-1'>
+                                      <div className='font-medium'>{product.productName || product.name}</div>
+                                      <div className='text-xs text-muted-foreground flex gap-2'>
+                                        <span>{product.code}</span>
+                                        <span>•</span>
+                                        <span>Tồn: {product.totalStock ?? product.currentStock ?? 0}</span>
+                                        <span>•</span>
+                                        <span className='text-primary'>{moneyFormat(product.price)}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </CommandItem>
+                              )
+                            })}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                   <div className="mt-3 text-xs text-muted-foreground">
-                    Hiển thị {filteredProducts.length} / {products.length} sản phẩm
+                    Hiển thị {filteredProducts.length} / {products.length} nguyên liệu
                   </div>
                 </div>
 
@@ -925,12 +1067,12 @@ const PurchaseOrderDialog = ({
                     }}
                   >
                     <Plus className="h-3 w-3 mr-1" />
-                    Thêm sản phẩm
+                    Thêm nguyên liệu
                   </Button>
                 </div>
 
                 <div className="flex flex-1 overflow-hidden">
-                  <CategorySidebar
+                  <MaterialCategorySidebar
                     categories={categories}
                     selectedCategory={selectedCategory}
                     onCategoryChange={setSelectedCategory}
@@ -942,6 +1084,7 @@ const PurchaseOrderDialog = ({
                     onAddProduct={handleAddProduct}
                     selectedProductIds={selectedProducts.map(p => p.id)}
                     loading={false}
+                    priceKey="basePrice"
                   />
                 </div>
               </div>
@@ -983,10 +1126,6 @@ const PurchaseOrderDialog = ({
                 loading={loading}
                 expectedDeliveryDate={expectedDeliveryDate}
                 onExpectedDeliveryDateChange={setExpectedDeliveryDate}
-                isPrintContract={isPrintContract}
-                setIsPrintContract={setIsPrintContract}
-                contractNumber={contractNumber}
-                setContractNumber={setContractNumber}
                 otherExpenses={otherExpenses}
                 calculateExpenses={calculateExpenses}
                 onEditExpenses={() => setShowOtherExpenses(true)}
@@ -1009,10 +1148,11 @@ const PurchaseOrderDialog = ({
       <CreateProductDialog
         open={showCreateProduct}
         onOpenChange={setShowCreateProduct}
+        defaultType="MATERIAL"
         onSuccess={() => {
-          dispatch(getProducts())
+          dispatch(getProducts({ type: 'MATERIAL' }))
           setShowCreateProduct(false)
-          toast.success('Đã thêm sản phẩm mới')
+          toast.success('Đã thêm nguyên liệu mới')
         }}
         showTrigger={false}
         contentClassName="z-[10006]"

@@ -36,11 +36,13 @@ const RejectInvoiceDialog = ({ invoice, showTrigger = true, open, onOpenChange, 
           reason: reason.trim()
         }),
       ).unwrap()
+      toast.success('Hủy hóa đơn thành công')
       onOpenChange?.(false)
       onSuccess?.()
       setReason('') // Reset reason
     } catch (error) {
       console.log('Reject error: ', error)
+      toast.error('Hủy hóa đơn thất bại')
     }
   }
 

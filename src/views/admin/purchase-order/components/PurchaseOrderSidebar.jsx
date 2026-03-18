@@ -22,7 +22,7 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command'
-import { CheckIcon, Mail, MapPin, User, Calendar, Truck, RefreshCcw } from 'lucide-react'
+import { CheckIcon, Mail, MapPin, User, Calendar, Truck, RefreshCcw, Tag } from 'lucide-react'
 import { CaretSortIcon, MobileIcon } from '@radix-ui/react-icons'
 import { IconDatabasePlus } from '@tabler/icons-react'
 import { cn } from '@/lib/utils'
@@ -63,10 +63,6 @@ const PurchaseOrderSidebar = ({
   expectedDeliveryDate,
   onExpectedDeliveryDateChange,
   isUpdate = false,
-  isPrintContract,
-  setIsPrintContract,
-  contractNumber,
-  setContractNumber,
 }) => {
   const dispatch = useDispatch()
   const [openOrderDatePicker, setOpenOrderDatePicker] = useState(false)
@@ -166,7 +162,10 @@ const PurchaseOrderSidebar = ({
       {/* Left divider */}
       <div className="absolute left-0 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-border/40 to-transparent" />
 
-      {/* Header */}
+      <div className="p-4 border-b bg-background">
+        <h3 className="font-semibold">Thông tin đơn hàng</h3>
+      </div>
+
       <ScrollArea className="flex-1">
         <div className="p-4 space-y-4">
           <div className="space-y-2">
@@ -178,8 +177,8 @@ const PurchaseOrderSidebar = ({
                   <div className="flex items-center gap-2 min-w-0">
                     <Avatar className="h-8 w-8">
                       <AvatarImage
-                        src={`https://ui-avatars.com/api/?bold=true&background=random&name=${selectedSupplier?.name}`}
-                        alt={selectedSupplier?.name}
+                        src={`https://ui-avatars.com/api/?bold=true&background=random&name=${selectedSupplier?.supplierName || selectedSupplier?.name}`}
+                        alt={selectedSupplier?.supplierName || selectedSupplier?.name}
                       />
                       <AvatarFallback>
                         <User className="h-4 w-4" />
@@ -187,11 +186,11 @@ const PurchaseOrderSidebar = ({
                     </Avatar>
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-sm leading-snug break-words">
-                        {selectedSupplier?.name}
+                        {selectedSupplier?.supplierName || selectedSupplier?.name}
                       </div>
-                      {selectedSupplier?.code && (
+                      { (selectedSupplier?.supplierCode || selectedSupplier?.code) && (
                         <div className="text-xs text-muted-foreground">
-                          {selectedSupplier?.code}
+                          {selectedSupplier?.supplierCode || selectedSupplier?.code}
                         </div>
                       )}
                     </div>
@@ -230,13 +229,19 @@ const PurchaseOrderSidebar = ({
                         </a>
                       </div>
                     )}
-                    {selectedSupplier?.address && (
-                      <div className="flex items-start gap-2 text-muted-foreground">
-                        <MapPin className="h-3 w-3 mt-0.5 shrink-0" />
-                        <span className="line-clamp-2">{selectedSupplier?.address}</span>
-                      </div>
-                    )}
-                  </div>
+                      {selectedSupplier?.address && (
+                        <div className="flex items-start gap-2 text-muted-foreground">
+                          <MapPin className="h-3 w-3 mt-0.5 shrink-0" />
+                          <span className="line-clamp-2">{selectedSupplier?.address}</span>
+                        </div>
+                      )}
+                      {selectedSupplier?.taxCode && (
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Tag className="h-3 w-3" />
+                          <span>MST: {selectedSupplier?.taxCode}</span>
+                        </div>
+                      )}
+                    </div>
                 </div>
 
                 {/* Supplier Edit Fields - Always visible when supplier selected */}
@@ -335,7 +340,10 @@ const PurchaseOrderSidebar = ({
                               className="w-full justify-between font-normal"
                             >
                               {field.value
-                                ? suppliers.find((s) => s.id.toString() === field.value.toString())?.name
+                                ? (() => {
+                                    const s = suppliers.find((s) => s.id.toString() === field.value.toString())
+                                    return s ? (s.supplierName || s.name) : 'Chọn nhà cung cấp'
+                                  })()
                                 : 'Chọn nhà cung cấp'}
                               <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                             </Button>
@@ -353,7 +361,7 @@ const PurchaseOrderSidebar = ({
                                     key={supplier.id}
                                     onSelect={() => onSelectSupplier(supplier)}
                                   >
-                                    {supplier.name} - {supplier.phone}
+                                    {supplier.supplierName || supplier.name} - {supplier.phone}
                                     <CheckIcon
                                       className={cn(
                                         'ml-auto h-4 w-4',
@@ -477,34 +485,6 @@ const PurchaseOrderSidebar = ({
           </div>
 
           <Separator />
-
-          {/* Contract Number Input - Required only for supplier */}
-          <FormField
-            control={form.control}
-            name="contractNumber"
-            render={({ field }) => (
-              <FormItem className="mb-2">
-                <FormLabel>
-                  Số hợp đồng
-                  <span className="text-destructive"> *</span>
-                </FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Nhập số hợp đồng..."
-                    className="h-9"
-                    {...field}
-                    onChange={(e) => {
-                      field.onChange(e)
-                      // Keep state sync for side-effects if needed, or remove if fully relying on form
-                      if (setContractNumber) setContractNumber(e.target.value)
-                      if (setIsPrintContract) setIsPrintContract(!!e.target.value)
-                    }}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
 
           <FormField
             control={form.control}
@@ -672,12 +652,12 @@ const PurchaseOrderSidebar = ({
               </div>
 
               {/* Giảm giá */}
-              {/* {discount > 0 && (
+              {discount > 0 && (
                 <div className="flex justify-between text-destructive">
                   <span>Giảm giá:</span>
                   <span>-{moneyFormat(discount)}</span>
                 </div>
-              )} */}
+              )}
 
               {/* Tiền thuế */}
               {tax > 0 && (

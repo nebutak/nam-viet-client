@@ -150,10 +150,10 @@ const CreateProductDialog = ({
   useEffect(() => {
     dispatch(getTaxes())
     dispatch(getUnits())
-    dispatch(getCategories())
+    dispatch(getCategories({ type: defaultType }))
     dispatch(getAttributes())
     dispatch(getSuppliers())
-  }, [dispatch])
+  }, [dispatch, defaultType])
 
   useEffect(() => {
     if (open) {
@@ -377,7 +377,8 @@ const CreateProductDialog = ({
                             {categories
                               ?.filter(
                                 (category) =>
-                                  category.status === 'active',
+                                  category.status === 'active' &&
+                                  category.type === defaultType,
                               )
                               .map((category) => (
                                 <SelectItem

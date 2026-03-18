@@ -232,6 +232,7 @@ const UpdateProductDialog = ({
           value: attr.value ?? attr.pivot?.value ?? '',
         })) ?? [],
 
+      type: fullProduct.type,
       image: null,
       hasExpiry: fullProduct.hasExpiry ?? false,
       manageSerial: fullProduct.manageSerial ?? false,

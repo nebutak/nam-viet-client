@@ -12,6 +12,7 @@ import {
 import { deleteInvoice } from '@/stores/InvoiceSlice'
 import { TrashIcon } from 'lucide-react'
 import { useDispatch, useSelector } from 'react-redux'
+import { toast } from 'sonner'
 
 const DeleteInvoiceDialog = ({ invoice, showTrigger = true, ...props }) => {
   const dispatch = useDispatch()
@@ -20,11 +21,13 @@ const DeleteInvoiceDialog = ({ invoice, showTrigger = true, ...props }) => {
   const destroy = async (id) => {
     try {
       await dispatch(deleteInvoice(id)).unwrap()
+      toast.success('Xóa hóa đơn thành công')
       if (props.onSuccess) {
         props.onSuccess()
       }
     } catch (error) {
       console.log('Submit error: ', error)
+      toast.error('Xóa hóa đơn thất bại')
     }
   }
 

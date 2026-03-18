@@ -11,7 +11,8 @@ const ProductGrid = ({
   products,
   onAddProduct,
   selectedProductIds = [],
-  loading = false
+  loading = false,
+  priceKey = 'price'
 }) => {
   if (loading) {
     return (
@@ -98,7 +99,7 @@ const ProductGrid = ({
                         <div className="hidden md:block">
                           <div className="flex items-center gap-3 mt-1">
                             <span className="text-sm font-semibold text-primary">
-                              {moneyFormat(product.price)}
+                              {moneyFormat(product[priceKey])}
                             </span>
                             <span className="text-[11px] text-muted-foreground">
                               Tồn: {stock}
@@ -124,7 +125,7 @@ const ProductGrid = ({
                         <div className="md:hidden flex-1 min-w-0">
                           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                             <span className="text-sm font-semibold text-primary">
-                              {moneyFormat(product.price)}
+                              {moneyFormat(product[priceKey])}
                             </span>
                             <span className="text-[11px] text-muted-foreground">
                               Tồn: {stock}

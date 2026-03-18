@@ -28,9 +28,12 @@ export const getInvoices = createAsyncThunk(
       })
       const responseData = response.data
       let data = responseData?.data
-      let meta = responseData?.meta
-
-      data = Array.isArray(data) ? data : []
+      const meta = responseData?.meta ? {
+        ...responseData.meta,
+        last_page: responseData.meta.totalPages,
+        current_page: responseData.meta.page,
+        per_page: responseData.meta.limit
+      } : undefined
 
       return { data, meta }
     } catch (error) {
@@ -104,7 +107,12 @@ export const getMyInvoices = createAsyncThunk(
         last_page: pagination.totalPages,
         current_page: pagination.page,
         per_page: pagination.limit
-      } : undefined
+      } : (responseData?.meta ? {
+        ...responseData.meta,
+        last_page: responseData.meta.totalPages,
+        current_page: responseData.meta.page,
+        per_page: responseData.meta.limit
+      } : undefined)
 
       return { data, meta }
     } catch (error) {

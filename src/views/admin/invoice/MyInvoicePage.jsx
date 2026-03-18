@@ -132,6 +132,7 @@ const MyInvoicePage = () => {
                 setPageIndex(0) // Reset to first page on search
               }}
               onView={(id) => setViewInvoiceId(id)}
+              onDeleted={refreshData}
               columnFilters={columnFilters}
               onColumnFiltersChange={setColumnFilters}
               onCreated={refreshData}

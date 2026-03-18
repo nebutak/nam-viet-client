@@ -79,7 +79,9 @@ const InvoiceDialog = ({
     })
   }, [products])
 
-  const flatCategories = useSelector((state) => state.category.categories)
+  const flatCategories = useSelector((state) =>
+    state.category.categories.filter(c => c.type === 'PRODUCT')
+  )
   const categories = useMemo(() => {
     if (!flatCategories?.length) return []
 
@@ -1340,7 +1342,7 @@ const InvoiceDialog = ({
                 /* View 1: Product Selection (Columns 1+2) */
                 <div className="flex-1 flex flex-col overflow-hidden">
                   {/* Search Bar */}
-                  <div className="p-4 border-b bg-background/80 backdrop-blur-sm z-20 relative">
+                  <div className="p-4 border-b bg-background/80 backdrop-blur-sm z-30 relative">
                     <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
                       <PopoverTrigger asChild>
                         <Button
@@ -1746,7 +1748,7 @@ const InvoiceDialog = ({
                 {/* LEFT SECTION: Category + Products */}
                 <div className="flex flex-col w-[700px]">
                   {/* UNIFIED SEARCH BAR spanning columns 1 & 2 */}
-                  <div className="p-4 border-b bg-background/80 backdrop-blur-sm z-20 relative">
+                  <div className="p-4 border-b bg-background/80 backdrop-blur-sm z-30 relative">
                     <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
                       <PopoverTrigger asChild>
                         <Button
@@ -1986,8 +1988,9 @@ const InvoiceDialog = ({
           open={showCreateProductDialog}
           onOpenChange={(open) => {
             setShowCreateProductDialog(open)
-            if (!open) dispatch(getProducts())
+            if (!open) dispatch(getProducts({ type: 'PRODUCT' }))
           }}
+          defaultType="PRODUCT"
           showTrigger={false}
         />
       )}
