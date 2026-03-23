@@ -2,16 +2,22 @@ import React, { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { Link } from 'react-router-dom'
 import { format } from 'date-fns'
-import { Eye, Search, RotateCcw, X, Users, Clock, CheckCircle } from 'lucide-react'
+import { Eye, Edit2, X, Search, Users, Clock, CheckCircle, PlusIcon } from 'lucide-react'
+import { Cross2Icon } from '@radix-ui/react-icons'
 
-import { getOvertimeSessions, getOvertimeStats } from '@/stores/OvertimeSlice'
+import { Layout, LayoutBody } from '@/components/custom/Layout'
+import { getOvertimeSessions, getOvertimeStats, getOvertimeSessionDetail } from '@/stores/OvertimeSlice'
 import { useDebounce } from '@/hooks/use-debounce'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/custom/Button'
+import { StatusFacetedFilter } from '@/components/custom/StatusFacetedFilter'
 import CreateSessionDialog from './components/CreateSessionDialog'
 import SessionDetailsDialog from './components/SessionDetailsDialog'
-import Pagination from '@/components/Pagination'
+import EditSessionDialog from './components/EditSessionDialog'
+import CustomPagination from '@/components/CustomPagination'
 
-// Simplified Card Components based on Attendance usage
+// Component render
 function StatCard({ title, value, icon, color, description, trend, subValue }) {
     const Icon = icon
     const colorClasses = {
@@ -66,6 +72,8 @@ export default function OvertimePage() {
     const [isCreateOpen, setIsCreateOpen] = useState(false)
     const [selectedSessionId, setSelectedSessionId] = useState(null)
     const [isDetailsOpen, setIsDetailsOpen] = useState(false)
+    const [editSessionData, setEditSessionData] = useState(null)
+    const [isEditOpen, setIsEditOpen] = useState(false)
 
     // Ensure we handle array or paginated response
     const sessionList = Array.isArray(sessions) ? sessions : (sessions?.data || [])
@@ -100,6 +108,16 @@ export default function OvertimePage() {
 
     const hasActiveFilters = searchTerm || statusFilter !== 'all'
 
+    const handleEditSession = async (sessionId) => {
+        try {
+            const result = await dispatch(getOvertimeSessionDetail(sessionId)).unwrap()
+            setEditSessionData(result)
+            setIsEditOpen(true)
+        } catch (error) {
+            console.error('Failed to load session detail for edit:', error)
+        }
+    }
+
     const getStatusLabel = (status) => {
         switch (status) {
             case 'open': return 'Đang mở'
@@ -119,165 +137,68 @@ export default function OvertimePage() {
     }
 
     return (
-        <div className="space-y-6 p-4 md:p-6 lg:p-8">
-            {/* Header */}
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                        Quản lý tăng ca
-                    </h1>
-                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                        Theo dõi và quản lý các phiên làm việc ngoài giờ
-                    </p>
+        <Layout>
+            <LayoutBody className="flex flex-col" fixedHeight>
+                <div className="mb-2 flex items-center justify-between space-y-2">
+                    <div>
+                        <h2 className="text-2xl font-bold tracking-tight">
+                            Quản lý tăng ca
+                        </h2>
+                    </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                    <button
-                        onClick={() => setIsCreateOpen(true)}
-                        className="inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                    >
-                        Mở phiên tăng ca
-                    </button>
-                    <CreateSessionDialog
-                        isOpen={isCreateOpen}
-                        onClose={() => setIsCreateOpen(false)}
-                    />
-                </div>
-            </div>
-
-            {/* Stats Cards */}
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                <StatCard
-                    title="Tổng phiên"
-                    value={stats?.total || 0}
-                    icon={Users}
-                    color="blue"
-                />
-                <StatCard
-                    title="Đang mở"
-                    value={stats?.open || 0}
-                    subValue={stats?.total || 0}
-                    icon={CheckCircle}
-                    color="green"
-                    trend={stats?.total ? Math.round((stats.open / stats.total) * 100) : 0}
-                    description="Phiên đang hoạt động"
-                />
-                <StatCard
-                    title="Đã đóng"
-                    value={stats?.closed || 0}
-                    icon={CheckCircle}
-                    color="purple"
-                    description="Phiên đã hoàn thành"
-                />
-                <StatCard
-                    title="Tổng giờ tăng ca"
-                    value={stats?.totalHours ? `${stats.totalHours.toFixed(1)}h` : '0h'}
-                    icon={Clock}
-                    color="orange"
-                />
-            </div>
-
-            {/* Main Content Card (Filters & Table) */}
-            <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-6">
-                    {/* Search */}
-                    <div className="lg:col-span-2">
-                        <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Tìm kiếm
-                        </label>
-                        <div className="relative">
-                            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                                <Search className="h-5 w-5 text-gray-400" />
-                            </div>
-                            <input
-                                type="text"
+                <div className="-mx-4 flex-1 overflow-hidden px-4 py-1 flex flex-col space-y-4">
+                    {/* Toolbar */}
+                    <div className="flex w-full items-center justify-between space-x-2 overflow-auto p-1">
+                        <div className="flex flex-1 items-center space-x-2">
+                            <Input
                                 placeholder="Tìm phiên, người tạo..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="block w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-3 text-sm placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                                className="h-8 w-[150px] lg:w-[250px]"
+                            />
+
+                            <StatusFacetedFilter
+                                title="Trạng thái"
+                                options={[
+                                    { value: 'open', label: 'Đang mở' },
+                                    { value: 'closed', label: 'Đã đóng' },
+                                    { value: 'cancelled', label: 'Đã hủy' },
+                                ]}
+                                value={statusFilter}
+                                onChange={setStatusFilter}
+                            />
+
+                            {hasActiveFilters && (
+                                <Button
+                                    variant="ghost"
+                                    onClick={handleResetFilters}
+                                    className="h-8 px-2 lg:px-3"
+                                >
+                                    Đặt lại
+                                    <Cross2Icon className="ml-2 h-4 w-4" />
+                                </Button>
+                            )}
+                        </div>
+
+                        <div className="flex items-center space-x-2">
+                            <Button
+                                onClick={() => setIsCreateOpen(true)}
+                                className="bg-green-600 hover:bg-green-700 text-white"
+                                size="sm"
+                            >
+                                <PlusIcon className="mr-2 size-4" aria-hidden="true" />
+                                Mở phiên
+                            </Button>
+                            <CreateSessionDialog
+                                isOpen={isCreateOpen}
+                                onClose={() => setIsCreateOpen(false)}
                             />
                         </div>
                     </div>
 
-                    {/* Status Filter */}
-                    <div>
-                        <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Trạng thái
-                        </label>
-                        <select
-                            value={statusFilter}
-                            onChange={(e) => setStatusFilter(e.target.value)}
-                            className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-                        >
-                            <option value="all">Tất cả trạng thái</option>
-                            <option value="open">Đang mở</option>
-                            <option value="closed">Đã đóng</option>
-                            <option value="cancelled">Đã hủy</option>
-                        </select>
-                    </div>
-
-                    {/* Limit Selector */}
-                    <div>
-                        <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Hiển thị
-                        </label>
-                        <select
-                            value={limit}
-                            onChange={(e) => setLimit(Number(e.target.value))}
-                            className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-                        >
-                            <option value={10}>10 / trang</option>
-                            <option value={20}>20 / trang</option>
-                            <option value={50}>50 / trang</option>
-                        </select>
-                    </div>
-                </div>
-
-                {/* Active Filters Display */}
-                {hasActiveFilters && (
-                    <div className="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/50">
-                        <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                Bộ lọc:
-                            </span>
-
-                            {searchTerm && (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-sm text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
-                                    🔍 "{searchTerm}"
-                                    <button
-                                        onClick={() => setSearchTerm('')}
-                                        className="ml-1 hover:text-blue-900 dark:hover:text-blue-100"
-                                    >
-                                        <X className="h-3 w-3" />
-                                    </button>
-                                </span>
-                            )}
-
-                            {statusFilter !== 'all' && (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-sm text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
-                                    Trạng thái: {getStatusLabel(statusFilter)}
-                                    <button
-                                        onClick={() => setStatusFilter('all')}
-                                        className="ml-1 hover:text-amber-900 dark:hover:text-amber-100"
-                                    >
-                                        <X className="h-3 w-3" />
-                                    </button>
-                                </span>
-                            )}
-
-                            <button
-                                onClick={handleResetFilters}
-                                className="ml-auto inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 py-1 text-sm text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-                            >
-                                <RotateCcw className="h-3 w-3" />
-                                Xóa tất cả
-                            </button>
-                        </div>
-                    </div>
-                )}
-
                 {/* Table Section */}
-                <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
+                <div className="flex-1 overflow-auto rounded-md border border-gray-200 dark:border-gray-700">
                     <div className="overflow-x-auto">
                         <table className="w-full min-w-max text-left text-sm">
                             <thead className="bg-gray-50 text-xs uppercase tracking-wider text-gray-500 dark:bg-gray-800/50 dark:text-gray-400">
@@ -329,16 +250,27 @@ export default function OvertimePage() {
                                                 {session._count?.entries || 0} nhân viên
                                             </td>
                                             <td className="px-6 py-4 text-right">
-                                                <button
-                                                    onClick={() => {
-                                                        setSelectedSessionId(session.id)
-                                                        setIsDetailsOpen(true)
-                                                    }}
-                                                    className="inline-flex rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-300"
-                                                    title="Chi tiết"
-                                                >
-                                                    <Eye className="h-4 w-4" />
-                                                </button>
+                                                <div className="flex items-center justify-end gap-1">
+                                                    {session.status === 'open' && (
+                                                        <button
+                                                            onClick={() => handleEditSession(session.id)}
+                                                            className="inline-flex rounded-md p-2 text-blue-500 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-900/30 dark:hover:text-blue-300"
+                                                            title="Chỉnh sửa"
+                                                        >
+                                                            <Edit2 className="h-4 w-4" />
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        onClick={() => {
+                                                            setSelectedSessionId(session.id)
+                                                            setIsDetailsOpen(true)
+                                                        }}
+                                                        className="inline-flex rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+                                                        title="Chi tiết"
+                                                    >
+                                                        <Eye className="h-4 w-4" />
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))
@@ -359,24 +291,28 @@ export default function OvertimePage() {
 
                 {/* Pagination */}
                 {meta && meta.total > 0 && (
-                    <div className="mt-6 flex flex-col items-center justify-between gap-4 sm:flex-row">
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
-                            Hiển thị <span className="font-medium text-gray-900 dark:text-white">{(page - 1) * limit + 1}-{Math.min(page * limit, meta.total)}</span> của <span className="font-medium text-gray-900 dark:text-white">{meta.total}</span>
-                        </div>
-                        <Pagination
-                            currentPage={page}
-                            totalPages={meta.totalPages}
-                            onPageChange={handlePageChange}
-                        />
-                    </div>
+                    <CustomPagination 
+                        totalItems={meta.total}
+                        currentPage={page}
+                        pageSize={limit}
+                        onPageChange={handlePageChange}
+                        onPageSizeChange={(s) => { setLimit(s); setPage(1); }}
+                    />
                 )}
-            </div>
+                </div>
 
-            <SessionDetailsDialog 
-                isOpen={isDetailsOpen} 
-                onClose={() => setIsDetailsOpen(false)} 
-                sessionId={selectedSessionId} 
-            />
-        </div>
+                <SessionDetailsDialog 
+                    isOpen={isDetailsOpen} 
+                    onClose={() => setIsDetailsOpen(false)} 
+                    sessionId={selectedSessionId} 
+                />
+
+                <EditSessionDialog 
+                    isOpen={isEditOpen} 
+                    onClose={() => { setIsEditOpen(false); setEditSessionData(null); }} 
+                    selectedSession={editSessionData} 
+                />
+            </LayoutBody>
+        </Layout>
     )
 }
