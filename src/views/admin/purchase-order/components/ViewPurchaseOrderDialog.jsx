@@ -269,7 +269,7 @@ const ViewPurchaseOrderDialog = ({
     setShowCreatePaymentDialog(true)
   }
 
-  const handleCreateWarehouseReceipt = async (selectedItems, actualReceiptDate, reason, notes) => {
+  const handleCreateWarehouseReceipt = async (selectedItems, actualReceiptDate, warehouseId, reason, notes) => {
     const payload = {
       // code: `NK-${purchaseOrder.code}-${Date.now().toString().slice(-4)}`,
       receiptType: 1, // IMPORT / RECEIPT
@@ -278,9 +278,10 @@ const ViewPurchaseOrderDialog = ({
       actualReceiptDate: actualReceiptDate || null,
       reason: reason || `Nhập kho từ đơn mua hàng ${purchaseOrder.code}`,
       notes: notes || purchaseOrder.note || '',
-      warehouseId: null,
+      warehouseId: Number(warehouseId),
       supplierId: purchaseOrder.supplierId,
-      purchaseOrderId: purchaseOrder.id,
+      referenceType: 'purchase_order',
+      referenceId: purchaseOrder.id,
       details: selectedItems.map(item => ({
         productId: item.productId || item.product?.id,
         unitId: item.unitId || item.unit?.id,
