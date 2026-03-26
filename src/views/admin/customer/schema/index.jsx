@@ -48,6 +48,7 @@ const createCustomerSchema = z.object({
   creditLimit: z.coerce.number().min(0, { message: 'Hạn mức công nợ phải lớn hơn hoặc bằng 0' }).optional(),
   rewardPoints: z.coerce.number().min(0, { message: 'Điểm thưởng phải lớn hơn hoặc bằng 0' }).optional(),
   rewardCode: z.string().max(50, { message: 'Mã thưởng không được vượt quá 50 ký tự' }).nullable().optional(),
+  assignedUserId: z.string().nullable().optional(),
   status: z.enum(['active', 'inactive', 'blacklisted'], { message: 'Trạng thái không hợp lệ' }).optional(),
 })
 
@@ -96,6 +97,7 @@ const updateCustomerSchema = z.object({
   creditLimit: z.coerce.number().min(0, { message: 'Hạn mức công nợ phải lớn hơn hoặc bằng 0' }).optional(),
   rewardPoints: z.coerce.number().min(0, { message: 'Điểm thưởng phải lớn hơn hoặc bằng 0' }).optional(),
   rewardCode: z.string().max(50, { message: 'Mã thưởng không được vượt quá 50 ký tự' }).nullable().optional(),
+  assignedUserId: z.string().nullable().optional(),
   status: z.enum(['active', 'inactive', 'blacklisted'], { message: 'Trạng thái không hợp lệ' }).optional(),
 })
 

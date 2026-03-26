@@ -12,7 +12,7 @@ export const columns = [
                 <div className="flex justify-center">
                     {primaryImage ? (
                         <img
-                            src={`http://localhost:8000${primaryImage.imageUrl}`}
+                            src={`http://localhost:8008${primaryImage.imageUrl}`}
                             alt={row.getValue('productName')}
                             className="h-10 w-10 rounded-md object-cover border"
                             onError={(e) => {

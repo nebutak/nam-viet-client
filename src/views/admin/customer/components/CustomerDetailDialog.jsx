@@ -327,6 +327,17 @@ const CustomerDetailDialog = ({ customer, showTrigger = true, ...props }) => {
                       </div>
                       {customerDetail?.notes || 'Không có ghi chú'}
                     </div>
+                    <div className="flex items-center text-primary hover:text-secondary-foreground mt-2">
+                      <div className="mr-2 h-4 w-4">
+                        <UserIcon className="h-4 w-4" />
+                      </div>
+                      <span className="mr-1">Người phụ trách: </span>
+                      {customerDetail?.assignedUser ? (
+                        <span className="font-medium text-blue-600">{customerDetail.assignedUser.employeeCode} - {customerDetail.assignedUser.fullName}</span>
+                      ) : (
+                        <span className="text-gray-500 italic">Chưa phân công</span>
+                      )}
+                    </div>
 
                     {/* Identity Information */}
                     {(customerDetail?.cccd || customerDetail?.issuedAt || customerDetail?.issuedBy) && (

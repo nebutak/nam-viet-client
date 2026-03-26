@@ -10,6 +10,14 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { PlusIcon } from '@radix-ui/react-icons'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { getUsers } from '@/stores/UserSlice'
 
 import {
   Form,
@@ -36,7 +44,7 @@ import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import MoneyInput from '@/components/custom/MoneyInput'
 import { cn } from '@/lib/utils'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 const CreateCustomerDialog = ({
   open,
@@ -62,6 +70,7 @@ const CreateCustomerDialog = ({
       creditLimit: 0,
       rewardPoints: 0,
       rewardCode: '',
+      assignedUserId: '',
       status: 'active',
     },
   })
@@ -69,10 +78,21 @@ const CreateCustomerDialog = ({
   const [openIdentityDatePicker, setOpenIdentityDatePicker] = useState(false)
 
   const loading = useSelector((state) => state.customer.loading)
+  const users = useSelector((state) => state.user?.users || [])
 
   const dispatch = useDispatch()
+
+  useEffect(() => {
+    dispatch(getUsers({ limit: 100, status: 'active' }))
+  }, [dispatch])
+
   const onSubmit = async (data) => {
     try {
+      if (data.assignedUserId === '') {
+        data.assignedUserId = null
+      } else if (data.assignedUserId) {
+        data.assignedUserId = Number(data.assignedUserId)
+      }
       await dispatch(createCustomer(data)).unwrap()
       form.reset()
       onOpenChange?.(false)
@@ -308,6 +328,35 @@ const CreateCustomerDialog = ({
                     </FormItem>
                   )}
                 />
+
+                <FormField
+                  control={form.control}
+                  name="assignedUserId"
+                  render={({ field }) => (
+                    <FormItem className="mb-2 space-y-1">
+                      <FormLabel>Nhân viên phụ trách</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value?.toString()}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Chọn nhân viên phụ trách" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="none">-- Không gán --</SelectItem>
+                          {users.map((user) => (
+                            <SelectItem key={user.id} value={user.id.toString()}>
+                              {user.employeeCode} - {user.fullName}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
 
               <div className="grid gap-4 md:grid-cols-1">
@@ -396,7 +445,25 @@ const CreateCustomerDialog = ({
               type="button"
               variant="outline"
               onClick={() => {
-                form.reset()
+                form.reset({
+                  customerCode: '',
+                  customerName: '',
+                  phone: '',
+                  email: '',
+                  address: '',
+                  contactPerson: '',
+                  notes: '',
+                  customerType: 'individual',
+                  taxCode: '',
+                  cccd: '',
+                  issuedAt: null,
+                  issuedBy: '',
+                  creditLimit: 0,
+                  rewardPoints: 0,
+                  rewardCode: '',
+                  assignedUserId: '',
+                  status: 'active',
+                })
               }}
             >
               Hủy

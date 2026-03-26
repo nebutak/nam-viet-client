@@ -10,6 +10,14 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { PlusIcon } from '@radix-ui/react-icons'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { getUsers } from '@/stores/UserSlice'
 
 import {
   Form,
@@ -35,7 +43,7 @@ import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import MoneyInput from '@/components/custom/MoneyInput'
 import { cn } from '@/lib/utils'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 const UpdateCustomerDialog = ({
   customer,
@@ -65,15 +73,27 @@ const UpdateCustomerDialog = ({
       creditLimit: customer.creditLimit || 0,
       rewardPoints: customer.rewardPoints || 0,
       rewardCode: customer.rewardCode || '',
+      assignedUserId: customer.assignedUserId?.toString() || '',
       status: customer.status || 'active',
     },
   })
 
   const [openIdentityDatePicker, setOpenIdentityDatePicker] = useState(false)
+  const users = useSelector((state) => state.user?.users || [])
 
   const dispatch = useDispatch()
+
+  useEffect(() => {
+    dispatch(getUsers({ limit: 100, status: 'active' }))
+  }, [dispatch])
+
   const onSubmit = async (data) => {
     try {
+      if (data.assignedUserId === '' || data.assignedUserId === 'none') {
+        data.assignedUserId = null
+      } else if (data.assignedUserId) {
+        data.assignedUserId = Number(data.assignedUserId)
+      }
       await dispatch(updateCustomer({ id: customer.id, data })).unwrap()
       form.reset()
       onOpenChange?.(false)
@@ -292,6 +312,35 @@ const UpdateCustomerDialog = ({
                       <FormControl>
                         <Input placeholder="Nhập mã ưu đãi / mã thưởng" {...field} value={field.value || ''} />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="assignedUserId"
+                  render={({ field }) => (
+                    <FormItem className="mb-2 space-y-1">
+                      <FormLabel>Nhân viên phụ trách</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value?.toString()}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Chọn nhân viên phụ trách" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="none">-- Không gán --</SelectItem>
+                          {users.map((user) => (
+                            <SelectItem key={user.id} value={user.id.toString()}>
+                              {user.employeeCode} - {user.fullName}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
