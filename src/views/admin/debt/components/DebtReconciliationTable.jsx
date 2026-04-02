@@ -1,5 +1,5 @@
 import React from 'react'
-import { MapPin, User, Eye } from 'lucide-react'
+import { MapPin, User, Eye, AlertTriangle, ShieldOff, CalendarClock, ShieldCheck, Undo2 } from 'lucide-react'
 import { formatCurrency } from '@/utils/number-format'
 import DebtPagination from './DebtPagination'
 
@@ -12,7 +12,7 @@ import {
     TableHead,
 } from '@/components/ui/table'
 
-export default function DebtReconciliationTable({ data, isLoading, onView, pagination, pageCount, rowCount, onPaginationChange }) {
+export default function DebtReconciliationTable({ data, isLoading, onView, onBlacklist, onUnblacklist, onExtend, pagination, pageCount, rowCount, onPaginationChange }) {
     // 1. Loading State
     if (isLoading) {
         return (
@@ -85,15 +85,27 @@ export default function DebtReconciliationTable({ data, isLoading, onView, pagin
                                 const isOverpaid = closing < -1000
                                 const absClosing = Math.abs(closing)
 
+                                const isWarningCandidate = isCustomer && isDebt && !item.isBlacklisted &&
+                                    (!item.lastPaymentDate || new Date(item.lastPaymentDate) < new Date(Date.now() - 365 * 24 * 60 * 60 * 1000)) &&
+                                    (!item.debtExtensionDate || new Date(item.debtExtensionDate) < new Date(Date.now() - 365 * 24 * 60 * 60 * 1000));
+
+                                const rowStyle = item.isBlacklisted 
+                                    ? "bg-gray-100 opacity-70"
+                                    : isWarningCandidate 
+                                        ? "bg-amber-100/50 hover:bg-amber-100" 
+                                        : "";
+
                                 return (
-                                    <TableRow key={`${type}-${objId}`}>
+                                    <TableRow key={`${type}-${objId}`} className={rowStyle}>
                                         <TableCell className="px-4 py-3 align-top">
                                             <div className="flex items-center gap-2 mb-1">
-                                                <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold border ${typeColor}`}>
+                                                <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold border flex items-center gap-1 ${item.isBlacklisted ? 'bg-gray-800 text-white border-gray-900' : typeColor}`}>
                                                     {typeLabel}
                                                 </span>
-                                                <div className="font-semibold text-sm text-gray-900 truncate max-w-[160px]" title={name}>
+                                                <div className="font-semibold text-sm text-gray-900 truncate max-w-[160px] flex items-center gap-1" title={name}>
                                                     {name}
+                                                    {isWarningCandidate && <AlertTriangle className="h-4 w-4 text-amber-500" title="Cảnh báo: Hơn 1 năm không trả nợ" />}
+                                                    {item.isBlacklisted && <ShieldOff className="h-4 w-4 text-gray-700" title="Đã cho vào danh sách đen" />}
                                                 </div>
                                             </div>
                                             <div className="text-xs text-gray-500 font-mono ml-9">{code}</div>
@@ -162,9 +174,21 @@ export default function DebtReconciliationTable({ data, isLoading, onView, pagin
                                         </TableCell>
 
                                         <TableCell className="px-2 py-3 text-center align-middle">
-                                            {isDebt && (
-                                                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700 border border-red-200">
-                                                    CÒN NỢ
+                                            {item.isBlacklisted && (
+                                                <span className="inline-flex items-center ml-1 px-2 py-0.5 rounded text-[10px] font-bold bg-gray-800 text-white border border-gray-900">
+                                                    NỢ ĐEN
+                                                </span>
+                                            )}
+                                            {isDebt && !item.isBlacklisted && (
+                                                <span className="inline-flex flex-col items-center px-1 py-0.5 gap-1">
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700 border border-red-200">
+                                                        CÒN NỢ
+                                                    </span>
+                                                    {isWarningCandidate && (
+                                                       <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-200 text-amber-800 border border-amber-300">
+                                                            CẤP BÁO
+                                                        </span> 
+                                                    )}
                                                 </span>
                                             )}
                                             {isOverpaid && (
@@ -179,15 +203,42 @@ export default function DebtReconciliationTable({ data, isLoading, onView, pagin
                                             )}
                                         </TableCell>
 
-                                        <TableCell className="px-4 py-3 text-right">
-                                            <div className="flex items-center justify-end gap-2">
+                                        <TableCell className="px-2 py-3 text-right">
+                                            <div className="flex items-center justify-end gap-1">
                                                 <button
                                                     onClick={() => onView(objId, type, periodName)}
-                                                    className="rounded p-1 text-gray-600 hover:bg-gray-100"
+                                                    className="rounded p-1.5 text-blue-600 hover:bg-blue-100 transition-colors"
                                                     title="Xem chi tiết"
                                                 >
                                                     <Eye className="h-4 w-4" />
                                                 </button>
+                                                {isCustomer && !item.isBlacklisted && isDebt && (
+                                                    <button
+                                                        onClick={() => onBlacklist(objId)}
+                                                        className="rounded p-1.5 text-gray-600 hover:bg-gray-200 transition-colors"
+                                                        title="Đưa vào danh sách đen"
+                                                    >
+                                                        <ShieldOff className="h-4 w-4" />
+                                                    </button>
+                                                )}
+                                                {isCustomer && item.isBlacklisted && (
+                                                    <button
+                                                        onClick={() => onUnblacklist(objId)}
+                                                        className="rounded p-1.5 text-blue-600 hover:bg-blue-200 transition-colors"
+                                                        title="Loại khỏi danh sách đen (Khôi phục)"
+                                                    >
+                                                        <Undo2 className="h-4 w-4" />
+                                                    </button>
+                                                )}
+                                                {isCustomer && isWarningCandidate && (
+                                                    <button
+                                                        onClick={() => onExtend(objId)}
+                                                        className="rounded p-1.5 text-amber-600 hover:bg-amber-200 transition-colors"
+                                                        title="Gia hạn nợ thêm 1 năm"
+                                                    >
+                                                        <CalendarClock className="h-4 w-4" />
+                                                    </button>
+                                                )}
                                             </div>
                                         </TableCell>
 

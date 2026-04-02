@@ -74,8 +74,6 @@ const QuickCreateStaffDialog = ({ open, onOpenChange, onSuccess }) => {
       const payload = {
         fullName: values.fullName,
         employeeCode: empCode,
-        email: `${empCode.toLowerCase()}@nv.local`,
-        password: `Aa@123${ts}`, // Dummy password passing validation
         phone: values.phone || undefined,
         roleId: parseInt(values.roleId),
         status: 'active'
@@ -96,7 +94,7 @@ const QuickCreateStaffDialog = ({ open, onOpenChange, onSuccess }) => {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px] z-[100100]">
         <DialogHeader>
-          <DialogTitle>Thêm nhanh nhân viên giả lập</DialogTitle>
+          <DialogTitle>Thêm nhanh nhân viên</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">

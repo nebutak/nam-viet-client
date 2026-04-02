@@ -28,6 +28,7 @@ import { createUserSchema } from '../schema/index'
 import { createUser } from '@/stores/UserSlice'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { Checkbox } from '@/components/ui/checkbox'
 import { employeeStatuses } from '../data/index'
 import { useState, useEffect } from 'react'
 import api from '@/utils/axios'
@@ -51,6 +52,7 @@ const CreateEmployeeDialog = ({
         },
     })
 
+    const [provideAccount, setProvideAccount] = useState(false)
     const [roles, setRoles] = useState([])
     const loading = useSelector((state) => state.user.loading)
     const dispatch = useDispatch()
@@ -71,8 +73,35 @@ const CreateEmployeeDialog = ({
 
     const onSubmit = async (data) => {
         try {
-            await dispatch(createUser(data)).unwrap()
+            if (provideAccount) {
+                let isValid = true
+                if (!data.email || data.email.trim() === '') {
+                    form.setError('email', { type: 'manual', message: 'Vui lòng nhập email khi cấp tài khoản' })
+                    isValid = false
+                }
+                if (!data.password || data.password.trim() === '') {
+                    form.setError('password', { type: 'manual', message: 'Vui lòng nhập mật khẩu khi cấp tài khoản' })
+                    isValid = false
+                }
+                if (!isValid) return
+            }
+
+            const payload = {
+                ...data,
+                email: provideAccount ? data.email : undefined,
+                password: provideAccount ? data.password : undefined,
+                phone: data.phone || undefined,
+            }
+
+            Object.keys(payload).forEach(key => {
+                if (payload[key] === '') {
+                    delete payload[key];
+                }
+            });
+
+            await dispatch(createUser(payload)).unwrap()
             form.reset()
+            setProvideAccount(false)
             onOpenChange?.(false)
         } catch (error) {
             console.log('Submit error: ', error)
@@ -129,47 +158,53 @@ const CreateEmployeeDialog = ({
                                 )}
                             />
 
-                            <FormField
-                                control={form.control}
-                                name="email"
-                                render={({ field }) => (
-                                    <FormItem className="mb-2 space-y-1">
-                                        <FormLabel required={true}>Email</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="Nhập địa chỉ email" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+                            {/* Toggle cấp tài khoản */}
+                            <div className="col-span-full flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 mb-2">
+                                <FormControl>
+                                    <Checkbox
+                                        checked={provideAccount}
+                                        onCheckedChange={setProvideAccount}
+                                    />
+                                </FormControl>
+                                <div className="space-y-1 leading-none">
+                                    <FormLabel>Cấp tài khoản đăng nhập</FormLabel>
+                                    <p className="text-sm text-muted-foreground">
+                                        Nếu được chọn, nhân viên sẽ có thể đăng nhập vào hệ thống bằng Email và Mật khẩu. Hủy chọn sẽ bỏ qua bước tạo tài khoản đăng nhập.
+                                    </p>
+                                </div>
+                            </div>
 
-                            <FormField
-                                control={form.control}
-                                name="phone"
-                                render={({ field }) => (
-                                    <FormItem className="mb-2 space-y-1">
-                                        <FormLabel>Số điện thoại</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="Nhập số điện thoại" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+                            {provideAccount && (
+                                <>
+                                    <FormField
+                                        control={form.control}
+                                        name="email"
+                                        render={({ field }) => (
+                                            <FormItem className="mb-2 space-y-1">
+                                                <FormLabel required={provideAccount}>Email</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="Nhập địa chỉ email" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
 
-                            <FormField
-                                control={form.control}
-                                name="password"
-                                render={({ field }) => (
-                                    <FormItem className="mb-2 space-y-1">
-                                        <FormLabel required={true}>Mật khẩu</FormLabel>
-                                        <FormControl>
-                                            <Input type="password" placeholder="Mật khẩu" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+                                    <FormField
+                                        control={form.control}
+                                        name="password"
+                                        render={({ field }) => (
+                                            <FormItem className="mb-2 space-y-1">
+                                                <FormLabel required={provideAccount}>Mật khẩu</FormLabel>
+                                                <FormControl>
+                                                    <Input type="password" placeholder="Mật khẩu" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </>
+                            )}
 
                             <FormField
                                 control={form.control}

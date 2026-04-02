@@ -62,18 +62,18 @@ export const sideLinks = [
         icon: <UserCheck size={18} strokeWidth={1.5} />,
         permission: 'GET_INVOICE_USER',
       },
-      {
-        title: 'Phiếu thu',
-        href: '/receipt',
-        icon: <Receipt size={18} strokeWidth={1.5} />,
-        permission: 'GET_RECEIPT',
-      },
-      {
-        title: 'Phiếu thu của tôi',
-        href: '/receipt-user',
-        icon: <ReceiptText size={18} strokeWidth={1.5} />,
-        permission: 'GET_RECEIPT_USER',
-      },
+      // {
+      //   title: 'Phiếu thu',
+      //   href: '/receipt',
+      //   icon: <Receipt size={18} strokeWidth={1.5} />,
+      //   permission: 'GET_RECEIPT',
+      // },
+      // {
+      //   title: 'Phiếu thu của tôi',
+      //   href: '/receipt-user',
+      //   icon: <ReceiptText size={18} strokeWidth={1.5} />,
+      //   permission: 'GET_RECEIPT_USER',
+      // },
       {
         title: 'Giao hàng',
         href: '/delivery',
@@ -286,6 +286,12 @@ export const sideLinks = [
         permission: 'INVENTORY_LEDGER_VIEW',
       },
       {
+        title: 'Báo cáo tồn kho',
+        href: '/inventory-report',
+        icon: <Archive size={18} strokeWidth={1.5} />,
+        permission: 'GET_INVENTORY_REPORT',
+      },
+      {
         title: 'Cảnh báo tồn kho',
         href: '/inventory-warning',
         icon: <BellRing size={18} strokeWidth={1.5} />,
@@ -334,12 +340,6 @@ export const sideLinks = [
         href: '/revenue',
         icon: <CircleDollarSign size={18} strokeWidth={1.5} />,
         permission: 'GET_REVENUE_REPORT',
-      },
-      {
-        title: 'Báo cáo tồn kho',
-        href: '/inventory-report',
-        icon: <Archive size={18} strokeWidth={1.5} />,
-        permission: 'GET_INVENTORY_REPORT',
       },
       {
         title: 'Bán hàng',
