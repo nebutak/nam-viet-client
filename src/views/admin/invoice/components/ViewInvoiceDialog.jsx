@@ -783,7 +783,11 @@ const ViewInvoiceDialog = ({ invoiceId, showTrigger = true, onEdit, onSuccess, c
                               <div className="ml-2 flex flex-col gap-2">
                                 {(() => {
                                   const statusObj = statuses.find(s => s.value === invoice.orderStatus)
-                                  const paymentStatusObj = paymentStatuses.find(s => s.value === invoice.paymentStatus)
+                                  const customerDebtVal = Number(invoice?.customer?.currentDebt || 0)
+                                  const hasPrepaid = customerDebtVal < 0
+                                  const effectivePaymentStatusObj = hasPrepaid
+                                    ? paymentStatuses.find(s => s.value === 'paid')
+                                    : paymentStatuses.find(s => s.value === invoice.paymentStatus)
                                   return (
                                     <>
                                       <Badge
@@ -810,12 +814,12 @@ const ViewInvoiceDialog = ({ invoiceId, showTrigger = true, onEdit, onSuccess, c
                                       </Badge>
                                       <Badge
                                         variant="outline"
-                                        className={`cursor-default select-none border-0 ${paymentStatusObj?.color || 'text-gray-500'}`}
+                                        className={`cursor-default select-none border-0 ${effectivePaymentStatusObj?.color || 'text-gray-500'}`}
                                       >
                                         <span className="mr-1 inline-flex h-4 w-4 items-center justify-center">
-                                          {paymentStatusObj?.icon ? <paymentStatusObj.icon className="h-4 w-4" /> : null}
+                                          {effectivePaymentStatusObj?.icon ? <effectivePaymentStatusObj.icon className="h-4 w-4" /> : null}
                                         </span>
-                                        {paymentStatusObj?.label || 'Không xác định'}
+                                        {hasPrepaid ? 'Đã thanh toán' : (effectivePaymentStatusObj?.label || 'Không xác định')}
                                       </Badge>
 
                                     </>
