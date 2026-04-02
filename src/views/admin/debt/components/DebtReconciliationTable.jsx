@@ -1,5 +1,5 @@
 import React from 'react'
-import { MapPin, User, Eye, ShieldAlert, SkipForward, ShieldOff } from 'lucide-react'
+import { MapPin, User, Eye, ShieldAlert, SkipForward, ShieldOff, MoreHorizontal } from 'lucide-react'
 import { formatCurrency } from '@/utils/number-format'
 import DebtPagination from './DebtPagination'
 
@@ -11,6 +11,14 @@ import {
     TableCell,
     TableHead,
 } from '@/components/ui/table'
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+    DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu'
+import { Button } from '@/components/custom/Button'
 
 export default function DebtReconciliationTable({ data, isLoading, onView, pagination, pageCount, rowCount, onPaginationChange, onToggleBlacklist, onExtendDebt }) {
     // 1. Loading State
@@ -186,42 +194,44 @@ export default function DebtReconciliationTable({ data, isLoading, onView, pagin
                                         </TableCell>
 
                                         <TableCell className="px-4 py-3 text-right">
-                                            <div className="flex items-center justify-end gap-2">
-                                                {type === 'customer' && isWarning && onExtendDebt && (
-                                                    <button
-                                                        onClick={() => onExtendDebt(objId)}
-                                                        className="rounded p-1 text-green-600 hover:bg-green-100 flex items-center"
-                                                        title="Gia hạn thêm 1 năm"
-                                                    >
-                                                        <SkipForward className="h-4 w-4" />
-                                                    </button>
-                                                )}
-                                                {type === 'customer' && !isBlacklisted && onToggleBlacklist && (
-                                                    <button
-                                                        onClick={() => onToggleBlacklist(objId)}
-                                                        className="rounded p-1 text-red-600 hover:bg-red-100 flex items-center"
-                                                        title="Đưa vào danh sách đen"
-                                                    >
-                                                        <ShieldAlert className="h-4 w-4" />
-                                                    </button>
-                                                )}
-                                                {type === 'customer' && isBlacklisted && onToggleBlacklist && (
-                                                    <button
-                                                        onClick={() => onToggleBlacklist(objId)}
-                                                        className="rounded p-1 text-blue-600 hover:bg-blue-100 flex items-center"
-                                                        title="Gỡ khỏi danh sách đen"
-                                                    >
-                                                        <ShieldOff className="h-4 w-4" />
-                                                    </button>
-                                                )}
+                                            <div className="flex items-center justify-end">
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" className="h-8 w-8 p-0">
+                                                            <span className="sr-only">Mở menu</span>
+                                                            <MoreHorizontal className="h-4 w-4 text-gray-500" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end" className="w-56">
+                                                        <DropdownMenuItem onClick={() => onView(objId, type, periodName)}>
+                                                            <Eye className="mr-2 h-4 w-4 text-gray-600" />
+                                                            Xem chi tiết
+                                                        </DropdownMenuItem>
 
-                                                <button
-                                                    onClick={() => onView(objId, type, periodName)}
-                                                    className="rounded p-1 text-gray-600 hover:bg-gray-100"
-                                                    title="Xem chi tiết"
-                                                >
-                                                    <Eye className="h-4 w-4" />
-                                                </button>
+                                                        {type === 'customer' && isWarning && onExtendDebt && (
+                                                            <DropdownMenuItem onClick={() => onExtendDebt(objId)}>
+                                                                <SkipForward className="mr-2 h-4 w-4 text-green-600" />
+                                                                <span className="text-green-600 font-medium">Gia hạn kiểm tra 1 năm</span>
+                                                            </DropdownMenuItem>
+                                                        )}
+
+                                                        {(type === 'customer' && onToggleBlacklist) && <DropdownMenuSeparator />}
+
+                                                        {type === 'customer' && !isBlacklisted && onToggleBlacklist && (
+                                                            <DropdownMenuItem onClick={() => onToggleBlacklist(objId)}>
+                                                                <ShieldAlert className="mr-2 h-4 w-4 text-red-600" />
+                                                                <span className="text-red-600 font-medium">Đưa vào danh sách đen</span>
+                                                            </DropdownMenuItem>
+                                                        )}
+
+                                                        {type === 'customer' && isBlacklisted && onToggleBlacklist && (
+                                                            <DropdownMenuItem onClick={() => onToggleBlacklist(objId)}>
+                                                                <ShieldOff className="mr-2 h-4 w-4 text-blue-600" />
+                                                                <span className="text-blue-600 font-medium">Gỡ khỏi danh sách đen</span>
+                                                            </DropdownMenuItem>
+                                                        )}
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
                                             </div>
                                         </TableCell>
 
