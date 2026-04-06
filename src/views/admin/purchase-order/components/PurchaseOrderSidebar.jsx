@@ -63,6 +63,9 @@ const PurchaseOrderSidebar = ({
   expectedDeliveryDate,
   onExpectedDeliveryDateChange,
   isUpdate = false,
+  vatRate = 0,
+  onVatRateChange,
+  vatAmount = 0,
 }) => {
   const dispatch = useDispatch()
   const [openOrderDatePicker, setOpenOrderDatePicker] = useState(false)
@@ -697,6 +700,43 @@ const PurchaseOrderSidebar = ({
                   >
                     + Thêm chi phí
                   </Button>
+                </div>
+              )}
+
+              {/* VAT */}
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">VAT (%):</span>
+                <div className="flex items-center gap-2">
+                  <div className="relative w-20">
+                    <Input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.1"
+                      placeholder="0"
+                      value={vatRate === 0 ? '' : vatRate}
+                      onChange={(e) => {
+                        const val = e.target.value
+                        if (val === '') {
+                          onVatRateChange && onVatRateChange(0)
+                        } else {
+                          const num = parseFloat(val)
+                          if (!isNaN(num) && num >= 0 && num <= 100) {
+                            onVatRateChange && onVatRateChange(num)
+                          }
+                        }
+                      }}
+                      onFocus={(e) => e.target.select()}
+                      className="h-7 pr-6 text-xs text-right"
+                    />
+                    <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">%</span>
+                  </div>
+                </div>
+              </div>
+              {vatAmount > 0 && (
+                <div className="flex justify-between text-orange-600">
+                  <span>Tiền VAT:</span>
+                  <span className="font-medium">+{moneyFormat(vatAmount)}</span>
                 </div>
               )}
 

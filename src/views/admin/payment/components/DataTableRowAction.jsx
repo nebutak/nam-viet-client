@@ -17,7 +17,9 @@ import { Pencil, Eye, Printer, Trash2 } from 'lucide-react'
 import Can from '@/utils/can'
 import ViewPaymentDialog from './ViewPaymentDialog'
 import PrintPaymentView from './PrintPaymentView'
-import { useSelector } from 'react-redux'
+import { useSelector, useDispatch } from 'react-redux'
+import { getPaymentById } from '@/stores/PaymentSlice'
+import { toast } from 'sonner'
 
 const DataTableRowActions = ({ row }) => {
   const [showDeletePaymentDialog, setShowDeletePaymentDialog] = useState(false)
@@ -27,9 +29,21 @@ const DataTableRowActions = ({ row }) => {
 
   const payment = row.original
   const setting = useSelector((state) => state.setting.setting)
+  const dispatch = useDispatch()
 
-  const handlePrintPayment = () => {
-    setPrintData(payment)
+  const handlePrintPayment = async () => {
+    try {
+      const fullPayment = await dispatch(getPaymentById(payment.id)).unwrap()
+      let receiver = fullPayment.receiver
+      if (!receiver && (fullPayment.supplier || fullPayment.purchaseOrder?.supplier)) {
+        const supplier = fullPayment.supplier || fullPayment.purchaseOrder?.supplier
+        receiver = { ...supplier, name: supplier.supplierName || supplier.name, code: supplier.supplierCode || supplier.code }
+      }
+      setPrintData({ ...fullPayment, receiver })
+    } catch (error) {
+      console.error(error)
+      toast.error('Không tải được thông tin phiếu chi để in')
+    }
   }
 
   return (

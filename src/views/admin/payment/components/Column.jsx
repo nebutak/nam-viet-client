@@ -115,24 +115,38 @@ export const columns = [
   },
   {
     id: 'receiverName',
-    accessorFn: (row) => row.supplier?.supplierName || row.receiver?.name,
+    accessorFn: (row) => row.supplier?.supplierName || row.customer?.customerName || row.employee?.fullName,
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Người nhận" />
     ),
     cell: ({ row }) => {
       const supplier = row.original.supplier;
-      const receiver = row.original.receiver;
+      const customer = row.original.customer;
+      const employee = row.original.employee;
       const type = row.original.voucherType;
 
-      if (!supplier && !receiver && type !== 'salary') {
+      if (!supplier && !customer && !employee && type !== 'salary') {
         return <div className="text-gray-500">Tự do</div>;
       }
-      if (type === 'salary') {
-        return <div className="text-purple-600 font-medium">Nhân viên</div>;
+
+      let name = null;
+      let phone = null;
+      let displayRole = null;
+
+      if (supplier) {
+        name = supplier.supplierName || supplier.name;
+        phone = supplier.phone;
+      } else if (customer) {
+        name = customer.customerName;
+        phone = customer.phone;
+      } else if (employee) {
+        name = employee.fullName || employee.name;
+        phone = employee.phone;
+      } else if (type === 'salary') {
+        displayRole = <div className="text-purple-600 font-medium">Nhân viên</div>;
       }
 
-      const name = supplier ? (supplier.supplierName || supplier.name) : receiver?.name;
-      const phone = supplier ? supplier.phone : receiver?.phone;
+      if (displayRole && !name) return displayRole;
 
       return (
         <div className="flex flex-col gap-1 min-w-[150px] pr-4">

@@ -83,58 +83,53 @@ const PrintableContent = React.forwardRef(({ setting, invoice }, ref) => {
         </div>
 
         {/* Brand Header */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: '4px' }}>
-          <div style={{ width: '55px', height: '55px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginRight: '6px' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: '10px' }}>
+          <div style={{ width: '65px', height: '65px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginRight: '10px' }}>
             <img src={logoSrc} alt="Logo" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
           </div>
           <div style={{ flex: 1, fontSize: '10px', lineHeight: 1.4 }}>
-            <h1 style={{ fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', margin: '0 0 2px 0', lineHeight: 1.3 }}>
-              {setting?.brandName || 'CÔNG TY CỔ PHẦN HÓA SINH NAM VIỆT'}
+            <h1 style={{ fontSize: '13px', fontWeight: 'bold', textTransform: 'uppercase', margin: '0 0 2px 0', lineHeight: 1.3, color: '#d32f2f' }}>
+              {setting?.brandName || 'CÔNG TY CP HS NAM VIỆT (VP TN)'}
             </h1>
-            <p style={{ margin: '0 0 1px 0' }}>{setting?.address || 'Quốc Lộ 30, ấp Đông Mỹ, xã Mỹ Thọ, tỉnh Đồng Tháp.'}</p>
-            <p style={{ margin: '0 0 1px 0' }}>ĐT: {setting?.phone || '088 635 7788 - 0868 759 588'}</p>
-            {setting?.taxCode && <p style={{ margin: '0 0 1px 0' }}>MST: {setting.taxCode}</p>}
-            {setting?.bankAccount1
-              ? <p style={{ margin: '0 0 1px 0' }}>{setting.bankAccount1}</p>
-              : <p style={{ margin: '0 0 1px 0' }}>TK Lê Trung Thành: 9 75 76 77 88 - NH ACB CN Đồng Tháp</p>
-            }
-            {setting?.bankAccount2
-              ? <p style={{ margin: 0 }}>{setting.bankAccount2}</p>
-              : <p style={{ margin: 0 }}>TK Lê Trung Thành: 09 75 76 77 88 - NH SACOMBANK CN Đồng Tháp.</p>
-            }
+            <p style={{ margin: '0 0 1px 0', color: '#1b8a47' }}>{setting?.address || 'Số 59, Nguyễn Chí Thanh, Khối 8, P. Tân An, TP. B.M.Thuột, Đắk Lắk'}</p>
+            <div style={{ color: '#1976d2', fontSize: '9px', fontWeight: 'bold', lineHeight: 1.1, margin: '0 0 2px 0', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <div style={{ margin: '0 0 1px 0' }}>TK cá nhân - 975767788 - ngân hàng ACB chi nhánh phòng GD cao lãnh</div>
+              <div>TK công ty - 08290639 - ngân hàng ACB chi nhánh phòng GD cao lãnh</div>
+            </div>
+            <p style={{ margin: '0 0 1px 0', color: '#8e24aa', fontWeight: 'bold' }}>Điện thoại: {setting?.phone ? (setting.phone.includes("0868") ? setting.phone : setting.phone + " - 0868 759 588") : "088 635 7788 - 0868 759 588"}</p>
+            <p style={{ margin: '0 0 1px 0', color: '#1976d2', fontWeight: 'bold' }}>{setting?.email || 'hoasinhnamviet@gmail.com'}</p>
+            <p style={{ margin: 0, color: '#1976d2', fontWeight: 'bold' }}>{setting?.website || 'www.hoasinhnamviet.com'}</p>
           </div>
         </div>
 
         {/* Title */}
-        <div style={{ position: 'relative', textAlign: 'center', marginBottom: '5px' }}>
-          <h2 style={{ fontSize: '16px', fontWeight: 'bold', textTransform: 'uppercase', margin: 0 }}>HÓA ĐƠN BÁN HÀNG</h2>
-          <div style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)', fontSize: '10px' }}>
+        <div style={{ position: 'relative', textAlign: 'center', marginBottom: '18px', marginTop: '15px' }}>
+          <h2 style={{ fontSize: '16px', fontWeight: 'bold', textTransform: 'uppercase', margin: 0, color: '#d32f2f' }}>HÓA ĐƠN BÁN HÀNG</h2>
+          <div style={{ position: 'absolute', right: 0, top: '22px', fontSize: '10px', color: '#8e24aa', fontWeight: 'bold' }}>
             Số HĐ: {invoice?.orderCode || invoice?.code}
           </div>
         </div>
 
         {/* Customer Info */}
-        <div style={{ marginBottom: '3px', fontSize: '11px', lineHeight: 1.5 }}>
-          <div style={{ display: 'flex' }}>
-            <span style={{ minWidth: '80px', whiteSpace: 'nowrap' }}>Khách hàng:</span>
+        <div style={{ marginBottom: '8px', fontSize: '11px', lineHeight: 1.5 }}>
+          <div style={{ display: 'flex', color: '#1565c0' }}>
+            <span style={{ minWidth: '95px', whiteSpace: 'nowrap' }}>Tên khách hàng:</span>
             <span style={{ fontWeight: 'bold', textTransform: 'uppercase' }}>{invoice?.customer?.customerName}</span>
           </div>
-          <div style={{ display: 'flex' }}>
-            <span style={{ minWidth: '80px', whiteSpace: 'nowrap' }}>Liên hệ:</span>
+          <div style={{ display: 'flex', color: '#1565c0' }}>
+            <span style={{ minWidth: '95px', whiteSpace: 'nowrap' }}>Liên hệ:</span>
             <span>{invoice?.recipientName || invoice?.customer?.contactPerson || ''}</span>
           </div>
-          {invoice?.customer?.taxCode && (
-            <div style={{ display: 'flex' }}>
-              <span style={{ minWidth: '80px', whiteSpace: 'nowrap' }}>MST:</span>
-              <span>{invoice?.customer?.taxCode}</span>
-            </div>
-          )}
-          <div style={{ display: 'flex' }}>
-            <span style={{ minWidth: '80px', whiteSpace: 'nowrap' }}>Địa chỉ:</span>
+          <div style={{ display: 'flex', color: '#1565c0' }}>
+            <span style={{ minWidth: '95px', whiteSpace: 'nowrap' }}>MST:</span>
+            <span>{invoice?.customer?.taxCode || ''}</span>
+          </div>
+          <div style={{ display: 'flex', color: '#1b8a47' }}>
+            <span style={{ minWidth: '95px', whiteSpace: 'nowrap' }}>Địa chỉ:</span>
             <span>{invoice?.deliveryAddress || invoice?.customer?.address || ''}</span>
           </div>
-          <div style={{ display: 'flex' }}>
-            <span style={{ minWidth: '80px', whiteSpace: 'nowrap' }}>Điện thoại:</span>
+          <div style={{ display: 'flex', color: '#1b8a47' }}>
+            <span style={{ minWidth: '95px', whiteSpace: 'nowrap' }}>Điện thoại:</span>
             <span>{invoice?.recipientPhone || invoice?.customer?.phone || ''}</span>
           </div>
         </div>
@@ -142,10 +137,10 @@ const PrintableContent = React.forwardRef(({ setting, invoice }, ref) => {
         {/* Table */}
         <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '2px', fontSize: '10px' }}>
           <thead>
-            <tr>
+            <tr style={{ color: '#1565c0' }}>
               <th style={{ border: '0.5px solid #000', padding: '2px 3px', textAlign: 'center', width: '22px', fontWeight: 'bold' }}>TT</th>
               <th style={{ border: '0.5px solid #000', padding: '2px 3px', textAlign: 'center', fontWeight: 'bold' }}>Tên sản phẩm</th>
-              <th style={{ border: '0.5px solid #000', padding: '2px 3px', textAlign: 'center', width: '32px', fontWeight: 'bold' }}>ĐVT</th>
+              <th style={{ border: '0.5px solid #000', padding: '2px 3px', textAlign: 'center', width: '42px', fontWeight: 'bold' }}>ĐVT</th>
               <th style={{ border: '0.5px solid #000', padding: '2px 3px', textAlign: 'center', width: '28px', fontWeight: 'bold' }}>SL</th>
               <th style={{ border: '0.5px solid #000', padding: '2px 3px', textAlign: 'center', width: '58px', fontWeight: 'bold' }}>Giá</th>
               <th style={{ border: '0.5px solid #000', padding: '2px 3px', textAlign: 'center', width: '68px', fontWeight: 'bold' }}>Thành tiền</th>
@@ -167,21 +162,21 @@ const PrintableContent = React.forwardRef(({ setting, invoice }, ref) => {
             ))}
             
             {/* Summary Rows */}
-            <tr>
-              <td colSpan={5} style={{ border: '0.5px solid #000', padding: '2px 3px', fontWeight: 'bold' }}>Tổng cộng:</td>
-              <td style={{ border: '0.5px solid #000', padding: '2px 3px', textAlign: 'right', fontWeight: 'bold' }}>{moneyFormat(totalAmount)}</td>
+            <tr style={{ color: '#1565c0' }}>
+              <td colSpan={5} style={{ border: '0.5px solid #000', padding: '2px 3px' }}>Tổng cộng:</td>
+              <td style={{ border: '0.5px solid #000', padding: '2px 3px', textAlign: 'right' }}>{moneyFormat(totalAmount)}</td>
             </tr>
-            <tr>
+            <tr style={{ color: '#1b8a47' }}>
               <td colSpan={5} style={{ border: '0.5px solid #000', padding: '2px 3px' }}>Thanh toán:</td>
               <td style={{ border: '0.5px solid #000', padding: '2px 3px', textAlign: 'right' }}>{moneyFormat(effectiveTotalPaid)}</td>
             </tr>
-            <tr>
+            <tr style={{ color: '#8e24aa' }}>
               <td colSpan={5} style={{ border: '0.5px solid #000', padding: '2px 3px' }}>Nợ cũ:</td>
               <td style={{ border: '0.5px solid #000', padding: '2px 3px', textAlign: 'right' }}>{moneyFormat(displayOldDebt)}</td>
             </tr>
-            <tr>
-              <td colSpan={5} style={{ border: '0.5px solid #000', padding: '2px 3px', fontWeight: 'bold', fontSize: '12px' }}>Tổng công nợ:</td>
-              <td style={{ border: '0.5px solid #000', padding: '2px 3px', textAlign: 'right', fontWeight: 'bold', fontSize: '12px' }}>
+            <tr style={{ color: '#d32f2f' }}>
+              <td colSpan={5} style={{ border: '0.5px solid #000', padding: '2px 3px' }}>Tổng công nợ:</td>
+              <td style={{ border: '0.5px solid #000', padding: '2px 3px', textAlign: 'right' }}>
                 {totalDebt < 0 ? `+${moneyFormat(Math.abs(totalDebt))}` : moneyFormat(totalDebt)}
               </td>
             </tr>
@@ -189,7 +184,7 @@ const PrintableContent = React.forwardRef(({ setting, invoice }, ref) => {
         </table>
 
         {/* In Words & Notes */}
-        <div style={{ marginBottom: '4px', fontSize: '10px', lineHeight: 1.5 }}>
+        <div style={{ marginBottom: '4px', fontSize: '11px', lineHeight: 1.5, color: '#d32f2f' }}>
           <p style={{ margin: '0 0 1px 0' }}>
             Viết bằng chữ: <span style={{ fontStyle: 'italic' }}>{toVietnamese(Math.abs(totalDebt))}</span>
           </p>
