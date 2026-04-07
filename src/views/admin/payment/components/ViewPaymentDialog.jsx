@@ -267,7 +267,7 @@ const ViewPaymentDialog = ({
                           setSelectedPurchaseOrderId(payment.purchaseOrder.id)
                           setShowViewPurchaseOrderDialog(true)
                         }}
-                      >{payment.purchaseOrder.code}</span>)
+                      >{payment.purchaseOrder.poCode}</span>)
                     </span>
                   )}
 

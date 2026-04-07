@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { TrendingUp, TrendingDown, Wallet, PieChart } from 'lucide-react'
+import { TrendingUp, TrendingDown, Wallet, PieChart, Edit2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 const formatCurrency = (value) => {
   return new Intl.NumberFormat('vi-VN', {
@@ -9,7 +10,7 @@ const formatCurrency = (value) => {
   }).format(value || 0)
 }
 
-const FinancialKPICards = ({ kpi, loading = false }) => {
+const FinancialKPICards = ({ title, kpi, loading = false, isYearly = false, onEditOpeningBalance }) => {
   if (loading) {
     return (
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -45,9 +46,58 @@ const FinancialKPICards = ({ kpi, loading = false }) => {
   const totalReceipts = Number(kpi.totalReceipts || 0)
   const totalPayments = Number(kpi.totalPayments || 0)
   const netCashFlow = Number(kpi.netCashFlow || 0)
+  const closingBalance = Number(kpi.closingBalance || 0)
+  const openingBalance = Number(kpi.openingBalance || 0)
   const profitMargin = totalReceipts > 0 ? ((netCashFlow / totalReceipts) * 100).toFixed(1) : '0.0'
 
-  const cards = [
+  let cards = []
+
+  if (isYearly) {
+    cards = [
+      {
+        title: 'Quỹ đầu kỳ',
+        value: formatCurrency(openingBalance),
+        icon: Wallet,
+        bgColor: 'bg-purple-100',
+        iconColor: 'text-purple-600',
+        subText: 'Admin thiết lập',
+        valueColor: 'text-purple-600',
+        action: onEditOpeningBalance ? (
+          <Button variant="ghost" size="icon" className="h-6 w-6 ml-2" onClick={onEditOpeningBalance}>
+            <Edit2 className="h-4 w-4" />
+          </Button>
+        ) : null
+      },
+      {
+        title: 'Tổng thu năm',
+        value: formatCurrency(totalReceipts),
+        icon: TrendingUp,
+        bgColor: 'bg-green-100',
+        iconColor: 'text-green-600',
+        subText: 'Phiếu thu trong năm',
+        valueColor: 'text-green-600',
+      },
+      {
+        title: 'Tổng chi năm',
+        value: formatCurrency(totalPayments),
+        icon: TrendingDown,
+        bgColor: 'bg-red-100',
+        iconColor: 'text-red-600',
+        subText: 'Phiếu chi trong năm',
+        valueColor: 'text-red-600',
+      },
+      {
+        title: 'Tồn quỹ năm',
+        value: formatCurrency(closingBalance),
+        icon: Wallet,
+        bgColor: 'bg-blue-100',
+        iconColor: 'text-blue-600',
+        subText: 'Đầu kỳ + Tổng thu - Tổng chi',
+        valueColor: closingBalance >= 0 ? 'text-blue-600' : 'text-red-600',
+      },
+    ]
+  } else {
+    cards = [
     {
       title: 'Tổng thu',
       value: formatCurrency(totalReceipts),
@@ -66,28 +116,31 @@ const FinancialKPICards = ({ kpi, loading = false }) => {
       subText: kpi.paymentGrowth > 0 ? `+${kpi.paymentGrowth.toFixed(1)}%` : `${kpi.paymentGrowth?.toFixed(1) || 0}%` + ' so với kỳ trước',
       valueColor: 'text-red-600',
     },
-    {
-      title: 'Lợi nhuận',
-      value: formatCurrency(netCashFlow),
-      icon: Wallet,
-      bgColor: 'bg-blue-100',
-      iconColor: 'text-blue-600',
-      subText: kpi.cashFlowGrowth > 0 ? `+${kpi.cashFlowGrowth.toFixed(1)}%` : `${kpi.cashFlowGrowth?.toFixed(1) || 0}%` + ' so với kỳ trước',
-      valueColor: netCashFlow >= 0 ? 'text-blue-600' : 'text-red-600',
-    },
-    {
-      title: 'Tỷ suất LN',
-      value: `${profitMargin}%`,
-      icon: PieChart,
-      bgColor: 'bg-purple-100',
-      iconColor: 'text-purple-600',
-      subText: 'Lợi nhuận / Doanh thu',
-      valueColor: 'text-purple-600',
-    },
-  ]
+      {
+        title: 'Tồn quỹ kỳ này (Thu - Chi)',
+        value: formatCurrency(netCashFlow),
+        icon: Wallet,
+        bgColor: 'bg-blue-100',
+        iconColor: 'text-blue-600',
+        subText: kpi.cashFlowGrowth > 0 ? `+${kpi.cashFlowGrowth.toFixed(1)}%` : `${kpi.cashFlowGrowth?.toFixed(1) || 0}%` + ' so với kỳ trước',
+        valueColor: netCashFlow >= 0 ? 'text-blue-600' : 'text-red-600',
+      },
+      {
+        title: 'Tỷ suất (Thu - Chi)/Thu',
+        value: `${profitMargin}%`,
+        icon: PieChart,
+        bgColor: 'bg-purple-100',
+        iconColor: 'text-purple-600',
+        subText: 'Tồn quỹ trong kỳ / Tổng thu',
+        valueColor: 'text-purple-600',
+      },
+    ]
+  }
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-4">
+    <div className="mb-6">
+      {title && <h3 className="text-lg font-bold mb-3">{title}</h3>}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {cards.map((card, index) => {
         const Icon = card.icon
         return (
@@ -105,8 +158,11 @@ const FinancialKPICards = ({ kpi, loading = false }) => {
               </div>
             </CardHeader>
             <CardContent>
-              <div className={`text-2xl font-bold ${card.valueColor}`}>
-                {card.value}
+              <div className="flex items-center">
+                <div className={`text-2xl font-bold ${card.valueColor}`}>
+                  {card.value}
+                </div>
+                {card.action}
               </div>
               {card.subText && (
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
@@ -117,6 +173,7 @@ const FinancialKPICards = ({ kpi, loading = false }) => {
           </Card>
         )
       })}
+      </div>
     </div>
   )
 }
