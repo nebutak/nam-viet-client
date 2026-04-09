@@ -144,8 +144,8 @@ export const sideLinks = [
         permission: 'GET_DEBT',
       },
       {
-        title: 'Đối chiếu công nợ',
-        href: '/debt-reconciliation',
+        title: 'Sổ quỹ thu chi',
+        href: '/cash-flow',
         icon: <Scale size={18} strokeWidth={1.5} />,
         permission: 'GET_DEBT',
       },

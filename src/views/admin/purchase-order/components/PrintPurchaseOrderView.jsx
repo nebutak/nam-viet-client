@@ -39,7 +39,11 @@ const PrintableContent = React.forwardRef(
         <div className="flex-1">
           <h1 className="mb-1 text-lg font-bold">{setting?.brandName || 'TÊN CÔNG TY'}</h1>
           <p className="mb-1 text-sm flex gap-2"><span>Địa chỉ: {setting?.address}</span></p>
-          <p className="mb-1 text-sm flex gap-2"><span>Điện thoại: {setting?.phone}</span> {setting?.taxCode && <span>MST: {setting.taxCode}</span>}</p>
+          <div className="mb-1 text-[11px] leading-[1.1] text-blue-700 font-bold flex flex-col items-center">
+            <div className="mb-[1px]">TK cá nhân - 975767788 - ngân hàng ACB chi nhánh phòng GD cao lãnh</div>
+            <div>TK công ty - 08290639 - ngân hàng ACB chi nhánh phòng GD cao lãnh</div>
+          </div>
+          <p className="mb-1 text-sm flex gap-2"><span>Điện thoại: {setting?.phone ? (setting.phone.includes("0868") ? setting.phone : setting.phone + " - 0868 759 588") : "088 635 7788 - 0868 759 588"}</span> {setting?.taxCode && <span>MST: {setting.taxCode}</span>}</p>
           <p className="text-sm">Email: {setting?.email}</p>
         </div>
       </div>

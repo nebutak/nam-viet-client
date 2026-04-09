@@ -70,12 +70,14 @@ const PrintableContent = React.forwardRef(({ setting, receipt, isTransferType, d
         <div className="flex-1">
           <h1 className="text-xl font-bold uppercase mb-1 text-red-600">{setting?.brandName || 'CÔNG TY CỔ PHẦN HÓA SINH NAM VIỆT'}</h1>
           <p className="mb-0.5 leading-tight text-green-700 font-semibold text-[13px]">{setting?.address || 'Quốc Lộ 30, ấp Đông Mỹ, xã Mỹ Thọ, tỉnh Đồng Tháp.'}</p>
+          <div className="mb-0.5 text-blue-700 font-bold text-[11px] leading-[1.1] flex flex-col items-center italic">
+            <div className="mb-[1px]">TK cá nhân - 975767788 - ngân hàng ACB chi nhánh phòng GD cao lãnh</div>
+            <div>TK công ty - 08290639 - ngân hàng ACB chi nhánh phòng GD cao lãnh</div>
+          </div>
           <p className="mb-0.5 leading-tight text-blue-700 font-semibold text-[13px]">
-            Điện thoại: {setting?.phone || '088 635 7788 - 0868 759 588'} 
+            Điện thoại: {setting?.phone ? (setting.phone.includes("0868") ? setting.phone : setting.phone + " - 0868 759 588") : "088 635 7788 - 0868 759 588"} 
             {setting?.taxCode && <span> - MST: {setting.taxCode}</span>}
           </p>
-          {setting?.bankAccount1 ? <p className="mb-0.5 leading-tight text-blue-700 font-semibold text-[13px]">{setting.bankAccount1}</p> : <p className="mb-0.5 leading-tight text-blue-700 font-semibold text-[13px]">TK Lê Trung Thành: 9 75 76 77 88 - NH ACB CN Đồng Tháp</p>}
-          {setting?.bankAccount2 ? <p className="mb-0 leading-tight text-blue-700 font-semibold text-[13px]">{setting.bankAccount2}</p> : <p className="mb-0 leading-tight text-blue-700 font-semibold text-[13px]">TK Lê Trung Thành: 09 75 76 77 88 - NH SACOMBANK CN Đồng Tháp.</p>}
         </div>
       </div>
 

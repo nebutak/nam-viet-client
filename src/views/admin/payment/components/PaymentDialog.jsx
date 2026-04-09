@@ -10,8 +10,22 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { useMediaQuery } from '@/hooks/UseMediaQuery'
-import { MobileIcon, PlusIcon } from '@radix-ui/react-icons'
+import { MobileIcon, PlusIcon, CaretSortIcon, CheckIcon } from '@radix-ui/react-icons'
 import { toast } from 'sonner'
+import { RefreshCcw, Search } from 'lucide-react'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
 
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -52,6 +66,9 @@ import { useDispatch, useSelector } from 'react-redux'
 import { createPayment, updatePayment, getPaymentById } from '@/stores/PaymentSlice'
 import { Input } from '@/components/ui/input'
 import { getSetting } from '@/stores/SettingSlice'
+import { getCustomers } from '@/stores/CustomerSlice'
+import { getSuppliers } from '@/stores/SupplierSlice'
+import { getUsers } from '@/stores/UserSlice'
 import { cn } from '@/lib/utils'
 import { getPublicUrl } from '@/utils/file'
 
@@ -82,6 +99,13 @@ const PaymentDialog = ({
   const payment = fetchedPayment || propPayment
 
   const [isFetching, setIsFetching] = useState(false)
+  const [openPartnerPopover, setOpenPartnerPopover] = useState(false)
+  const [partnerType, setPartnerType] = useState('supplier') // supplier, customer, employee
+  const [selectedPartner, setSelectedPartner] = useState(null)
+
+  const customers = useSelector((state) => state.customer.customers)
+  const suppliers = useSelector((state) => state.supplier.suppliers)
+  const users = useSelector((state) => state.user.users)
 
   // Determine source of items and supplier/receiver
   const effectivePurchaseOrder = payment?.purchaseOrder || purchaseOrder
@@ -169,8 +193,13 @@ const PaymentDialog = ({
   useEffect(() => {
     if (open) {
       dispatch(getSetting('general_information'))
+      if (!isEditMode && !purchaseOrder) {
+        dispatch(getSuppliers({ limit: 100 }))
+        dispatch(getCustomers({ limit: 100 }))
+        dispatch(getUsers({ limit: 100 }))
+      }
     }
-  }, [open, dispatch])
+  }, [open, isEditMode, purchaseOrder, dispatch])
 
   useEffect(() => {
     if (open) {
@@ -207,7 +236,7 @@ const PaymentDialog = ({
           paymentDate: dataToUse.paymentDate || new Date().toISOString(),
         })
       } else if (effectivePurchaseOrder) {
-        // Create Mode
+        // Create Mode from PO/Contract
         const initialAmount = remainingAmount > 0 ? remainingAmount : 0
         form.reset({
           note: '',
@@ -215,9 +244,21 @@ const PaymentDialog = ({
           paymentMethod: 'cash',
           paymentNote: '',
           bankAccount: null,
-          status: 'draft',
+          status: 'posted',
           paymentDate: new Date().toISOString(),
         })
+      } else if (!isEditMode && !effectivePurchaseOrder) {
+        // Standalone Create Mode: allow partner selection
+        form.reset({
+          note: '',
+          paymentAmount: 0,
+          paymentMethod: 'cash',
+          paymentNote: '',
+          bankAccount: null,
+          status: 'posted',
+          paymentDate: new Date().toISOString(),
+        })
+        setSelectedPartner(null)
       }
     }
   }, [open, isEditMode, payment, fetchedPayment, effectivePurchaseOrder, remainingAmount, form])
@@ -226,11 +267,16 @@ const PaymentDialog = ({
   const onSubmit = async (data) => {
     // Shared Validation for Create and Edit Mode avoiding overpayments
     const amountToPay = parseFloat(data.paymentAmount) || 0
-    if (amountToPay > remainingAmount) {
+    if (effectivePurchaseOrder && amountToPay > remainingAmount) {
       form.setError('paymentAmount', {
         type: 'manual',
         message: `Số tiền chi không được vượt quá số nợ còn lại (${moneyFormat(remainingAmount)})`,
       })
+      return
+    }
+
+    if (!isEditMode && !effectivePurchaseOrder && !selectedPartner) {
+      toast.error('Vui lòng chọn đối tác nhận tiền')
       return
     }
 
@@ -239,10 +285,15 @@ const PaymentDialog = ({
       paymentMethod: data.paymentMethod,
       bankName: data.paymentMethod === 'transfer' && data.bankAccount
         ? JSON.stringify(data.bankAccount)
-        : undefined, // undefined passes z.string().optional() better than null, but we'll fix validator too
-      reason: data.note || (effectivePurchaseOrder ? `Chi trả đơn hàng ${effectivePurchaseOrder.code}` : undefined),
+        : undefined,
+      reason: data.note || (effectivePurchaseOrder?.code ? `Chi trả đơn hàng ${effectivePurchaseOrder.code}` : (effectivePurchaseOrder ? 'Chi trả đơn hàng' : undefined)),
       notes: data.paymentNote,
       paymentDate: data.paymentDate,
+      voucherType: partnerType === 'employee' ? 'salary' : (partnerType === 'customer' ? 'refund' : 'supplier_payment'),
+      supplierId: partnerType === 'supplier' ? selectedPartner?.id : undefined,
+      customerId: partnerType === 'customer' ? selectedPartner?.id : undefined,
+      employeeId: partnerType === 'employee' ? selectedPartner?.id : undefined,
+      purchaseOrderId: effectivePurchaseOrder?.id,
     }
 
     try {
@@ -699,85 +750,207 @@ const PaymentDialog = ({
                   </div>
                 </div>
 
-                {party && (
-                  <div className="w-full rounded-lg border p-4 lg:w-72">
-                    <div className="flex items-center justify-between">
-                      <h2 className="py-2 text-lg font-semibold">
-                        {isCustomerPO || payment?.receiverType === 'customer' ? 'Khách hàng' : 'Nhà cung cấp'}
-                      </h2>
-                      <span className={cn(
-                        'rounded px-1.5 py-0.5 text-xs font-semibold',
-                        isCustomerPO || payment?.receiverType === 'customer'
-                          ? 'bg-blue-100 text-blue-700'
-                          : 'bg-orange-100 text-orange-700'
-                      )}>
-                        {isCustomerPO || payment?.receiverType === 'customer' ? 'KH' : 'NCC'}
-                      </span>
-                    </div>
+                {/* Right Sidebar: Partner Info or Selection */}
+                <div className="w-full rounded-lg border p-4 lg:w-80 lg:sticky lg:top-0 lg:h-fit">
+                  {!effectivePurchaseOrder && !isEditMode ? (
+                    /* STANDALONE CREATE MODE: Partner Selection */
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h2 className="text-lg font-semibold">Đối tác nhận tiền</h2>
+                      </div>
 
+                      <div className="flex bg-muted p-1 rounded-md">
+                        {['supplier', 'customer', 'employee'].map((type) => (
+                          <button
+                            key={type}
+                            type="button"
+                            onClick={() => {
+                              if (partnerType !== type) {
+                                setPartnerType(type)
+                                setSelectedPartner(null)
+                              }
+                            }}
+                            className={cn(
+                              "flex-1 px-2 py-1.5 text-xs font-medium rounded-sm transition-all",
+                              partnerType === type 
+                                ? "bg-background shadow-sm text-foreground" 
+                                : "text-muted-foreground hover:text-foreground"
+                            )}
+                          >
+                            {type === 'supplier' ? 'NCC' : type === 'customer' ? 'Khách' : 'N.Viên'}
+                          </button>
+                        ))}
+                      </div>
+
+                      {selectedPartner ? (
+                        <div className="rounded-lg border p-3 bg-secondary/20 space-y-3">
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-10 w-10 border">
+                              <AvatarImage
+                                src={selectedPartner.image ? getPublicUrl(selectedPartner.image) : `https://ui-avatars.com/api/?bold=true&background=random&name=${selectedPartner.supplierName || selectedPartner.customerName || selectedPartner.fullName || selectedPartner.name}`}
+                              />
+                              <AvatarFallback>
+                                {partnerType === 'supplier' ? 'NCC' : partnerType === 'customer' ? 'KH' : 'NV'}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-bold text-sm truncate">
+                                {selectedPartner.supplierName || selectedPartner.customerName || selectedPartner.fullName || selectedPartner.name}
+                              </div>
+                              <div className="text-[10px] text-muted-foreground">
+                                {selectedPartner.supplierCode || selectedPartner.customerCode || selectedPartner.employeeCode || selectedPartner.code || '—'}
+                              </div>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                              onClick={() => setSelectedPartner(null)}
+                            >
+                              <RefreshCcw className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          
+                          <Separator />
+
+                          <div className="space-y-2 text-xs">
+                            <div className="flex items-center text-muted-foreground">
+                              <MobileIcon className="mr-2 h-3.5 w-3.5" />
+                              <span className="truncate">{selectedPartner.phone || 'Chưa có SĐT'}</span>
+                            </div>
+                            <div className="flex items-center text-muted-foreground">
+                              <Mail className="mr-2 h-3.5 w-3.5" />
+                              <span className="truncate">{selectedPartner.email || 'Chưa có Email'}</span>
+                            </div>
+                            <div className="flex items-start text-muted-foreground">
+                              <MapPin className="mr-2 h-3.5 w-3.5 mt-0.5 shrink-0" />
+                              <span className="line-clamp-2">{selectedPartner.address || 'Chưa có địa chỉ'}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <Popover open={openPartnerPopover} onOpenChange={setOpenPartnerPopover}>
+                          <PopoverTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="w-full justify-between font-normal h-10 border-dashed"
+                            >
+                              <div className="flex items-center">
+                                <Search className="mr-2 h-4 w-4 opacity-50" />
+                                <span>Tìm {partnerType === 'supplier' ? 'nhà cung cấp' : partnerType === 'customer' ? 'khách hàng' : 'nhân viên'}...</span>
+                              </div>
+                              <CaretSortIcon className="h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[--radix-popover-trigger-width] p-0" style={{ zIndex: 100150 }}>
+                            <Command>
+                              <CommandInput placeholder="Gõ tên hoặc số điện thoại..." className="h-9" />
+                              <CommandList>
+                                <CommandEmpty>Không tìm thấy kết quả.</CommandEmpty>
+                                <CommandGroup>
+                                  {(partnerType === 'supplier' ? suppliers : partnerType === 'customer' ? customers : users).map((p) => (
+                                    <CommandItem
+                                      key={p.id}
+                                      value={`${p.supplierName || p.customerName || p.fullName || p.name} ${p.phone || ''}`}
+                                      onSelect={() => {
+                                        setSelectedPartner(p)
+                                        setOpenPartnerPopover(false)
+                                      }}
+                                      className="flex flex-col items-start py-2"
+                                    >
+                                      <div className="flex w-full items-center justify-between">
+                                        <span className="font-semibold text-sm">
+                                          {p.supplierName || p.customerName || p.fullName || p.name}
+                                        </span>
+                                        <CheckIcon
+                                          className={cn(
+                                            "h-4 w-4",
+                                            selectedPartner?.id === p.id ? "opacity-100" : "opacity-0"
+                                          )}
+                                        />
+                                      </div>
+                                      <span className="text-[11px] text-muted-foreground italic">
+                                        {p.phone || 'Không có SĐT'} · {p.supplierCode || p.customerCode || p.employeeCode || p.code || ''}
+                                      </span>
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                      )}
+                    </div>
+                  ) : (
+                    /* EDIT MODE OR PO MODE: Fixed Partner Display */
                     <div className="space-y-6">
+                      <div className="flex items-center justify-between">
+                        <h2 className="text-lg font-semibold">
+                          {isCustomerPO || payment?.receiverType === 'customer' ? 'Khách hàng' : (payment?.receiverType === 'employee' ? 'Nhân viên' : 'Nhà cung cấp')}
+                        </h2>
+                        <span className={cn(
+                          'rounded px-1.5 py-0.5 text-xs font-semibold',
+                          (isCustomerPO || payment?.receiverType === 'customer')
+                            ? 'bg-blue-100 text-blue-700'
+                            : (payment?.receiverType === 'employee' ? 'bg-purple-100 text-purple-700' : 'bg-orange-100 text-orange-700')
+                        )}>
+                          {isCustomerPO || payment?.receiverType === 'customer' ? 'KH' : (payment?.receiverType === 'employee' ? 'NV' : 'NCC')}
+                        </span>
+                      </div>
+
                       <div className="flex items-center gap-4">
-                        <Avatar className="h-8 w-8">
+                        <Avatar className="h-10 w-10 border shadow-sm">
                           <AvatarImage
-                            src={`https://ui-avatars.com/api/?bold=true&background=random&name=${party?.supplierName || party?.fullName || party?.name}`}
+                            src={party?.image ? getPublicUrl(party.image) : `https://ui-avatars.com/api/?bold=true&background=random&name=${party?.supplierName || party?.fullName || party?.name}`}
                             alt={party?.supplierName || party?.fullName || party?.name}
                           />
                           <AvatarFallback>
-                            {isCustomerPO || payment?.receiverType === 'customer' ? 'KH' : 'NCC'}
+                            {(party?.supplierName || party?.fullName || party?.name)?.substring(0, 2).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <div className="font-medium">{party?.supplierName || party?.fullName || party?.name}</div>
+                          <div className="font-bold text-sm leading-tight text-foreground">{party?.supplierName || party?.fullName || party?.name}</div>
                           {(party?.supplierCode || party?.code) && (
-                            <div className="text-xs text-muted-foreground">{party.supplierCode || party.code}</div>
+                            <div className="text-[10px] text-muted-foreground italic">{party.supplierCode || party.code}</div>
                           )}
                         </div>
                       </div>
 
-                      <div>
-                        <div className="mb-2 flex items-center justify-between">
-                          <div className="font-medium">Thông tin liên hệ</div>
-                        </div>
+                      <Separator />
 
-                        <div className="mt-4 space-y-2 text-sm">
+                      <div className="space-y-3">
+                        <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Thông tin liên hệ</div>
+                        
+                        <div className="space-y-2 text-sm">
                           {party?.contactName && (
                             <div className="flex items-center text-muted-foreground">
-                              <div className="mr-2 h-4 w-4">
-                                <User className="h-4 w-4" />
-                              </div>
-                              <span className="font-medium text-foreground">
-                                Liên hệ: {party.contactName}
-                              </span>
+                              <User className="mr-2 h-4 w-4 shrink-0" />
+                              <span className="truncate">L.Hệ: <span className="text-foreground font-medium">{party.contactName}</span></span>
                             </div>
                           )}
-                          <div className="flex cursor-pointer items-center text-primary hover:text-secondary-foreground">
-                            <div className="mr-2 h-4 w-4">
-                              <MobileIcon className="h-4 w-4" />
-                            </div>
-                            <a href={`tel:${party?.phone}`}>
+                          <div className="flex items-center text-muted-foreground group">
+                            <MobileIcon className="mr-2 h-4 w-4 shrink-0" />
+                            <a href={`tel:${party?.phone}`} className="hover:text-primary transition-colors">
                               {party?.phone || 'Chưa cập nhật'}
                             </a>
                           </div>
-                          <div className="flex items-center text-muted-foreground">
-                            <div className="mr-2 h-4 w-4">
-                              <Mail className="h-4 w-4" />
-                            </div>
-                            <a href={`mailto:${party?.email}`}>
+                          <div className="flex items-center text-muted-foreground group">
+                            <Mail className="mr-2 h-4 w-4 shrink-0" />
+                            <a href={`mailto:${party?.email}`} className="hover:text-primary transition-colors truncate">
                               {party?.email || 'Chưa cập nhật'}
                             </a>
                           </div>
-
-                          <div className="flex items-center text-primary hover:text-secondary-foreground">
-                            <div className="mr-2 h-4 w-4">
-                              <MapPin className="h-4 w-4" />
-                            </div>
-                            {party?.address || 'Chưa cập nhật'}
+                          <div className="flex items-start text-muted-foreground">
+                            <MapPin className="mr-2 h-4 w-4 shrink-0 mt-0.5" />
+                            <span className="line-clamp-2">{party?.address || 'Chưa cập nhật'}</span>
                           </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             </form>
           </Form>

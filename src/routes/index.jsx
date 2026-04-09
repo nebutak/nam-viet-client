@@ -62,6 +62,7 @@ import WarrantyPage from '@/views/admin/warranty/WarrantyPage'
 import DeliveryPage from '@/views/admin/delivery/DeliveryPage'
 import InventorySummaryPage from '@/views/admin/warehouse-report/InventorySummaryPage'
 import InventoryDetailPage from '@/views/admin/warehouse-report/InventoryDetailPage'
+import CashFlowReportPage from '@/views/admin/cash-flow/CashFlowReportPage'
 
 const routes = [
   {
@@ -194,6 +195,12 @@ const routes = [
   {
     path: '/partner-debt',
     element: PartnerDebtPage,
+    layout: AdminLayout,
+  },
+  //Báo cáo thu chi (Sổ quỹ)
+  {
+    path: '/cash-flow',
+    element: CashFlowReportPage,
     layout: AdminLayout,
   },
   {

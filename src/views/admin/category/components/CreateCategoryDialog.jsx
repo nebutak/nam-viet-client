@@ -32,10 +32,11 @@ import { useForm } from 'react-hook-form'
 import { Input } from '@/components/ui/input'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useDispatch, useSelector } from 'react-redux'
-import { createCategory } from '@/stores/CategorySlice'
+import { createCategory, getCategories } from '@/stores/CategorySlice'
 import { createCategorySchema } from '../schema'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { statuses, types } from '../data'
+import { useEffect, useState } from 'react'
 
 const CreateCategoryDialog = ({
   open,
@@ -47,6 +48,24 @@ const CreateCategoryDialog = ({
   ...props
 }) => {
   const loading = useSelector((state) => state.category.loading)
+  const dispatch = useDispatch()
+
+  // State cho loại danh mục (Sản phẩm / Nguyên liệu)
+  const [categoryType, setCategoryType] = useState(type || 'PRODUCT')
+
+  // Khi prop type thay đổi (ví dụ mở từ dialog khác), cập nhật state
+  useEffect(() => {
+    if (open && type) {
+      setCategoryType(type)
+    }
+  }, [open, type])
+
+  // Khi categoryType thay đổi, load lại danh mục cha tương ứng
+  useEffect(() => {
+    if (open) {
+      dispatch(getCategories({ type: categoryType }))
+    }
+  }, [open, categoryType, dispatch])
 
   const form = useForm({
     resolver: zodResolver(createCategorySchema),
@@ -63,15 +82,19 @@ const CreateCategoryDialog = ({
     (state) => state.category.categories?.data || (Array.isArray(state.category.categories) ? state.category.categories : [])
   )
 
-  const dispatch = useDispatch()
+  // Lọc danh mục cha theo loại đã chọn
+  const filteredParentCategories = categoriesList.filter(
+    (cat) => cat.type === categoryType
+  )
+
   const onSubmit = async (data) => {
     try {
       const payload = {
         ...data,
-        type: type || 'PRODUCT',
+        type: categoryType,
         parentId: data.parentId ? Number(data.parentId) : null,
       }
-      await dispatch(createCategory({ data: payload, params: { type } })).unwrap()
+      await dispatch(createCategory({ data: payload, params: { type: categoryType } })).unwrap()
       form.reset()
       onOpenChange?.(false)
     } catch (error) {
@@ -95,7 +118,7 @@ const CreateCategoryDialog = ({
         overlayClassName={overlayClassName}
       >
         <DialogHeader>
-          <DialogTitle>Thêm danh mục dùng mới</DialogTitle>
+          <DialogTitle>Thêm danh mục mới</DialogTitle>
           <DialogDescription>
             Điền vào chi tiết phía dưới để thêm danh mục mới
           </DialogDescription>
@@ -105,6 +128,27 @@ const CreateCategoryDialog = ({
           <Form {...form}>
             <form id="create-category" onSubmit={form.handleSubmit(onSubmit)}>
               <div className="grid gap-4 md:grid-cols-2">
+                {/* Loại danh mục */}
+                <FormItem className="mb-2 space-y-1">
+                  <FormLabel required={true}>Loại danh mục</FormLabel>
+                  <Select
+                    value={categoryType}
+                    onValueChange={(val) => {
+                      setCategoryType(val)
+                      // Reset danh mục cha khi đổi loại
+                      form.setValue('parentId', null)
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Chọn loại danh mục" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="PRODUCT">Sản phẩm</SelectItem>
+                      <SelectItem value="MATERIAL">Nguyên liệu</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </FormItem>
+
                 <FormField
                   control={form.control}
                   name="categoryCode"
@@ -112,7 +156,13 @@ const CreateCategoryDialog = ({
                     <FormItem className="mb-2 space-y-1">
                       <FormLabel required={true}>Mã danh mục</FormLabel>
                       <FormControl>
-                        <Input placeholder="Nhập mã danh mục" {...field} />
+                        <Input
+                          placeholder="Nhập mã danh mục"
+                          {...field}
+                          onChange={(e) => {
+                            field.onChange(e.target.value.toUpperCase())
+                          }}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -142,15 +192,16 @@ const CreateCategoryDialog = ({
                       <Select
                         onValueChange={(value) => field.onChange(value === 'none' ? null : value)}
                         defaultValue={field.value?.toString() || ''}
+                        value={field.value?.toString() || ''}
                       >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="-- Không chọn --" />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent className="z-[10010]">
+                        <SelectContent>
                           <SelectItem value="none">-- Không chọn --</SelectItem>
-                          {categoriesList.map((cat) => (
+                          {filteredParentCategories.map((cat) => (
                             <SelectItem key={cat.id} value={cat.id.toString()}>
                               {cat.categoryName}
                             </SelectItem>
@@ -223,3 +274,4 @@ const CreateCategoryDialog = ({
 }
 
 export default CreateCategoryDialog
+

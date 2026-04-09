@@ -100,6 +100,7 @@ const ReceiptDialog = ({
   const customers = useSelector((state) => state.customer.customers)
   const [selectedCustomer, setSelectedCustomer] = useState(null)
   const [openCustomerPopover, setOpenCustomerPopover] = useState(false)
+  const [receiptOperation, setReceiptOperation] = useState('sales') // 'sales' | 'opening_balance'
 
   const effectiveReceiptId = receiptId || propReceipt?.id
   const isEditMode = !!effectiveReceiptId
@@ -132,7 +133,7 @@ const ReceiptDialog = ({
 
   const form = useForm({
     resolver: zodResolver(createReceiptSchema),
-    defaultValues: async () => ({
+    defaultValues: {
       note: '',
       totalAmount: remainingAmount > 0 ? remainingAmount : 0,
       paymentMethod: paymentMethods[0].value,
@@ -141,7 +142,7 @@ const ReceiptDialog = ({
 
       receiptDate: new Date().toISOString().split('T')[0],
       isDeposit: false,
-    }),
+    },
   })
 
 
@@ -253,9 +254,27 @@ const ReceiptDialog = ({
       return
     }
 
-    // Validate customer selection in standalone mode
-    if (isStandaloneMode && !selectedCustomer) {
+    // Validate customer selection in standalone mode (skip for opening balance)
+    if (isStandaloneMode && receiptOperation !== 'opening_balance' && !selectedCustomer) {
       toast.error('Vui lòng chọn khách hàng')
+      return
+    }
+
+    // Opening balance: no customer needed
+    if (receiptOperation === 'opening_balance') {
+      const dataOpeningBalance = {
+        receiptType: 'other',
+        amount: parseInt(data.totalAmount) || 0,
+        paymentMethod: data.paymentMethod || 'cash',
+        receiptDate: data.receiptDate || new Date().toISOString(),
+        notes: 'Thu đầu kỳ',
+      }
+      try {
+        await dispatch(createReceipt(dataOpeningBalance)).unwrap()
+        navigateAway()
+      } catch (error) {
+        console.log('Submit error: ', error)
+      }
       return
     }
 
@@ -398,6 +417,27 @@ const ReceiptDialog = ({
                         </h2>
 
                         <div className="space-y-6">
+                          {/* Nghệp vụ (Operation Type) */}
+                          {isStandaloneMode && (
+                            <div className="mb-4">
+                              <FormLabel className="mb-2 block">Nghiệp vụ</FormLabel>
+                              <Select
+                                value={receiptOperation}
+                                onValueChange={(val) => setReceiptOperation(val)}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Chọn nghiệp vụ" />
+                                </SelectTrigger>
+                                <SelectContent className="z-[100020]">
+                                  <SelectGroup>
+                                    <SelectItem value="sales">Thu tiền bán hàng</SelectItem>
+                                    <SelectItem value="opening_balance">Thu đầu kỳ</SelectItem>
+                                  </SelectGroup>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          )}
+
                           {(!isStandaloneMode && invoiceData && invoiceItems.length > 0) && (
                           <div className={cn("overflow-x-auto rounded-lg border", isMobile && "border-0 overflow-visible")}>
                             {!isMobile ? (
@@ -841,7 +881,13 @@ const ReceiptDialog = ({
                         </div>
 
                         <div className="space-y-6">
-                          {isStandaloneMode ? (
+                          {isStandaloneMode && receiptOperation === 'opening_balance' ? (
+                            /* Opening Balance: No customer required */
+                            <div className="rounded-lg border border-green-200 bg-green-50 dark:bg-green-950/20 p-4 text-center">
+                              <div className="text-green-700 dark:text-green-300 font-bold text-lg mb-1">THU ĐẦU KỲ</div>
+                              <p className="text-sm text-muted-foreground">Không cần chọn khách hàng cho phiếu thu đầu kỳ</p>
+                            </div>
+                          ) : isStandaloneMode ? (
                             /* Standalone mode: Customer selection dropdown */
                             <>
                               {selectedCustomer ? (

@@ -90,19 +90,21 @@ const MobileInvoiceActions = ({
             <Separator />
 
             {/* Print Actions */}
-            <div className="space-y-2">
-              <div className="text-sm font-medium text-muted-foreground">In ấn</div>
-              <div className="grid grid-cols-1 gap-2">
-                <Button
-                  variant="outline"
-                  className="justify-start gap-2 text-blue-600 border-blue-200 hover:bg-blue-50"
-                  onClick={() => handleAction(handlePrintInvoice)}
-                >
-                  <Printer className="h-4 w-4" />
-                  In Hóa Đơn
-                </Button>
+            {invoice?.orderStatus !== 'cancelled' && (
+              <div className="space-y-2">
+                <div className="text-sm font-medium text-muted-foreground">In ấn</div>
+                <div className="grid grid-cols-1 gap-2">
+                  <Button
+                    variant="outline"
+                    className="justify-start gap-2 text-blue-600 border-blue-200 hover:bg-blue-50"
+                    onClick={() => handleAction(handlePrintInvoice)}
+                  >
+                    <Printer className="h-4 w-4" />
+                    In Hóa Đơn
+                  </Button>
+                </div>
               </div>
-            </div>
+            )}
 
             <Separator />
 
