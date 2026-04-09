@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -108,13 +108,13 @@ const ConfirmWarehouseReceiptDialog = ({
           }
 
           setDetailInvoice(invoiceData)
-          
+
           if (invoiceData.details && invoiceData.details.length > 0) {
             const productIds = invoiceData.details
               .map(item => item.productId)
               .filter(id => !!id)
               .join(',')
-            
+
             if (productIds) {
               setIsFetchingInventory(true)
               dispatch(getInventory({ productIds, limit: 1000 }))
@@ -142,7 +142,7 @@ const ConfirmWarehouseReceiptDialog = ({
     }
   }, [open, invoice?.id, dispatch])
 
-  const calculateTotalShipped = (item) => {
+  const calculateTotalShipped = useCallback((item) => {
     let totalShipped = 0
     if (activeInvoice?.warehouseReceipts) {
       activeInvoice.warehouseReceipts.forEach(receipt => {
@@ -165,43 +165,79 @@ const ConfirmWarehouseReceiptDialog = ({
       })
     }
     return totalShipped
-  }
+  }, [activeInvoice?.warehouseReceipts])
 
-  // Helper to check if item is selectable
-  const isItemSelectable = (item) => {
-    const totalOrdered = Number(item.quantity || 0)
-    const totalShipped = calculateTotalShipped(item)
-    return totalShipped < totalOrdered
-  }
+  const mergedItems = useMemo(() => {
+    if (!activeInvoice?.details) return []
+
+    const groups = {}
+    activeInvoice.details.forEach(item => {
+      const key = `${item.productId}-${item.unitId || 'no-unit'}`
+      if (!groups[key]) {
+        groups[key] = {
+          id: key,
+          productId: item.productId,
+          unitId: item.unitId,
+          unitName: item.unitName,
+          product: item.product,
+          productName: item.product?.productName || item.productName || 'Sản phẩm không tên',
+          productCode: item.product?.code || item.productCode || '—',
+          image: item.product?.image || item.image,
+          totalQuantity: 0,
+          purchaseQuantity: 0,
+          giftQuantity: 0,
+          totalShipped: 0,
+          originalItems: [],
+          hasGift: false
+        }
+      }
+      const qty = Number(item.quantity)
+      groups[key].totalQuantity += qty
+      if (item.gift) {
+        groups[key].giftQuantity += qty
+        groups[key].hasGift = true
+      } else {
+        groups[key].purchaseQuantity += qty
+      }
+      groups[key].totalShipped += calculateTotalShipped(item)
+      groups[key].originalItems.push(item)
+    })
+
+    return Object.values(groups)
+  }, [activeInvoice?.details, calculateTotalShipped])
+
+  // Helper to check if a merged item is selectable
+  const isMergedItemSelectable = useCallback((mItem) => {
+    return mItem.totalShipped < mItem.totalQuantity
+  }, [])
 
   useEffect(() => {
-    if (activeInvoice?.details) {
+    if (mergedItems.length > 0) {
       const initialSelection = {}
       const initialQuantities = {}
-      activeInvoice.details.forEach((item) => {
-        if (isItemSelectable(item)) {
-          initialSelection[item.id] = true
-          const totalShipped = calculateTotalShipped(item)
-          const remaining = Math.max(0, Number(item.quantity || 0) - totalShipped)
-          initialQuantities[item.id] = remaining
+      const initialDetailNotes = {}
+
+      mergedItems.forEach((mItem) => {
+        const selectable = isMergedItemSelectable(mItem)
+        if (selectable) {
+          initialSelection[mItem.id] = true
+          const remaining = Math.max(0, mItem.totalQuantity - mItem.totalShipped)
+          initialQuantities[mItem.id] = remaining
         }
+        initialDetailNotes[mItem.id] = ''
       })
+
       setSelectedItems(initialSelection)
       setExportQuantities(initialQuantities)
-      
-      const initialDetailNotes = {}
-      activeInvoice.details.forEach(item => {
-        initialDetailNotes[item.id] = ''
-      })
       setDetailNotes(initialDetailNotes)
-      
+
       // Default reason and notes
       if (invoice) {
         setReason('')
         setNotes('')
       }
     }
-  }, [activeInvoice])
+  }, [mergedItems, isMergedItemSelectable, invoice])
 
   if (!invoice) return null
 
@@ -211,19 +247,59 @@ const ConfirmWarehouseReceiptDialog = ({
       return
     }
 
-    const selectedIds = Object.keys(selectedItems).filter(
-      (id) => selectedItems[id],
-    )
+    const selectedItemObjects = []
+    const overStockItems = []
 
-    const selectedItemObjects = activeInvoice.details
-      .filter(item => selectedIds.includes(String(item.id)))
-      .map(item => {
-        return {
-          ...item,
-          quantity: Number(exportQuantities[item.id] || 0),
-          notes: detailNotes[item.id] || ''
+    mergedItems.forEach(mItem => {
+      if (selectedItems[mItem.id]) {
+        const qty = Number(exportQuantities[mItem.id] || 0)
+        const stock = getItemStock(mItem.productId)
+        
+        if (qty > stock) {
+          overStockItems.push(mItem.productName)
         }
-      })
+      }
+    })
+
+    if (overStockItems.length > 0) {
+      toast.error(`Sản phẩm [${overStockItems.join(', ')}] vượt quá số lượng tồn kho thực tế!`)
+      return
+    }
+
+    mergedItems.forEach(mItem => {
+      if (selectedItems[mItem.id]) {
+        let remainingToDistribute = Number(exportQuantities[mItem.id] || 0)
+
+        // Phân bổ số lượng đã nhập về các InvoiceDetail gốc
+        // Ưu tiên hàng bán trước, hàng tặng sau
+        const sortedItems = [...mItem.originalItems].sort((a, b) => {
+          if (a.gift === b.gift) return 0
+          return a.gift ? 1 : -1
+        })
+
+        sortedItems.forEach(orig => {
+          if (remainingToDistribute <= 0) return
+
+          const origShipped = calculateTotalShipped(orig)
+          const origRemaining = Math.max(0, Number(orig.quantity) - origShipped)
+
+          if (origRemaining > 0) {
+            const take = Math.min(remainingToDistribute, origRemaining)
+            selectedItemObjects.push({
+              ...orig,
+              quantity: take,
+              notes: detailNotes[mItem.id] || ''
+            })
+            remainingToDistribute -= take
+          }
+        })
+      }
+    })
+
+    if (selectedItemObjects.length === 0) {
+      toast.error('Vui lòng chọn ít nhất một sản phẩm')
+      return
+    }
 
     if (selectedItemObjects.some(item => item.quantity <= 0)) {
       toast.error('Số lượng xuất phải lớn hơn 0')
@@ -240,7 +316,7 @@ const ConfirmWarehouseReceiptDialog = ({
       setExportQuantities(prev => ({ ...prev, [itemId]: val }))
       return
     }
-    
+
     if (num > max) {
       toast.warning(`Số lượng không thể vượt quá số lượng còn lại (${max})`)
       setExportQuantities(prev => ({ ...prev, [itemId]: max }))
@@ -258,15 +334,24 @@ const ConfirmWarehouseReceiptDialog = ({
 
   const toggleAll = (checked) => {
     const newSelection = {}
-    activeInvoice.details.forEach((item) => {
-      if (isItemSelectable(item)) {
-        newSelection[item.id] = checked
+    mergedItems.forEach((mItem) => {
+      if (isMergedItemSelectable(mItem)) {
+        newSelection[mItem.id] = checked
       }
     })
     setSelectedItems(newSelection)
   }
 
-  const validItemsCount = activeInvoice.details?.filter(isItemSelectable).length || 0
+  const getItemStock = (productId) => {
+    if (!selectedWarehouseId || !inventoryData?.length) return 0
+    const inv = inventoryData.find(i =>
+      (i.productId || i.product?.id) === Number(productId) &&
+      (i.warehouseId || i.warehouse?.id) === Number(selectedWarehouseId)
+    )
+    return inv ? (Number(inv.quantity) - Number(inv.reservedQuantity)) : 0
+  }
+
+  const validItemsCount = mergedItems?.filter(isMergedItemSelectable).length || 0
   const selectedCount = Object.values(selectedItems).filter(Boolean).length
 
   const getWarehouseStockStatus = (warehouseId) => {
@@ -276,12 +361,12 @@ const ConfirmWarehouseReceiptDialog = ({
     const availableProductIds = warehouseInv
       .filter(inv => (Number(inv.quantity) - Number(inv.reservedQuantity)) > 0)
       .map(inv => inv.productId || inv.product?.id)
-    
+
     const invoiceProducts = activeInvoice?.details || []
     // Use fallback for item.productId
     const totalDistinctProducts = [...new Set(invoiceProducts.map(i => i.productId || i.product?.id))].filter(id => !!id).length
-    
-    const productsInStock = invoiceProducts.filter(item => 
+
+    const productsInStock = invoiceProducts.filter(item =>
       availableProductIds.includes(item.productId || item.product?.id)
     )
     const distinctProductsInStock = [...new Set(productsInStock.map(p => p.productId || p.product?.id))].filter(id => !!id).length
@@ -345,8 +430,8 @@ const ConfirmWarehouseReceiptDialog = ({
                   const isDisabled = !stockStatus || stockStatus.availableCount === 0
 
                   return (
-                    <SelectItem 
-                      key={warehouse.id} 
+                    <SelectItem
+                      key={warehouse.id}
                       value={warehouse.id.toString()}
                       disabled={isDisabled}
                     >
@@ -360,7 +445,7 @@ const ConfirmWarehouseReceiptDialog = ({
                             </Badge>
                           )}
                         </div>
-                        
+
                         {stockStatus ? (
                           <div className={`mt-0.5 flex items-center gap-1.5 text-[11px] ${stockStatus.availableCount > 0 ? 'text-emerald-600' : 'text-slate-400'}`}>
                             {stockStatus.availableCount > 0 ? (
@@ -403,7 +488,7 @@ const ConfirmWarehouseReceiptDialog = ({
             <div className="mb-2 flex items-center justify-between">
               <h4 className="text-sm font-semibold">Sản phẩm sẽ xuất kho:</h4>
               <span className="text-sm text-muted-foreground">
-                Đã chọn: {selectedCount}/{validItemsCount}
+                Đã chọn: {selectedCount}/{validItemsCount} sản phẩm (đã gộp)
               </span>
             </div>
             <div className={cn("overflow-auto rounded-lg border", isMobile && "border-0 h-full")}>
@@ -420,6 +505,7 @@ const ConfirmWarehouseReceiptDialog = ({
                       </TableHead>
                       <TableHead className="w-12">STT</TableHead>
                       <TableHead>Sản phẩm</TableHead>
+                      <TableHead className="text-right">Tồn kho</TableHead>
                       <TableHead className="text-right">Số lượng xuất</TableHead>
                       <TableHead>Đơn vị</TableHead>
                       <TableHead>Ghi chú</TableHead>
@@ -429,22 +515,21 @@ const ConfirmWarehouseReceiptDialog = ({
                   <TableBody>
                     {isLoadingDetails ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="h-24 text-center">
+                        <TableCell colSpan={8} className="h-24 text-center">
                           Đang tải thông tin sản phẩm...
                         </TableCell>
                       </TableRow>
                     ) : (
-                      activeInvoice.details?.map((item, index) => {
-                        const selectable = isItemSelectable(item)
-                        const totalShipped = calculateTotalShipped(item)
-                        const remaining = Math.max(0, Number(item.quantity || 0) - totalShipped)
+                      mergedItems.map((mItem, index) => {
+                        const selectable = isMergedItemSelectable(mItem)
+                        const remaining = Math.max(0, mItem.totalQuantity - mItem.totalShipped)
 
                         return (
-                          <TableRow key={item.id} className={!selectable ? 'bg-muted/30' : ''}>
+                          <TableRow key={mItem.id} className={cn(!selectable && "bg-muted/30 opacity-80")}>
                             <TableCell>
                               <Checkbox
-                                checked={!!selectedItems[item.id]}
-                                onCheckedChange={() => toggleItem(item.id)}
+                                checked={!!selectedItems[mItem.id]}
+                                onCheckedChange={() => selectable && toggleItem(mItem.id)}
                                 disabled={!selectable}
                               />
                             </TableCell>
@@ -452,10 +537,10 @@ const ConfirmWarehouseReceiptDialog = ({
                             <TableCell>
                               <div className="flex items-center gap-3">
                                 <div className="h-10 w-10 shrink-0 overflow-hidden rounded-md border text-center">
-                                  {item?.product?.image || item?.image ? (
+                                  {mItem.image ? (
                                     <img
-                                      src={getPublicUrl(item.product?.image || item.image)}
-                                      alt={item.product?.productName || item.productName}
+                                      src={getPublicUrl(mItem.image)}
+                                      alt={mItem.productName}
                                       className="h-full w-full object-cover"
                                     />
                                   ) : (
@@ -466,10 +551,33 @@ const ConfirmWarehouseReceiptDialog = ({
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <div className="text-[10px] font-bold text-muted-foreground leading-none mb-1">
-                                    {item.product?.code || item.productCode || '—'}
+                                    {mItem.productCode || '—'}
                                   </div>
-                                  <div className="font-medium">{item.product?.productName || item.productName}</div>
+                                  <div className="font-medium flex items-center gap-2">
+                                    {mItem.productName}
+                                    {mItem.hasGift && (
+                                      <span className={cn(
+                                        "rounded-md px-1.5 py-0.5 text-[10px] font-semibold border leading-none whitespace-nowrap",
+                                        mItem.purchaseQuantity > 0 
+                                          ? "bg-blue-50 text-blue-700 border-blue-200" 
+                                          : "bg-purple-100 text-purple-700 border-purple-200"
+                                      )}>
+                                        {mItem.purchaseQuantity > 0 ? "Kèm quà tặng" : "Quà tặng"}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex flex-col items-end">
+                                <span className={cn(
+                                  "font-medium",
+                                  getItemStock(mItem.productId) > 0 ? "text-slate-900" : "text-red-500"
+                                )}>
+                                  {getItemStock(mItem.productId)}
+                                </span>
+                                <span className="text-[10px] text-muted-foreground italic">tại kho</span>
                               </div>
                             </TableCell>
                             <TableCell className="text-right">
@@ -477,32 +585,48 @@ const ConfirmWarehouseReceiptDialog = ({
                                 <Input
                                   type="number"
                                   className="h-8 w-24 text-right"
-                                  value={exportQuantities[item.id] ?? ''}
-                                  onChange={(e) => handleQuantityChange(item.id, e.target.value, remaining)}
-                                  disabled={!selectable || !selectedItems[item.id]}
+                                  value={exportQuantities[mItem.id] ?? ''}
+                                  onChange={(e) => handleQuantityChange(mItem.id, e.target.value, remaining)}
+                                  disabled={!selectable || !selectedItems[mItem.id]}
                                 />
                                 <div className="text-[10px] text-muted-foreground">
-                                  Tổng: {Number(item.quantity)} | Còn: {remaining}
+                                  Đơn: {mItem.totalQuantity} {mItem.purchaseQuantity > 0 && mItem.giftQuantity > 0 && (
+                                    <span className="text-blue-600 font-medium">
+                                      (Mua {mItem.purchaseQuantity}, Tặng {mItem.giftQuantity})
+                                    </span>
+                                  )} | Còn: {remaining}
                                 </div>
                               </div>
                             </TableCell>
-                            <TableCell>{item.unitName || 'N/A'}</TableCell>
+                            <TableCell>{mItem.unitName || 'N/A'}</TableCell>
                             <TableCell>
                               <Input
-                                className="h-8 min-w-[150px]"
-                                value={detailNotes[item.id] || ''}
-                                onChange={(e) => setDetailNotes(prev => ({ ...prev, [item.id]: e.target.value }))}
-                                disabled={!selectable || !selectedItems[item.id]}
+                                border="none"
+                                className="h-8 min-w-[120px] bg-transparent focus-visible:ring-1"
+                                placeholder="Ghi chú..."
+                                value={detailNotes[mItem.id] || ''}
+                                onChange={(e) => setDetailNotes(prev => ({ ...prev, [mItem.id]: e.target.value }))}
+                                disabled={!selectable || !selectedItems[mItem.id]}
                               />
                             </TableCell>
                             <TableCell>
                               {!selectable ? (
-                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                  <InfoCircledIcon className="h-3 w-3" />
+                                <div className="flex items-center gap-1 text-xs text-muted-foreground whitespace-nowrap">
+                                  <Check className="h-3 w-3 text-green-500" />
                                   Đã xuất đủ
                                 </div>
                               ) : (
-                                <span className="text-xs text-green-600">Sẵn sàng ({remaining})</span>
+                                <div className="flex flex-col gap-0.5">
+                                  <span className={cn(
+                                    "text-xs font-medium",
+                                    getItemStock(mItem.productId) >= (exportQuantities[mItem.id] || 0)
+                                      ? "text-green-600"
+                                      : "text-red-500"
+                                  )}>
+                                    {getItemStock(mItem.productId) >= (exportQuantities[mItem.id] || 0) ? "Đủ hàng" : "Không đủ tồn"}
+                                  </span>
+                                  <span className="text-[10px] text-muted-foreground whitespace-nowrap">Cần: {remaining}</span>
+                                </div>
                               )}
                             </TableCell>
                           </TableRow>
@@ -527,21 +651,20 @@ const ConfirmWarehouseReceiptDialog = ({
                   {isLoadingDetails ? (
                     <div className="p-4 text-center text-sm text-muted-foreground">Đang tải...</div>
                   ) : (
-                    activeInvoice.details?.map((item) => {
-                      const selectable = isItemSelectable(item)
-                      const totalShipped = calculateTotalShipped(item)
-                      const remaining = Math.max(0, Number(item.quantity || 0) - totalShipped)
+                    mergedItems.map((mItem) => {
+                      const selectable = isMergedItemSelectable(mItem)
+                      const remaining = Math.max(0, mItem.totalQuantity - mItem.totalShipped)
 
                       return (
                         <div
-                          key={item.id}
+                          key={mItem.id}
                           className={cn("flex gap-3 rounded-lg border p-3 shadow-sm", !selectable ? "bg-muted/30 opacity-80" : "bg-card")}
-                          onClick={() => selectable && toggleItem(item.id)}
+                          onClick={() => selectable && toggleItem(mItem.id)}
                         >
                           <div className="flex pt-1">
                             <Checkbox
-                              checked={!!selectedItems[item.id]}
-                              onCheckedChange={() => toggleItem(item.id)}
+                              checked={!!selectedItems[mItem.id]}
+                              onCheckedChange={() => toggleItem(mItem.id)}
                               disabled={!selectable}
                               onClick={(e) => e.stopPropagation()}
                             />
@@ -549,10 +672,10 @@ const ConfirmWarehouseReceiptDialog = ({
                           <div className="flex-1 space-y-2">
                             <div className="flex items-start gap-3">
                               <div className="h-10 w-10 shrink-0 overflow-hidden rounded-md border bg-muted/50">
-                                {item?.product?.image || item?.image ? (
+                                {mItem.image ? (
                                   <img
-                                    src={getPublicUrl(item.product?.image || item.image)}
-                                    alt={item.product?.productName || item.productName}
+                                    src={getPublicUrl(mItem.image)}
+                                    alt={mItem.productName}
                                     className="h-full w-full object-cover"
                                   />
                                 ) : (
@@ -563,42 +686,50 @@ const ConfirmWarehouseReceiptDialog = ({
                               </div>
                               <div className="flex-1 min-w-0">
                                 <div className="text-[10px] font-bold text-muted-foreground leading-none mb-1">
-                                  {item.product?.code || item.productCode || '—'}
+                                  {mItem.productCode || '—'}
                                 </div>
-                                <div className="font-medium text-sm">{item.product?.productName || item.productName}</div>
+                                <div className="font-medium text-sm flex items-center gap-2">
+                                  {mItem.productName}
+                                  {mItem.hasGift && (
+                                    <span className={cn(
+                                      "rounded-md px-1.5 py-0.5 text-[10px] font-semibold border leading-none whitespace-nowrap",
+                                      mItem.purchaseQuantity > 0 
+                                        ? "bg-blue-50 text-blue-700 border-blue-200" 
+                                        : "bg-purple-100 text-purple-700 border-purple-200"
+                                    )}>
+                                      {mItem.purchaseQuantity > 0 ? "Kèm quà tặng" : "Quà tặng"}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                             </div>
                             <div className="grid grid-cols-2 gap-2 text-xs">
-                              <div className="flex flex-col gap-1">
-                                <span className="text-muted-foreground">Số lượng xuất</span>
-                                <Input
-                                  type="number"
-                                  className="h-8 w-20 text-right"
-                                  value={exportQuantities[item.id] ?? ''}
-                                  onChange={(e) => handleQuantityChange(item.id, e.target.value, remaining)}
-                                  disabled={!selectable || !selectedItems[item.id]}
-                                  onClick={(e) => e.stopPropagation()}
-                                />
-                                <span className="text-[10px] text-muted-foreground">Đặt: {Number(item.quantity)} | Còn: {remaining}</span>
-                              </div>
                               <div className="flex flex-col text-right justify-center">
-                                <span className="text-muted-foreground">Trạng thái</span>
-                                {!selectable ? (
-                                  <span className="text-muted-foreground italic flex items-center justify-end gap-1">
-                                    <InfoCircledIcon className="h-3 w-3" /> Đã xuất đủ
-                                  </span>
-                                ) : (
-                                  <span className="text-green-600 font-medium">Có thể xuất ({remaining})</span>
+                                <span className="text-muted-foreground">Tồn kho / Trạng thái</span>
+                              </div>
+                              <div className="flex flex-col items-end justify-center">
+                                <span className={cn(
+                                  "font-bold text-[11px]",
+                                  getItemStock(mItem.productId) > 0 ? "text-slate-900" : "text-red-500"
+                                )}>
+                                  KHO: {getItemStock(mItem.productId)}
+                                </span>
+                                {mItem.purchaseQuantity > 0 && mItem.giftQuantity > 0 && (
+                                  <div className="text-[10px] text-blue-600 font-medium">
+                                    (Mua {mItem.purchaseQuantity}, Tặng {mItem.giftQuantity})
+                                  </div>
                                 )}
                               </div>
                             </div>
                             <div className="space-y-1">
                               <span className="text-[10px] text-muted-foreground">Ghi chú sản phẩm</span>
                               <Input
-                                className="h-8 text-sm"
-                                value={detailNotes[item.id] || ''}
-                                onChange={(e) => setDetailNotes(prev => ({ ...prev, [item.id]: e.target.value }))}
-                                disabled={!selectable || !selectedItems[item.id]}
+                                border="none"
+                                className="h-8 text-sm bg-muted/20"
+                                placeholder="Ghi chú..."
+                                value={detailNotes[mItem.id] || ''}
+                                onChange={(e) => setDetailNotes(prev => ({ ...prev, [mItem.id]: e.target.value }))}
+                                disabled={!selectable || !selectedItems[mItem.id]}
                                 onClick={(e) => e.stopPropagation()}
                               />
                             </div>
@@ -624,18 +755,18 @@ const ConfirmWarehouseReceiptDialog = ({
 
           <div className="space-y-2">
             <label className="text-sm font-medium">Lý do xuất kho</label>
-            <Input 
-              placeholder="Nhập lý do..." 
-              value={reason} 
+            <Input
+              placeholder="Nhập lý do..."
+              value={reason}
               onChange={(e) => setReason(e.target.value)}
             />
           </div>
 
           <div className="space-y-2">
             <label className="text-sm font-medium">Ghi chú</label>
-            <Textarea 
-              placeholder="Nhập ghi chú thêm..." 
-              value={notes} 
+            <Textarea
+              placeholder="Nhập ghi chú thêm..."
+              value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
             />

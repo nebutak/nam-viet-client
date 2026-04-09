@@ -242,6 +242,7 @@ const initialState = {
     pagination: null,
     totalsByUnit: {},
   },
+  inventoryData: [],
   loading: false,
   error: null,
 }
@@ -281,6 +282,21 @@ export const productSlice = createSlice({
       .addCase(getProducts.rejected, (state, action) => {
         state.loading = false
         state.error = action.payload?.message || action.payload || 'Lỗi không xác định'
+        toast.error(state.error)
+      })
+
+      // ── getInventory ──────────────────────────────
+      .addCase(getInventory.pending, (state) => {
+        state.loading = true
+        state.error = null
+      })
+      .addCase(getInventory.fulfilled, (state, action) => {
+        state.loading = false
+        state.inventoryData = action.payload?.data || []
+      })
+      .addCase(getInventory.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload?.message || action.payload || 'Lỗi lấy dữ liệu tồn kho'
         toast.error(state.error)
       })
 
