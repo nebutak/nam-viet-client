@@ -65,7 +65,11 @@ export const getReceiptById = createAsyncThunk(
   async (id, { rejectWithValue }) => {
     try {
       const response = await api.get(`/payment-receipts/${id}`)
-      return response.data.data
+      const data = response.data.data
+      return {
+        ...data,
+        status: data.isPosted ? 'posted' : 'draft'
+      }
     } catch (error) {
       const message = handleError(error)
       return rejectWithValue(message)
@@ -139,7 +143,11 @@ export const postReceipt = createAsyncThunk(
     try {
       const response = await api.post(`/payment-receipts/${id}/post`, { notes })
       toast.success('Ghi sổ phiếu thu thành công')
-      return response.data.data
+      const data = response.data.data
+      return {
+        ...data,
+        status: data.isPosted ? 'posted' : 'draft'
+      }
     } catch (error) {
       const message = handleError(error)
       return rejectWithValue(message)
@@ -165,7 +173,11 @@ export const updateReceiptStatus = createAsyncThunk(
       } else {
         response = await api.put(`/payment-receipts/${id}`, { status, notes })
       }
-      return response.data.data
+      const data = response.data.data
+      return {
+        ...data,
+        status: data.isPosted ? 'posted' : 'draft'
+      }
     } catch (error) {
       const message = handleError(error)
       return rejectWithValue(message)
@@ -179,7 +191,11 @@ export const updateReceipt = createAsyncThunk(
     try {
       const response = await api.put(`/payment-receipts/${id}`, data)
       toast.success('Cập nhật phiếu thu thành công')
-      return response.data.data
+      const data = response.data.data
+      return {
+        ...data,
+        status: data.isPosted ? 'posted' : 'draft'
+      }
     } catch (error) {
       const message = handleError(error)
       return rejectWithValue(message)

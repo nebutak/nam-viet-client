@@ -1920,7 +1920,7 @@ const ViewInvoiceDialog = ({ invoiceId, showTrigger = true, onEdit, onSuccess, c
                   </Button>
                 )}
 
-                {invoice?.warehouseReceipts && invoice.warehouseReceipts.length > 0 && (
+                {invoice?.orderStatus !== 'cancelled' && (
                   <Button
                     size="sm"
                     variant="outline"

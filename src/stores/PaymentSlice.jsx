@@ -107,19 +107,19 @@ export const updatePayment = createAsyncThunk(
   },
 )
 
-export const createPayment = createAsyncThunk
-  (
-    'payment/create-payment',
-    async (data, { rejectWithValue }) => {
-      try {
-        await api.post('/payment-vouchers', data)
-        toast.success('Tạo thanh toán thành công')
-      } catch (error) {
-        const message = handleError(error)
-        return rejectWithValue(message)
-      }
-    },
-  )
+export const createPayment = createAsyncThunk(
+  'payment/create-payment',
+  async (data, { rejectWithValue }) => {
+    try {
+      const response = await api.post('/payment-vouchers', data)
+      toast.success('Tạo thanh toán thành công')
+      return response.data.data || response.data
+    } catch (error) {
+      const message = handleError(error)
+      return rejectWithValue(message)
+    }
+  },
+)
 
 export const deletePayment = createAsyncThunk(
   'payment/delete-payment',
@@ -257,8 +257,12 @@ export const paymentSlice = createSlice({
       .addCase(createPayment.pending, (state) => {
         state.loading = true
       })
-      .addCase(createPayment.fulfilled, (state) => {
+      .addCase(createPayment.fulfilled, (state, action) => {
         state.loading = false
+        if (action.payload) {
+          state.payments = [action.payload, ...state.payments]
+          state.pagination.total += 1
+        }
       })
       .addCase(createPayment.rejected, (state, action) => {
         state.loading = false

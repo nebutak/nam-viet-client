@@ -110,6 +110,9 @@ const PurchaseOrderDialog = ({
     description: '',
   })
 
+  // VAT
+  const [vatRate, setVatRate] = useState(0)
+
 
   // Create Product Dialog State
   const [showCreateProduct, setShowCreateProduct] = useState(false)
@@ -255,6 +258,7 @@ const PurchaseOrderDialog = ({
     setContractPreviewData(null)
     setFetchedOrder(null)
     setOtherExpenses({ price: 0, description: '' })
+    setVatRate(0)
 
     // Reset form to default values for CREATE mode mostly
     form.reset({
@@ -556,7 +560,8 @@ const PurchaseOrderDialog = ({
     const subTotal = calculateSubTotal()
     const tax = calculateTotalTax()
     const expenses = calculateExpenses()
-    return subTotal + tax + expenses
+    const vatAmount = Math.round(handleCalculateSubTotalInvoice() * (Number(vatRate) || 0) / 100)
+    return subTotal + tax + expenses + vatAmount
   }
 
   const handleSetOtherExpenses = (data) => {
@@ -658,6 +663,8 @@ const PurchaseOrderDialog = ({
       orderDate: data.orderDate ? new Date(data.orderDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
       expectedDeliveryDate: formattedDate,
       otherCosts: otherExpenses.price,
+      vatRate: Number(vatRate) || 0,
+      vatAmount: Math.round(handleCalculateSubTotalInvoice() * (Number(vatRate) || 0) / 100),
       isAutoApprove: data.isAutoApprove,
 
       notes: data.note,
@@ -931,6 +938,9 @@ const PurchaseOrderDialog = ({
                         calculateExpenses={calculateExpenses}
                         onEditExpenses={() => setShowOtherExpenses(true)}
                         isUpdate={isUpdateMode}
+                        vatRate={vatRate}
+                        onVatRateChange={setVatRate}
+                        vatAmount={Math.round(handleCalculateSubTotalInvoice() * (Number(vatRate) || 0) / 100)}
                       />
                     </div>
                   </div>
@@ -1126,6 +1136,9 @@ const PurchaseOrderDialog = ({
                 calculateExpenses={calculateExpenses}
                 onEditExpenses={() => setShowOtherExpenses(true)}
                 isUpdate={isUpdateMode}
+                vatRate={vatRate}
+                onVatRateChange={setVatRate}
+                vatAmount={Math.round(handleCalculateSubTotalInvoice() * (Number(vatRate) || 0) / 100)}
               />
             </div>
           </form>
