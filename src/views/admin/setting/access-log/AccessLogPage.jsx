@@ -6,6 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { getAccessLogs, revokeTokens } from '@/stores/AuthSlice'
 import { diffForHumans } from '@/utils/date-format'
 import {
+  IconArrowLeft,
   IconDeviceDesktop,
   IconLogout,
   IconRosetteDiscountCheck,
@@ -13,9 +14,11 @@ import {
 } from '@tabler/icons-react'
 import { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
+import { useNavigate } from 'react-router-dom'
 
 const AccessLogPage = () => {
   const dispatch = useDispatch()
+  const navigate = useNavigate()
   const loading = useSelector((state) => state.auth.loading)
   const accessLogs = useSelector((state) => state.auth.accessLogs)
 
@@ -54,7 +57,15 @@ const AccessLogPage = () => {
 
         <div className="-mx-4 flex-1 overflow-auto px-4 py-1 lg:flex-row lg:space-x-12 lg:space-y-0">
           <div className="my-3 grid gap-4 rounded-lg border p-4">
-            <div className="col-span-full flex items-end justify-end">
+            <div className="col-span-full flex items-end justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-32"
+                onClick={() => navigate(-1)}
+              >
+                <IconArrowLeft className="mr-2 h-4 w-4" /> Quay lại
+              </Button>
               <Button
                 variant="destructive"
                 onClick={handleRevokeTokens}
@@ -83,21 +94,26 @@ const AccessLogPage = () => {
                       <div>
                         <AlertTitle>{log.userAgent}</AlertTitle>
                         <AlertDescription>
-                          <div className="flex items-center">
-                            <span className="mr-2">
-                              {diffForHumans(log.createdAt, false)} -
-                            </span>
-                            {log.logoutAt ? (
-                              <span className="flex items-center text-muted-foreground">
-                                Đã đăng xuất
-                                <IconRosetteDiscountCheckOff className="ml-2 h-4 w-4" />
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center text-sm">
+                              <span className="mr-2 font-medium">IP: {log.ipAddress}</span>
+                            </div>
+                            <div className="flex items-center">
+                              <span className="mr-2">
+                                {diffForHumans(log.createdAt, false)} -
                               </span>
-                            ) : (
-                              <span className="flex items-center text-green-500">
-                                Đang hoạt động{' '}
-                                <IconRosetteDiscountCheck className="ml-2 h-4 w-4" />
-                              </span>
-                            )}
+                              {log.logoutAt ? (
+                                <span className="flex items-center text-muted-foreground">
+                                  Đã đăng xuất
+                                  <IconRosetteDiscountCheckOff className="ml-2 h-4 w-4" />
+                                </span>
+                              ) : (
+                                <span className="flex items-center text-green-500">
+                                  Đang hoạt động{' '}
+                                  <IconRosetteDiscountCheck className="ml-2 h-4 w-4" />
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </AlertDescription>
                       </div>
