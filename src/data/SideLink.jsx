@@ -37,6 +37,7 @@ import {
   Wallet,
   Scale,
   FileText,
+  FolderOpen,
 } from 'lucide-react'
 
 export const sideLinks = [
@@ -384,6 +385,12 @@ export const sideLinks = [
         title: 'Quản lý bài viết',
         href: '/news',
         icon: <FileText size={18} strokeWidth={1.5} />,
+        permission: 'GET_REVENUE_REPORT',
+      },
+      {
+        title: 'Danh mục bài viết',
+        href: '/news-categories',
+        icon: <FolderOpen size={18} strokeWidth={1.5} />,
         permission: 'GET_REVENUE_REPORT',
       },
     ],

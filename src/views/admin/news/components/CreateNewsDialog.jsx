@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Plus } from 'lucide-react'
+import RichTextEditor from '@/components/custom/RichTextEditor'
 
 export default function CreateNewsDialog() {
   const dispatch = useDispatch()
@@ -103,7 +104,7 @@ export default function CreateNewsDialog() {
           Tạo bài viết
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Tạo bài viết mới</DialogTitle>
           <DialogDescription>
@@ -185,24 +186,23 @@ export default function CreateNewsDialog() {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="content">Nội dung *</Label>
-              <Textarea
-                id="content"
+              <Label>Nội dung *</Label>
+              <RichTextEditor
                 value={formData.content}
-                onChange={(e) => handleChange('content', e.target.value)}
-                placeholder="Nội dung bài viết"
-                rows={8}
-                required
+                onChange={(html) => handleChange('content', html)}
+                placeholder="Nhập nội dung bài viết..."
+                minHeight={420}
               />
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="featuredImage">Ảnh đại diện (URL)</Label>
+              <Label htmlFor="featuredImage">Ảnh đại diện (URL) *</Label>
               <Input
                 id="featuredImage"
                 value={formData.featuredImage}
                 onChange={(e) => handleChange('featuredImage', e.target.value)}
                 placeholder="https://example.com/image.jpg"
+                required
               />
             </div>
 

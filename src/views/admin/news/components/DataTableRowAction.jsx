@@ -69,30 +69,30 @@ export function DataTableRowActions({ row }) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-[160px]">
-          <DropdownMenuItem onClick={() => setShowViewDialog(true)}>
+          <DropdownMenuItem onSelect={() => setShowViewDialog(true)}>
             <Eye className="mr-2 h-4 w-4" />
             Xem chi tiết
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setShowEditDialog(true)}>
+          <DropdownMenuItem onSelect={() => setShowEditDialog(true)}>
             <Pencil className="mr-2 h-4 w-4" />
             Chỉnh sửa
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           {news.status === 'draft' && (
-            <DropdownMenuItem onClick={handlePublish}>
+            <DropdownMenuItem onSelect={handlePublish}>
               <FileCheck className="mr-2 h-4 w-4" />
               Xuất bản
             </DropdownMenuItem>
           )}
           {news.status === 'published' && (
-            <DropdownMenuItem onClick={handleArchive}>
+            <DropdownMenuItem onSelect={handleArchive}>
               <Archive className="mr-2 h-4 w-4" />
               Lưu trữ
             </DropdownMenuItem>
           )}
           <DropdownMenuSeparator />
           <DropdownMenuItem
-            onClick={() => setShowDeleteDialog(true)}
+            onSelect={() => setShowDeleteDialog(true)}
             className="text-red-600"
           >
             <Trash className="mr-2 h-4 w-4" />

@@ -11,7 +11,8 @@ export const getNews = createAsyncThunk(
   'news/getAll',
   async (params = {}, { rejectWithValue }) => {
     try {
-      const response = await api.get('/news/admin/all', { params })
+      const timestamp = new Date().getTime()
+      const response = await api.get('/news/admin/all', { params: { ...params, _t: timestamp } })
       const { data, pagination } = response.data
       return { data, pagination }
     } catch (error) {
@@ -24,7 +25,8 @@ export const getNewsById = createAsyncThunk(
   'news/getById',
   async (id, { rejectWithValue }) => {
     try {
-      const response = await api.get(`/news/admin/${id}`)
+      const timestamp = new Date().getTime()
+      const response = await api.get(`/news/admin/${id}?_t=${timestamp}`)
       return response.data.data
     } catch (error) {
       return rejectWithValue(handleError(error))
@@ -41,7 +43,7 @@ export const createNews = createAsyncThunk(
       toast.success('Tạo bài viết thành công')
       return response.data.data
     } catch (error) {
-      toast.error(handleError(error))
+      toast.error(handleError(error)?.message || 'Lỗi không xác định')
       return rejectWithValue(handleError(error))
     }
   },
@@ -56,7 +58,7 @@ export const updateNews = createAsyncThunk(
       toast.success('Cập nhật bài viết thành công')
       return response.data.data
     } catch (error) {
-      toast.error(handleError(error))
+      toast.error(handleError(error)?.message || 'Lỗi không xác định')
       return rejectWithValue(handleError(error))
     }
   },
@@ -70,7 +72,7 @@ export const deleteNews = createAsyncThunk(
       await dispatch(getNews()).unwrap()
       toast.success('Xóa bài viết thành công')
     } catch (error) {
-      toast.error(handleError(error))
+      toast.error(handleError(error)?.message || 'Lỗi không xác định')
       return rejectWithValue(handleError(error))
     }
   },
@@ -84,7 +86,7 @@ export const publishNews = createAsyncThunk(
       await dispatch(getNews()).unwrap()
       toast.success('Xuất bản bài viết thành công')
     } catch (error) {
-      toast.error(handleError(error))
+      toast.error(handleError(error)?.message || 'Lỗi không xác định')
       return rejectWithValue(handleError(error))
     }
   },
@@ -98,7 +100,7 @@ export const archiveNews = createAsyncThunk(
       await dispatch(getNews()).unwrap()
       toast.success('Lưu trữ bài viết thành công')
     } catch (error) {
-      toast.error(handleError(error))
+      toast.error(handleError(error)?.message || 'Lỗi không xác định')
       return rejectWithValue(handleError(error))
     }
   },
@@ -146,7 +148,7 @@ export const createNewsCategory = createAsyncThunk(
       toast.success('Tạo danh mục thành công')
       return response.data.data
     } catch (error) {
-      toast.error(handleError(error))
+      toast.error(handleError(error)?.message || 'Lỗi không xác định')
       return rejectWithValue(handleError(error))
     }
   },
@@ -161,7 +163,7 @@ export const updateNewsCategory = createAsyncThunk(
       toast.success('Cập nhật danh mục thành công')
       return response.data.data
     } catch (error) {
-      toast.error(handleError(error))
+      toast.error(handleError(error)?.message || 'Lỗi không xác định')
       return rejectWithValue(handleError(error))
     }
   },
@@ -175,7 +177,7 @@ export const deleteNewsCategory = createAsyncThunk(
       await dispatch(getNewsCategories()).unwrap()
       toast.success('Xóa danh mục thành công')
     } catch (error) {
-      toast.error(handleError(error))
+      toast.error(handleError(error)?.message || 'Lỗi không xác định')
       return rejectWithValue(handleError(error))
     }
   },
@@ -192,6 +194,7 @@ const newsSlice = createSlice({
     categories: [],
     currentNews: null,
     loading: false,
+    currentNewsLoading: false,
     categoriesLoading: false,
     pagination: {
       page: 1,
@@ -223,14 +226,14 @@ const newsSlice = createSlice({
       })
       // Get News By ID
       .addCase(getNewsById.pending, (state) => {
-        state.loading = true
+        state.currentNewsLoading = true
       })
       .addCase(getNewsById.fulfilled, (state, action) => {
-        state.loading = false
+        state.currentNewsLoading = false
         state.currentNews = action.payload
       })
       .addCase(getNewsById.rejected, (state, action) => {
-        state.loading = false
+        state.currentNewsLoading = false
         state.error = action.payload
       })
       // Create News

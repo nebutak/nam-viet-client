@@ -22,12 +22,13 @@ import {
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Skeleton } from '@/components/ui/skeleton'
+import RichTextEditor from '@/components/custom/RichTextEditor'
 
 export default function EditNewsDialog({ open, onOpenChange, newsId }) {
   const dispatch = useDispatch()
   const categories = useSelector((state) => state.news.categories)
   const currentNews = useSelector((state) => state.news.currentNews)
-  const loading = useSelector((state) => state.news.loading)
+  const loading = useSelector((state) => state.news.currentNewsLoading)
   const [submitting, setSubmitting] = useState(false)
 
   const [formData, setFormData] = useState({
@@ -100,7 +101,7 @@ export default function EditNewsDialog({ open, onOpenChange, newsId }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Chỉnh sửa bài viết</DialogTitle>
           <DialogDescription>
@@ -187,13 +188,12 @@ export default function EditNewsDialog({ open, onOpenChange, newsId }) {
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="content">Nội dung *</Label>
-                <Textarea
-                  id="content"
+                <Label>Nội dung *</Label>
+              <RichTextEditor
                   value={formData.content}
-                  onChange={(e) => handleChange('content', e.target.value)}
-                  rows={8}
-                  required
+                  onChange={(html) => handleChange('content', html)}
+                  placeholder="Nhập nội dung bài viết..."
+                  minHeight={420}
                 />
               </div>
 
