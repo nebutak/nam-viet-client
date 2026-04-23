@@ -393,6 +393,12 @@ export const sideLinks = [
         icon: <FolderOpen size={18} strokeWidth={1.5} />,
         permission: 'GET_REVENUE_REPORT',
       },
+      {
+        title: 'Duyệt bình luận',
+        href: '/news-comments',
+        icon: <MessageSquare size={18} strokeWidth={1.5} />,
+        permission: 'GET_REVENUE_REPORT',
+      },
     ],
   },
   {

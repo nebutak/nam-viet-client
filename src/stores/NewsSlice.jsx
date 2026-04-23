@@ -106,16 +106,60 @@ export const archiveNews = createAsyncThunk(
   },
 )
 
+export const getNewsComments = createAsyncThunk(
+  'news/getComments',
+  async (params = {}, { rejectWithValue }) => {
+    try {
+      const response = await api.get('/news/admin/comments', { params })
+      const { data, pagination } = response.data
+      return { data, pagination }
+    } catch (error) {
+      return rejectWithValue(handleError(error))
+    }
+  },
+)
+
+export const updateNewsCommentStatus = createAsyncThunk(
+  'news/updateCommentStatus',
+  async ({ id, status, params }, { rejectWithValue, dispatch }) => {
+    try {
+      await api.patch(`/news/admin/comments/${id}/status`, { status })
+      await dispatch(getNewsComments(params)).unwrap()
+      await dispatch(getNews()).unwrap()
+      toast.success('Cập nhật trạng thái bình luận thành công')
+    } catch (error) {
+      toast.error(handleError(error)?.message || 'Lỗi không xác định')
+      return rejectWithValue(handleError(error))
+    }
+  },
+)
+
+export const deleteNewsComment = createAsyncThunk(
+  'news/deleteComment',
+  async ({ id, params }, { rejectWithValue, dispatch }) => {
+    try {
+      await api.delete(`/news/admin/comments/${id}`)
+      await dispatch(getNewsComments(params)).unwrap()
+      await dispatch(getNews()).unwrap()
+      toast.success('Xóa bình luận thành công')
+    } catch (error) {
+      toast.error(handleError(error)?.message || 'Lỗi không xác định')
+      return rejectWithValue(handleError(error))
+    }
+  },
+)
+
 export const uploadNewsImage = createAsyncThunk(
   'news/uploadImage',
   async (file, { rejectWithValue }) => {
     try {
       const formData = new FormData()
-      formData.append('image', file)
-      const response = await api.post('/upload/image', formData, {
+      formData.append('thumbnail', file)
+      const response = await api.post('/news/admin/upload-thumbnail', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       })
-      return response.data.url
+      const thumbnailPath = response.data?.data?.videoThumbnail
+      return thumbnailPath ? `/uploads/${thumbnailPath.replace(/^\/+/, '')}` : ''
     } catch (error) {
       toast.error('Lỗi khi tải ảnh lên')
       return rejectWithValue(handleError(error))
@@ -192,11 +236,19 @@ const newsSlice = createSlice({
   initialState: {
     news: [],
     categories: [],
+    comments: [],
     currentNews: null,
     loading: false,
     currentNewsLoading: false,
     categoriesLoading: false,
+    commentsLoading: false,
     pagination: {
+      page: 1,
+      limit: 20,
+      total: 0,
+      totalPages: 0,
+    },
+    commentsPagination: {
       page: 1,
       limit: 20,
       total: 0,
@@ -279,6 +331,19 @@ const newsSlice = createSlice({
       })
       .addCase(getNewsCategories.rejected, (state, action) => {
         state.categoriesLoading = false
+        state.error = action.payload
+      })
+      // Get Comments
+      .addCase(getNewsComments.pending, (state) => {
+        state.commentsLoading = true
+      })
+      .addCase(getNewsComments.fulfilled, (state, action) => {
+        state.commentsLoading = false
+        state.comments = action.payload.data
+        state.commentsPagination = action.payload.pagination
+      })
+      .addCase(getNewsComments.rejected, (state, action) => {
+        state.commentsLoading = false
         state.error = action.payload
       })
   },

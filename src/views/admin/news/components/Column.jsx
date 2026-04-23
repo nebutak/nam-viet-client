@@ -4,7 +4,7 @@ import { dateFormat } from '@/utils/date-format'
 import { useState } from 'react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { getPublicUrl } from '@/utils/file'
-import { FileText, Eye, ThumbsUp, MessageSquare } from 'lucide-react'
+import { FileText, Eye, ThumbsUp, MessageSquare, Share2 } from 'lucide-react'
 import ViewNewsDialog from './ViewNewsDialog'
 import { Badge } from '@/components/ui/badge'
 
@@ -192,6 +192,38 @@ export const getColumns = () => [
         <div className="flex items-center gap-1 w-20">
           <ThumbsUp className="h-4 w-4 text-muted-foreground" />
           <span>{row.getValue('likeCount') || 0}</span>
+        </div>
+      )
+    },
+    enableSorting: true,
+    enableHiding: true,
+  },
+  {
+    accessorKey: 'commentCount',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Bình luận" />
+    ),
+    cell: ({ row }) => {
+      return (
+        <div className="flex items-center gap-1 w-20">
+          <MessageSquare className="h-4 w-4 text-muted-foreground" />
+          <span>{row.getValue('commentCount') || 0}</span>
+        </div>
+      )
+    },
+    enableSorting: true,
+    enableHiding: true,
+  },
+  {
+    accessorKey: 'shareCount',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Chia sẻ" />
+    ),
+    cell: ({ row }) => {
+      return (
+        <div className="flex items-center gap-1 w-20">
+          <Share2 className="h-4 w-4 text-muted-foreground" />
+          <span>{row.getValue('shareCount') || 0}</span>
         </div>
       )
     },

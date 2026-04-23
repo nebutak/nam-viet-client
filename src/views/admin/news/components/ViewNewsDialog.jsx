@@ -11,7 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { dateFormat } from '@/utils/date-format'
 import { getPublicUrl } from '@/utils/file'
-import { Eye, ThumbsUp, MessageSquare, Calendar, User } from 'lucide-react'
+import { Eye, ThumbsUp, MessageSquare, User, Share2 } from 'lucide-react'
 
 const STATUS_COLORS = {
   draft: 'bg-gray-100 text-gray-800',
@@ -84,7 +84,7 @@ export default function ViewNewsDialog({ open, onOpenChange, newsId }) {
             </div>
 
             {/* Meta Info */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted rounded-lg">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 p-4 bg-muted rounded-lg">
               <div className="flex items-center gap-2">
                 <Eye className="h-4 w-4 text-muted-foreground" />
                 <div>
@@ -104,6 +104,13 @@ export default function ViewNewsDialog({ open, onOpenChange, newsId }) {
                 <div>
                   <div className="text-xs text-muted-foreground">Bình luận</div>
                   <div className="font-medium">{currentNews.commentCount || 0}</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Share2 className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <div className="text-xs text-muted-foreground">Chia sẻ</div>
+                  <div className="font-medium">{currentNews.shareCount || 0}</div>
                 </div>
               </div>
               <div className="flex items-center gap-2">

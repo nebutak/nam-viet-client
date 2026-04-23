@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { createNews } from '@/stores/NewsSlice'
+import { createNews, uploadNewsImage } from '@/stores/NewsSlice'
 import { Button } from '@/components/custom/Button'
 import {
   Dialog,
@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { Plus } from 'lucide-react'
+import { ImageIcon, Plus } from 'lucide-react'
 import RichTextEditor from '@/components/custom/RichTextEditor'
 
 export default function CreateNewsDialog() {
@@ -30,6 +30,8 @@ export default function CreateNewsDialog() {
   const categories = useSelector((state) => state.news.categories)
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [selectedImage, setSelectedImage] = useState(null)
+  const [imagePreview, setImagePreview] = useState('')
 
   const [formData, setFormData] = useState({
     title: '',
@@ -64,31 +66,65 @@ export default function CreateNewsDialog() {
     }
   }
 
+  const resetForm = () => {
+    setFormData({
+      title: '',
+      slug: '',
+      excerpt: '',
+      content: '',
+      contentType: 'article',
+      featuredImage: '',
+      categoryId: '',
+      status: 'draft',
+      isFeatured: false,
+      metaTitle: '',
+      metaDescription: '',
+      metaKeywords: '',
+    })
+    setSelectedImage(null)
+    setImagePreview('')
+  }
+
+  const handleOpenChange = (nextOpen) => {
+    setOpen(nextOpen)
+    if (!nextOpen) {
+      resetForm()
+    }
+  }
+
+  const handleImageChange = (event) => {
+    const file = event.target.files?.[0] || null
+    setSelectedImage(file)
+  }
+
+  useEffect(() => {
+    if (!selectedImage) {
+      setImagePreview('')
+      return
+    }
+
+    const previewUrl = URL.createObjectURL(selectedImage)
+    setImagePreview(previewUrl)
+
+    return () => URL.revokeObjectURL(previewUrl)
+  }, [selectedImage])
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
 
     try {
+      const featuredImage = selectedImage
+        ? await dispatch(uploadNewsImage(selectedImage)).unwrap()
+        : formData.featuredImage
+
       await dispatch(createNews({
         ...formData,
+        featuredImage,
         categoryId: parseInt(formData.categoryId),
       })).unwrap()
 
-      setOpen(false)
-      setFormData({
-        title: '',
-        slug: '',
-        excerpt: '',
-        content: '',
-        contentType: 'article',
-        featuredImage: '',
-        categoryId: '',
-        status: 'draft',
-        isFeatured: false,
-        metaTitle: '',
-        metaDescription: '',
-        metaKeywords: '',
-      })
+      handleOpenChange(false)
     } catch (error) {
       console.error(error)
     } finally {
@@ -97,7 +133,7 @@ export default function CreateNewsDialog() {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button size="sm" className="h-8">
           <Plus className="mr-2 h-4 w-4" />
@@ -196,14 +232,34 @@ export default function CreateNewsDialog() {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="featuredImage">Ảnh đại diện (URL) *</Label>
+              <Label htmlFor="featuredImage">Ảnh đại diện *</Label>
               <Input
                 id="featuredImage"
-                value={formData.featuredImage}
-                onChange={(e) => handleChange('featuredImage', e.target.value)}
-                placeholder="https://example.com/image.jpg"
+                type="file"
+                accept="image/jpeg,image/jpg,image/png,image/webp"
+                onChange={handleImageChange}
                 required
               />
+              {imagePreview && (
+                <div className="mt-2 flex items-center gap-3 rounded-md border p-3">
+                  <div className="h-20 w-28 overflow-hidden rounded border bg-muted">
+                    <img
+                      src={imagePreview}
+                      alt="Ảnh đại diện xem trước"
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                  <div className="min-w-0 text-sm">
+                    <div className="flex items-center gap-2 font-medium">
+                      <ImageIcon className="h-4 w-4" />
+                      <span className="truncate">{selectedImage?.name}</span>
+                    </div>
+                    <p className="mt-1 text-muted-foreground">
+                      JPG, PNG hoặc WebP. Tối đa 5MB.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex items-center space-x-2">
@@ -271,7 +327,7 @@ export default function CreateNewsDialog() {
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
               Hủy
             </Button>
             <Button type="submit" disabled={loading}>
