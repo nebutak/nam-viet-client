@@ -64,6 +64,7 @@ import InventorySummaryPage from '@/views/admin/warehouse-report/InventorySummar
 import InventoryDetailPage from '@/views/admin/warehouse-report/InventoryDetailPage'
 import CashFlowReportPage from '@/views/admin/cash-flow/CashFlowReportPage'
 import NewsPage from '@/views/admin/news/NewsPage'
+import NewsCategoryPage from '@/views/admin/news/NewsCategoryPage'
 
 const routes = [
   {
@@ -207,6 +208,11 @@ const routes = [
   {
     path: '/news',
     element: NewsPage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/news-categories',
+    element: NewsCategoryPage,
     layout: AdminLayout,
   },
   {

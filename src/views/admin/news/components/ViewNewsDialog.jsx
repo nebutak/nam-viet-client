@@ -28,7 +28,7 @@ const STATUS_LABELS = {
 export default function ViewNewsDialog({ open, onOpenChange, newsId }) {
   const dispatch = useDispatch()
   const currentNews = useSelector((state) => state.news.currentNews)
-  const loading = useSelector((state) => state.news.loading)
+  const loading = useSelector((state) => state.news.currentNewsLoading)
 
   useEffect(() => {
     if (open && newsId) {

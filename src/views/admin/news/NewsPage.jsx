@@ -1,7 +1,7 @@
 import { Layout, LayoutBody } from '@/components/custom/Layout'
 import { useDispatch, useSelector } from 'react-redux'
 import { getNews, getNewsCategories } from '@/stores/NewsSlice'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { NewsDataTable } from './components/NewsDataTable'
 import { getColumns } from './components/Column'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -20,7 +20,7 @@ const NewsPage = () => {
   const [globalFilter, setGlobalFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
 
-  const columns = getColumns()
+  const columns = useMemo(() => getColumns(), [])
 
   useEffect(() => {
     document.title = 'Quản lý bài viết'
