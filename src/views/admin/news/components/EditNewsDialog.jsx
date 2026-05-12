@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { updateNews, getNewsById, clearCurrentNews } from '@/stores/NewsSlice'
+import { updateNews, getNewsById, clearCurrentNews, uploadNewsThumbnail } from '@/stores/NewsSlice'
 import { Button } from '@/components/custom/Button'
+import { toast } from 'sonner'
 import {
   Dialog,
   DialogContent,
@@ -10,7 +11,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import {
@@ -22,6 +22,8 @@ import {
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Input } from '@/components/ui/input'
+import { Upload, X, ImageIcon } from 'lucide-react'
 import RichTextEditor from '@/components/custom/RichTextEditor'
 
 export default function EditNewsDialog({ open, onOpenChange, newsId }) {
@@ -30,6 +32,9 @@ export default function EditNewsDialog({ open, onOpenChange, newsId }) {
   const currentNews = useSelector((state) => state.news.currentNews)
   const loading = useSelector((state) => state.news.currentNewsLoading)
   const [submitting, setSubmitting] = useState(false)
+  const [imageUploading, setImageUploading] = useState(false)
+  const [imagePreview, setImagePreview] = useState(null)
+  const fileInputRef = useRef(null)
 
   const [formData, setFormData] = useState({
     title: '',
@@ -49,6 +54,8 @@ export default function EditNewsDialog({ open, onOpenChange, newsId }) {
   useEffect(() => {
     if (open && newsId) {
       dispatch(getNewsById(newsId))
+      setImagePreview(null)
+      if (fileInputRef.current) fileInputRef.current.value = ''
     }
     return () => {
       dispatch(clearCurrentNews())
@@ -78,20 +85,60 @@ export default function EditNewsDialog({ open, onOpenChange, newsId }) {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
+  const handleImageFileChange = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const objectUrl = URL.createObjectURL(file)
+    setImagePreview(objectUrl)
+
+    setImageUploading(true)
+    try {
+      const url = await dispatch(uploadNewsThumbnail(file)).unwrap()
+      handleChange('featuredImage', url)
+    } catch {
+      setImagePreview(null)
+    } finally {
+      setImageUploading(false)
+    }
+  }
+
+  const handleRemoveImage = () => {
+    setImagePreview(null)
+    handleChange('featuredImage', '')
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setSubmitting(true)
 
+    // Frontend validation
+    if (!formData.categoryId) {
+      toast.error('Vui lòng chọn danh mục bài viết')
+      return
+    }
+    if (!formData.featuredImage) {
+      toast.error('Vui lòng chọn ảnh đại diện cho bài viết')
+      return
+    }
+    if (!formData.content || formData.content === '<p></p>' || formData.content.trim() === '') {
+      toast.error('Vui lòng nhập nội dung bài viết')
+      return
+    }
+
+    setSubmitting(true)
     try {
       await dispatch(updateNews({
         id: newsId,
         data: {
           ...formData,
-          categoryId: parseInt(formData.categoryId),
+          categoryId: parseInt(formData.categoryId, 10),
         },
       })).unwrap()
 
       onOpenChange(false)
+      setImagePreview(null)
+      if (fileInputRef.current) fileInputRef.current.value = ''
     } catch (error) {
       console.error(error)
     } finally {
@@ -198,12 +245,62 @@ export default function EditNewsDialog({ open, onOpenChange, newsId }) {
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="featuredImage">Ảnh đại diện (URL)</Label>
-                <Input
-                  id="featuredImage"
-                  value={formData.featuredImage}
-                  onChange={(e) => handleChange('featuredImage', e.target.value)}
+                <Label>Ảnh đại diện</Label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,image/webp"
+                  className="hidden"
+                  onChange={handleImageFileChange}
                 />
+
+                {imagePreview || formData.featuredImage ? (
+                  <div className="relative group w-full h-48 rounded-lg overflow-hidden border bg-muted">
+                    <img
+                      src={imagePreview || formData.featuredImage}
+                      alt="Preview"
+                      className="w-full h-full object-cover"
+                    />
+                    {imageUploading && (
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                        <div className="text-white text-sm flex flex-col items-center gap-2">
+                          <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          Đang tải lên...
+                        </div>
+                      </div>
+                    )}
+                    {!imageUploading && (
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => fileInputRef.current?.click()}
+                        >
+                          <Upload className="w-4 h-4 mr-1" /> Đổi ảnh
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="destructive"
+                          onClick={handleRemoveImage}
+                        >
+                          <X className="w-4 h-4 mr-1" /> Xóa
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full h-48 rounded-lg border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center gap-2 text-muted-foreground hover:border-primary hover:text-primary transition-colors cursor-pointer bg-muted/30 hover:bg-primary/5"
+                  >
+                    <ImageIcon className="w-10 h-10" />
+                    <span className="text-sm font-medium">Chọn ảnh từ máy tính</span>
+                    <span className="text-xs">JPG, PNG, WebP · Tối đa 5MB</span>
+                  </button>
+                )}
               </div>
 
               <div className="flex items-center space-x-2">

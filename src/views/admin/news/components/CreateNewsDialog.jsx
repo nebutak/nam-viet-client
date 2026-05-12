@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useState, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { createNews, uploadNewsImage } from '@/stores/NewsSlice'
+import { createNews, uploadNewsThumbnail } from '@/stores/NewsSlice'
 import { Button } from '@/components/custom/Button'
+import { toast } from 'sonner'
 import {
   Dialog,
   DialogContent,
@@ -22,7 +23,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { ImageIcon, Plus } from 'lucide-react'
+import { Plus, Upload, X, ImageIcon } from 'lucide-react'
 import RichTextEditor from '@/components/custom/RichTextEditor'
 
 export default function CreateNewsDialog() {
@@ -30,8 +31,9 @@ export default function CreateNewsDialog() {
   const categories = useSelector((state) => state.news.categories)
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [selectedImage, setSelectedImage] = useState(null)
-  const [imagePreview, setImagePreview] = useState('')
+  const [imageUploading, setImageUploading] = useState(false)
+  const [imagePreview, setImagePreview] = useState(null)
+  const fileInputRef = useRef(null)
 
   const [formData, setFormData] = useState({
     title: '',
@@ -66,65 +68,73 @@ export default function CreateNewsDialog() {
     }
   }
 
-  const resetForm = () => {
-    setFormData({
-      title: '',
-      slug: '',
-      excerpt: '',
-      content: '',
-      contentType: 'article',
-      featuredImage: '',
-      categoryId: '',
-      status: 'draft',
-      isFeatured: false,
-      metaTitle: '',
-      metaDescription: '',
-      metaKeywords: '',
-    })
-    setSelectedImage(null)
-    setImagePreview('')
-  }
+  const handleImageFileChange = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
 
-  const handleOpenChange = (nextOpen) => {
-    setOpen(nextOpen)
-    if (!nextOpen) {
-      resetForm()
+    // Preview ngay lập tức
+    const objectUrl = URL.createObjectURL(file)
+    setImagePreview(objectUrl)
+
+    // Upload lên server
+    setImageUploading(true)
+    try {
+      const url = await dispatch(uploadNewsThumbnail(file)).unwrap()
+      handleChange('featuredImage', url)
+    } catch {
+      setImagePreview(null)
+    } finally {
+      setImageUploading(false)
     }
   }
 
-  const handleImageChange = (event) => {
-    const file = event.target.files?.[0] || null
-    setSelectedImage(file)
+  const handleRemoveImage = () => {
+    setImagePreview(null)
+    handleChange('featuredImage', '')
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
-
-  useEffect(() => {
-    if (!selectedImage) {
-      setImagePreview('')
-      return
-    }
-
-    const previewUrl = URL.createObjectURL(selectedImage)
-    setImagePreview(previewUrl)
-
-    return () => URL.revokeObjectURL(previewUrl)
-  }, [selectedImage])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+
+    // Frontend validation
+    if (!formData.categoryId) {
+      toast.error('Vui lòng chọn danh mục bài viết')
+      return
+    }
+    if (!formData.featuredImage) {
+      toast.error('Vui lòng chọn ảnh đại diện cho bài viết')
+      return
+    }
+    if (!formData.content || formData.content === '<p></p>' || formData.content.trim() === '') {
+      toast.error('Vui lòng nhập nội dung bài viết')
+      return
+    }
+
     setLoading(true)
-
     try {
-      const featuredImage = selectedImage
-        ? await dispatch(uploadNewsImage(selectedImage)).unwrap()
-        : formData.featuredImage
-
       await dispatch(createNews({
         ...formData,
-        featuredImage,
-        categoryId: parseInt(formData.categoryId),
+        categoryId: parseInt(formData.categoryId, 10),
       })).unwrap()
 
-      handleOpenChange(false)
+      setOpen(false)
+      setImagePreview(null)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+      setFormData({
+        title: '',
+        slug: '',
+        excerpt: '',
+        content: '',
+        contentType: 'article',
+        featuredImage: '',
+        categoryId: '',
+        status: 'draft',
+        isFeatured: false,
+        metaTitle: '',
+        metaDescription: '',
+        metaKeywords: '',
+      })
     } catch (error) {
       console.error(error)
     } finally {
@@ -133,7 +143,7 @@ export default function CreateNewsDialog() {
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button size="sm" className="h-8">
           <Plus className="mr-2 h-4 w-4" />
@@ -232,33 +242,61 @@ export default function CreateNewsDialog() {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="featuredImage">Ảnh đại diện *</Label>
-              <Input
-                id="featuredImage"
+              <Label>Ảnh đại diện *</Label>
+              <input
+                ref={fileInputRef}
                 type="file"
                 accept="image/jpeg,image/jpg,image/png,image/webp"
-                onChange={handleImageChange}
-                required
+                className="hidden"
+                onChange={handleImageFileChange}
               />
-              {imagePreview && (
-                <div className="mt-2 flex items-center gap-3 rounded-md border p-3">
-                  <div className="h-20 w-28 overflow-hidden rounded border bg-muted">
-                    <img
-                      src={imagePreview}
-                      alt="Ảnh đại diện xem trước"
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
-                  <div className="min-w-0 text-sm">
-                    <div className="flex items-center gap-2 font-medium">
-                      <ImageIcon className="h-4 w-4" />
-                      <span className="truncate">{selectedImage?.name}</span>
+
+              {imagePreview || formData.featuredImage ? (
+                <div className="relative group w-full h-48 rounded-lg overflow-hidden border bg-muted">
+                  <img
+                    src={imagePreview || formData.featuredImage}
+                    alt="Preview"
+                    className="w-full h-full object-cover"
+                  />
+                  {imageUploading && (
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                      <div className="text-white text-sm flex flex-col items-center gap-2">
+                        <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Đang tải lên...
+                      </div>
                     </div>
-                    <p className="mt-1 text-muted-foreground">
-                      JPG, PNG hoặc WebP. Tối đa 5MB.
-                    </p>
-                  </div>
+                  )}
+                  {!imageUploading && (
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <Upload className="w-4 h-4 mr-1" /> Đổi ảnh
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="destructive"
+                        onClick={handleRemoveImage}
+                      >
+                        <X className="w-4 h-4 mr-1" /> Xóa
+                      </Button>
+                    </div>
+                  )}
                 </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full h-48 rounded-lg border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center gap-2 text-muted-foreground hover:border-primary hover:text-primary transition-colors cursor-pointer bg-muted/30 hover:bg-primary/5"
+                >
+                  <ImageIcon className="w-10 h-10" />
+                  <span className="text-sm font-medium">Chọn ảnh từ máy tính</span>
+                  <span className="text-xs">JPG, PNG, WebP · Tối đa 5MB</span>
+                </button>
               )}
             </div>
 
@@ -327,7 +365,7 @@ export default function CreateNewsDialog() {
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Hủy
             </Button>
             <Button type="submit" disabled={loading}>
