@@ -106,16 +106,17 @@ export const archiveNews = createAsyncThunk(
   },
 )
 
-export const uploadNewsImage = createAsyncThunk(
-  'news/uploadImage',
+export const uploadNewsThumbnail = createAsyncThunk(
+  'news/uploadThumbnail',
   async (file, { rejectWithValue }) => {
     try {
       const formData = new FormData()
-      formData.append('image', file)
-      const response = await api.post('/upload/image', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      })
-      return response.data.url
+      formData.append('thumbnail', file)
+      // Không set Content-Type thủ công - để browser tự sinh boundary cho multipart/form-data
+      const response = await api.post('/news/admin/upload-thumbnail', formData)
+      // Backend trả về: { success: true, data: { videoThumbnail: "thumbnails/filename", ... } }
+      const serverUrl = import.meta.env.VITE_SERVER_URL_DEVELOPMENT || 'http://localhost:8080'
+      return `${serverUrl}/uploads/${response.data.data.videoThumbnail}`
     } catch (error) {
       toast.error('Lỗi khi tải ảnh lên')
       return rejectWithValue(handleError(error))
