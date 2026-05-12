@@ -46,7 +46,8 @@ const CustomerDebtPage = () => {
   const [searchTerm, setSearchTerm] = useState("")
   const [addressTerm, setAddressTerm] = useState("")
   // Tab: "aggregate" (Tổng hợp) hoặc "monthly" (Theo tháng)
-  const [activeTab, setActiveTab] = useState(isAdmin ? 'aggregate' : 'monthly')
+  // Nhân viên vẫn được xem danh sách tổng hợp như admin, nhưng không thấy khối tổng hợp năm.
+  const [activeTab, setActiveTab] = useState('aggregate')
 
   const [filters, setFilters] = useState({
     page: 1,
@@ -146,13 +147,6 @@ const CustomerDebtPage = () => {
       }))
     } catch (err) { }
   }
-
-  // Sync activeTab khi isAdmin thay đổi
-  useEffect(() => {
-    if (!isAdmin && activeTab === 'aggregate') {
-      setActiveTab('monthly')
-    }
-  }, [isAdmin])
 
   // Effect fetch cho tab Tổng hợp & Blacklist
   useEffect(() => {
@@ -354,17 +348,15 @@ const CustomerDebtPage = () => {
 
         {/* TAB TOGGLE */}
         <div className="flex gap-1 mb-2 bg-gray-100 p-1 rounded-lg w-fit">
-          {isAdmin && (
-            <button
-              onClick={() => setActiveTab('aggregate')}
-              className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'aggregate'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
-                }`}
-            >
-              Tổng hợp
-            </button>
-          )}
+          <button
+            onClick={() => setActiveTab('aggregate')}
+            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'aggregate'
+              ? 'bg-white text-gray-900 shadow-sm'
+              : 'text-gray-500 hover:text-gray-700'
+              }`}
+          >
+            Tổng hợp
+          </button>
           <button
             onClick={() => setActiveTab('monthly')}
             className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'monthly'
