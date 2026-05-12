@@ -52,6 +52,18 @@ const CreateEmployeeDialog = ({
         },
     })
 
+    // Hàm sinh mã nhân viên tự động NV-XXXX
+    const generateEmployeeCode = async () => {
+        try {
+            const response = await api.get('/users', { params: { limit: 1 } })
+            const total = response.data?.meta?.total ?? response.data?.data?.length ?? 0
+            const nextNum = String(total + 1).padStart(4, '0')
+            form.setValue('employeeCode', `NV-${nextNum}`)
+        } catch {
+            form.setValue('employeeCode', 'NV-0001')
+        }
+    }
+
     const [grantAccount, setGrantAccount] = useState(false)
     const [roles, setRoles] = useState([])
     const loading = useSelector((state) => state.user.loading)
@@ -62,7 +74,11 @@ const CreateEmployeeDialog = ({
             try {
                 const response = await api.get('/roles')
                 if (response.data && response.data.data) {
-                    setRoles(response.data.data)
+                    // Lọc bỏ role Quản trị viên hệ thống
+                    const filtered = response.data.data.filter(
+                        (r) => !r.roleName?.toLowerCase().includes('quản trị viên hệ thống')
+                    )
+                    setRoles(filtered)
                 }
             } catch (error) {
                 console.log('Error fetching roles:', error)
@@ -70,6 +86,13 @@ const CreateEmployeeDialog = ({
         }
         fetchRoles()
     }, [])
+
+    // Sinh mã tự động mỗi khi dialog mở
+    useEffect(() => {
+        if (open) {
+            generateEmployeeCode()
+        }
+    }, [open])
 
     const onSubmit = async (data) => {
         try {
@@ -125,7 +148,7 @@ const CreateEmployeeDialog = ({
                                     <FormItem className="mb-2 space-y-1">
                                         <FormLabel required={true}>Mã nhân viên</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="Nhập mã nhân viên" {...field} />
+                                            <Input placeholder="NV-0001" {...field} readOnly className="bg-muted cursor-not-allowed" />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>

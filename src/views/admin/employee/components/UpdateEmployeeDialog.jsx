@@ -61,7 +61,11 @@ const UpdateEmployeeDialog = ({
             try {
                 const response = await api.get('/roles')
                 if (response.data && response.data.data) {
-                    setRoles(response.data.data)
+                    // Lọc bỏ role Quản trị viên hệ thống
+                    const filtered = response.data.data.filter(
+                        (r) => !r.roleName?.toLowerCase().includes('quản trị viên hệ thống')
+                    )
+                    setRoles(filtered)
                 }
             } catch (error) {
                 console.log('Error fetching roles:', error)
@@ -136,7 +140,7 @@ const UpdateEmployeeDialog = ({
                                     <FormItem className="mb-2 space-y-1">
                                         <FormLabel required={true}>Mã nhân viên</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="Nhập mã nhân viên" {...field} />
+                                            <Input placeholder="Mã nhân viên" {...field} readOnly className="bg-muted cursor-not-allowed" />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
