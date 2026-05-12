@@ -6,12 +6,18 @@ const SocketContext = createContext(null)
 export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null)
 
-  // Use VITE_ environment variables commonly found in Vite apps
-  const SOCKET_URL = import.meta.env.VITE_SERVER_URL_DEVELOPMENT || import.meta.env.VITE_SERVER_URL_PRODUCTION
+  const SOCKET_URL = import.meta.env.PROD
+    ? import.meta.env.VITE_SERVER_URL_PRODUCTION
+    : import.meta.env.VITE_SERVER_URL_DEVELOPMENT
 
   useEffect(() => {
     // DISABLING SOCKET IO TEMPORARILY TO FIX CORS POLLING ERRORS
-    // const socketIo = io(SOCKET_URL)
+    // const socketIo = io(SOCKET_URL, {
+    //   path: '/socket.io',
+    //   transports: ['websocket'],
+    //   autoConnect: true,
+    //   withCredentials: true
+    // })
     // setSocket(socketIo)
 
     return () => {
