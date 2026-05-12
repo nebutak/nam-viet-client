@@ -25,7 +25,7 @@ const EmployeePage = () => {
                         </h2>
                     </div>
                 </div>
-                <div className="-mx-4 flex-1 overflow-hidden px-4 pt-1 pb-0 lg:flex-row lg:space-x-12 lg:space-y-0">
+                <div className="-mx-4 flex-1 overflow-y-auto px-4 pt-1 pb-0 lg:flex-row lg:space-x-12 lg:space-y-0">
                     {users && (
                         <EmployeeDataTable
                             data={users}
