@@ -8,15 +8,17 @@ import {
   DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { IconEdit, IconTrash } from '@tabler/icons-react'
+import { IconEdit, IconShieldCheck, IconTrash } from '@tabler/icons-react'
 import { DeleteUserDialog } from './DeleteUserDialog'
 import { useState } from 'react'
 import UpdateUserDialog from './UpdateUserDialog'
 import Can from '@/utils/can'
+import UpdateEmployeePermissionsDialog from '@/views/admin/employee/components/UpdateEmployeePermissionsDialog'
 
 const DataTableRowActions = ({ row }) => {
   const [showDeleteUserDialog, setShowDeleteUserDialog] = useState(false)
   const [showUpdateUserDialog, setShowUpdateUserDialog] = useState(false)
+  const [showUpdatePermissionsDialog, setShowUpdatePermissionsDialog] = useState(false)
 
   return (
     <>
@@ -37,6 +39,14 @@ const DataTableRowActions = ({ row }) => {
         />
       )}
 
+      {showUpdatePermissionsDialog && (
+        <UpdateEmployeePermissionsDialog
+          open={showUpdatePermissionsDialog}
+          onOpenChange={setShowUpdatePermissionsDialog}
+          user={row.original}
+        />
+      )}
+
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -53,6 +63,18 @@ const DataTableRowActions = ({ row }) => {
               Sửa
               <DropdownMenuShortcut>
                 <IconEdit className="h-4 w-4" />
+              </DropdownMenuShortcut>
+            </DropdownMenuItem>
+          </Can>
+
+          <Can permission="UPDATE_USER">
+            <DropdownMenuItem
+              onSelect={() => setShowUpdatePermissionsDialog(true)}
+              className="text-emerald-700 focus:text-emerald-700 focus:bg-emerald-50"
+            >
+              Sửa quyền
+              <DropdownMenuShortcut>
+                <IconShieldCheck className="h-4 w-4" />
               </DropdownMenuShortcut>
             </DropdownMenuItem>
           </Can>

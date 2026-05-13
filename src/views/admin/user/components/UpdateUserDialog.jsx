@@ -38,6 +38,8 @@ import { useDispatch, useSelector } from 'react-redux'
 import { getRoles } from '@/stores/RoleSlice'
 import { updateUser } from '@/stores/UserSlice'
 import { updateUserFormSchema } from '../schema'
+import api from '@/utils/axios'
+import { toast } from 'sonner'
 
 const genders = [
   { label: 'Nam', value: 'male' },
@@ -55,6 +57,7 @@ const UpdateUserDialog = ({
   const loading = useSelector((state) => state.user.loading)
   const roles = useSelector((state) => state.role.roles)
   const [provideAccount, setProvideAccount] = useState(!!user.email)
+  const [loadingDetail, setLoadingDetail] = useState(false)
 
   const form = useForm({
     resolver: zodResolver(updateUserFormSchema),
@@ -78,8 +81,51 @@ const UpdateUserDialog = ({
 
   const dispatch = useDispatch()
   useEffect(() => {
-    dispatch(getRoles())
-  }, [dispatch])
+    if (!roles || roles.length === 0) {
+      dispatch(getRoles())
+    }
+  }, [dispatch, roles])
+
+  useEffect(() => {
+    if (!open || !user?.id) return
+
+    let mounted = true
+    const fetchUserDetail = async () => {
+      setLoadingDetail(true)
+      try {
+        const res = await api.get(`/users/${user.id}`)
+        const detail = res.data?.data
+        if (!mounted || !detail) return
+
+        form.reset({
+          fullName: detail.fullName || '',
+          employeeCode: detail.employeeCode || '',
+          email: detail.email || '',
+          password: '',
+          phone: detail.phone || '',
+          address: detail.address || '',
+          cccd: detail.cccd || '',
+          issuedAt: detail.issuedAt ? detail.issuedAt.split('T')[0] : '',
+          issuedBy: detail.issuedBy || '',
+          gender: detail.gender || '',
+          dateOfBirth: detail.dateOfBirth ? detail.dateOfBirth.split('T')[0] : '',
+          roleId: detail.roleId,
+          warehouseId: detail.warehouseId || undefined,
+          status: detail.status || 'active',
+        })
+        setProvideAccount(!!detail.email)
+      } catch (error) {
+        toast.error(error?.response?.data?.error?.message || 'Không tải được chi tiết nhân viên')
+      } finally {
+        if (mounted) setLoadingDetail(false)
+      }
+    }
+
+    fetchUserDetail()
+    return () => {
+      mounted = false
+    }
+  }, [open, user?.id, form])
 
   const onSubmit = async (data) => {
     try {
@@ -425,7 +471,7 @@ const UpdateUserDialog = ({
             </Button>
           </DialogClose>
 
-          <Button form="update-user" loading={loading}>
+          <Button form="update-user" loading={loading || loadingDetail}>
             Cập nhật
           </Button>
         </DialogFooter>

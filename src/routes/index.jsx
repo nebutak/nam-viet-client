@@ -17,7 +17,6 @@ import CustomerDebtPage from '@/views/admin/debt/CustomerDebtPage'
 import PartnerDebtPage from '@/views/admin/debt/PartnerDebtPage'
 import CategoryPage from '../views/admin/category/CategoryPage'
 import WarehousePage from '../views/admin/warehouse/WarehousePage'
-import UserPage from '../views/admin/user/UserPage' // Giữ nguyên UserPage cho trang User
 import RolePage from '../views/admin/role/RolePage'
 import SystemLogPage from '../views/admin/setting/system-log/SystemLogPage'
 import SettingPage from '../views/admin/setting/SettingPage'
@@ -339,7 +338,7 @@ const routes = [
   // },
   {
     path: '/user',
-    element: UserPage, // Trang người dùng hệ thống
+    element: EmployeePage,
     layout: AdminLayout,
   },
   {

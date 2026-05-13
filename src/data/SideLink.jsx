@@ -407,12 +407,6 @@ export const sideLinks = [
     permission: ['GET_USER', 'GET_ROLE', 'GET_AUDIT_LOG', 'GET_SETTING'],
     sub: [
       {
-        title: 'Danh sách người dùng',
-        href: '/user',
-        icon: <img src="/icons/Ds người dùng .png" className="w-[18px] h-[18px] " alt="Danh sách người dùng" />,
-        permission: 'GET_USER',
-      },
-      {
         title: 'Vai trò & Quyền',
         href: '/role-and-permissions',
         icon: <img src="/icons/role.png" className="w-[18px] h-[18px] " alt="Vai trò & Quyền" />,
