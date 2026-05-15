@@ -244,12 +244,14 @@ export const sideLinks = [
         icon: <img src="/icons/Đơn vị tính .png" className="w-[18px] h-[18px] " alt="Đơn vị tính" />,
         permission: 'GET_PRODUCT',
       },
-      {
-        title: 'Nhà cung cấp',
-        href: '/supplier',
-        icon: <img src="/icons/nhà cung cấp.png" className="w-[18px] h-[18px] " alt="Nhà cung cấp" />,
-        permission: 'GET_SUPPLIER',
-      },
+      // Ẩn menu con "Nhà cung cấp" trong nhóm "Nguyên liệu / Sản phẩm"
+      // vì đã có ở menu "Nhà cung cấp / Đối tác". Giữ lại để dễ bật lại sau.
+      // {
+      //   title: 'Nhà cung cấp',
+      //   href: '/supplier',
+      //   icon: <img src="/icons/nhà cung cấp.png" className="w-[18px] h-[18px] " alt="Nhà cung cấp" />,
+      //   permission: 'GET_SUPPLIER',
+      // },
       {
         title: 'Thuế',
         href: '/tax',

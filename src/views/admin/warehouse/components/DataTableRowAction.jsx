@@ -53,7 +53,7 @@ export function DataTableRowAction({ row }) {
                             <IconPackage className="h-4 w-4" />
                         </DropdownMenuShortcut>
                     </DropdownMenuItem>
-                    <Can permission={'WAREHOUSE_MANAGEMENT'}>
+                    <Can permission={'UPDATE_WAREHOUSE'}>
                         <DropdownMenuItem
                             onClick={() => setIsUpdateOpen(true)}
                             className="text-orange-600 focus:text-orange-600 focus:bg-orange-50"
@@ -63,6 +63,8 @@ export function DataTableRowAction({ row }) {
                                 <IconEdit className="h-4 w-4" />
                             </DropdownMenuShortcut>
                         </DropdownMenuItem>
+                    </Can>
+                    <Can permission={'DELETE_WAREHOUSE'}>
                         <DropdownMenuItem
                             onClick={() => setIsDeleteOpen(true)}
                             className="text-red-600 focus:text-red-600 focus:bg-red-50"

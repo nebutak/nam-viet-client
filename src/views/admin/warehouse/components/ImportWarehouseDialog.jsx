@@ -120,8 +120,6 @@ const ImportWarehouseDialog = ({
                 const mapType = (typeRaw) => {
                     const t = String(typeRaw).toLowerCase()
                     if (t.includes('nguyên liệu')) return 'raw_material'
-                    if (t.includes('bao bì')) return 'packaging'
-                    if (t.includes('thành phẩm')) return 'finished_product'
                     if (t.includes('hàng hóa')) return 'goods'
                     return 'goods' // default
                 }
