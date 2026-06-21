@@ -83,7 +83,7 @@ export const getColumns = (type) => [
     header: ({ column }) => (
       <DataTableColumnHeader 
         column={column} 
-        title={type === 'PRODUCT' ? 'Tên sản phẩm' : 'Tên nguyên liệu'} 
+        title={type === 'PRODUCT' ? 'Tên sản phẩm' : type === 'MATERIAL' ? 'Tên nguyên liệu' : 'Tên bao bì'} 
       />
     ),
     cell: ({ row }) => {

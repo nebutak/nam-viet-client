@@ -150,7 +150,7 @@ const DataTableToolbar = ({ table, type = 'PRODUCT', hideCreateProduct = false }
                 onClick={async () => {
                   const selectedRows = table.getSelectedRowModel().rows
                   if (selectedRows.length !== 1) {
-                    toast.warning(`Vui lòng chọn một ${type === 'PRODUCT' ? 'sản phẩm' : 'nguyên liệu'} để sao chép`)
+                    toast.warning(`Vui lòng chọn một ${type === 'PRODUCT' ? 'sản phẩm' : type === 'MATERIAL' ? 'nguyên liệu' : 'bao bì'} để sao chép`)
                     return
                   }
 
@@ -302,7 +302,7 @@ const DataTableToolbar = ({ table, type = 'PRODUCT', hideCreateProduct = false }
         onClick={async () => {
           const selectedRows = table.getSelectedRowModel().rows
           if (selectedRows.length !== 1) {
-            toast.warning(`Vui lòng chọn một ${type === 'PRODUCT' ? 'sản phẩm' : 'nguyên liệu'} để sao chép`)
+            toast.warning(`Vui lòng chọn một ${type === 'PRODUCT' ? 'sản phẩm' : type === 'MATERIAL' ? 'nguyên liệu' : 'bao bì'} để sao chép`)
             return
           }
 

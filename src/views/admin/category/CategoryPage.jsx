@@ -15,7 +15,7 @@ const CategoryPage = () => {
   const columns = getColumns(type)
 
   useEffect(() => {
-    document.title = type === 'PRODUCT' ? 'Danh mục sản phẩm' : 'Danh mục nguyên liệu'
+    document.title = type === 'PRODUCT' ? 'Danh mục sản phẩm' : type === 'MATERIAL' ? 'Danh mục nguyên liệu' : 'Danh mục bao bì'
     dispatch(getCategories({ type }))
   }, [dispatch, type])
 
@@ -25,13 +25,14 @@ const CategoryPage = () => {
         <div className="mb-2 flex items-center justify-between space-y-2">
           <div>
             <h2 className="text-2xl font-bold tracking-tight">
-              {type === 'PRODUCT' ? 'Danh mục sản phẩm' : 'Danh mục nguyên liệu'}
+              {type === 'PRODUCT' ? 'Danh mục sản phẩm' : type === 'MATERIAL' ? 'Danh mục nguyên liệu' : 'Danh mục bao bì'}
             </h2>
           </div>
-          <Tabs value={type} onValueChange={setType} className="w-[300px]">
-             <TabsList className="grid w-full grid-cols-2">
+          <Tabs value={type} onValueChange={setType} className="w-[450px]">
+             <TabsList className="grid w-full grid-cols-3">
                <TabsTrigger value="PRODUCT">Sản phẩm</TabsTrigger>
                <TabsTrigger value="MATERIAL">Nguyên liệu</TabsTrigger>
+               <TabsTrigger value="PACKAGING">Bao bì</TabsTrigger>
              </TabsList>
            </Tabs>
         </div>

@@ -145,6 +145,7 @@ const CreateCategoryDialog = ({
                     <SelectContent>
                       <SelectItem value="PRODUCT">Sản phẩm</SelectItem>
                       <SelectItem value="MATERIAL">Nguyên liệu</SelectItem>
+                      <SelectItem value="PACKAGING">Bao bì</SelectItem>
                     </SelectContent>
                   </Select>
                 </FormItem>

@@ -166,7 +166,7 @@ const ImportProductDialog = ({
         )
       } else {
         toast.success(
-          response.message || `Đã import thành công ${items.length} ${type === 'PRODUCT' ? 'sản phẩm' : 'nguyên liệu'}`,
+          response.message || `Đã import thành công ${items.length} ${type === 'PRODUCT' ? 'sản phẩm' : type === 'MATERIAL' ? 'nguyên liệu' : 'bao bì'}`,
         )
         onOpenChange(false)
         setFile(null)
@@ -252,7 +252,7 @@ const ImportProductDialog = ({
       const url = window.URL.createObjectURL(new Blob([response.data]))
       const link = document.createElement('a')
       link.href = url
-      link.setAttribute('download', `${type === 'PRODUCT' ? 'product' : 'material'}_import_template.xlsx`)
+      link.setAttribute('download', `${type === 'PRODUCT' ? 'product' : type === 'MATERIAL' ? 'material' : 'packaging'}_import_template.xlsx`)
       document.body.appendChild(link)
       link.click()
       link.parentNode.removeChild(link)
@@ -267,9 +267,9 @@ const ImportProductDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange} {...props}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Import Excel {type === 'PRODUCT' ? 'Sản Phẩm' : 'Nguyên Liệu'}</DialogTitle>
+          <DialogTitle>Import Excel {type === 'PRODUCT' ? 'Sản Phẩm' : type === 'MATERIAL' ? 'Nguyên Liệu' : 'Bao Bì'}</DialogTitle>
           <DialogDescription>
-            Chọn file Excel chứa danh sách {type === 'PRODUCT' ? 'sản phẩm' : 'nguyên liệu'} để nhập liệu.
+            Chọn file Excel chứa danh sách {type === 'PRODUCT' ? 'sản phẩm' : type === 'MATERIAL' ? 'nguyên liệu' : 'bao bì'} để nhập liệu.
             <br />
             <span className="text-xs text-muted-foreground">Đảm bảo file theo đúng mẫu template.</span>
           </DialogDescription>

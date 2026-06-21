@@ -475,7 +475,8 @@ const UpdateProductDialog = ({
                               {categories
                                 ?.filter(
                                   (category) =>
-                                    category.status === 'active',
+                                    category.status === 'active' &&
+                                    category.type === form.watch('type'),
                                 )
                                 .map((category) => (
                                   <SelectItem

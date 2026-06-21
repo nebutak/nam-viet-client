@@ -52,7 +52,7 @@ const ExportProductDialog = ({
       const products = data?.data || [] // Adjusted response parsing
 
       if (!products.length) {
-        toast.warning(`Danh sách ${type === 'PRODUCT' ? 'sản phẩm' : 'nguyên liệu'} trống`)
+        toast.warning(`Danh sách ${type === 'PRODUCT' ? 'sản phẩm' : type === 'MATERIAL' ? 'nguyên liệu' : 'bao bì'} trống`)
         return
       }
 
@@ -79,7 +79,7 @@ const ExportProductDialog = ({
 
       <DialogContent className="md:h-auto md:w-[320px] z-[100095]" overlayClassName="z-[100094]">
         <DialogHeader>
-          <DialogTitle>Xuất báo cáo {type === 'PRODUCT' ? 'sản phẩm' : 'nguyên liệu'}</DialogTitle>
+          <DialogTitle>Xuất báo cáo {type === 'PRODUCT' ? 'sản phẩm' : type === 'MATERIAL' ? 'nguyên liệu' : 'bao bì'}</DialogTitle>
           <DialogDescription>
             Chọn số lượng bản ghi để xuất file
           </DialogDescription>
