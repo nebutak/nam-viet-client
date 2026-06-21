@@ -36,6 +36,7 @@ import {
 } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 import { getCustomers } from '@/stores/CustomerSlice'
+import { getWarehouses } from '@/stores/WarehouseSlice'
 import UpdateCustomerDialog from '../../customer/components/UpdateCustomerDialog'
 import CreateCustomerDialog from '../../customer/components/CreateCustomerDialog'
 import { createInvoiceSchema } from '../schema'
@@ -104,6 +105,7 @@ const InvoiceDialog = ({
   }, [flatCategories])
 
   const customers = useSelector((state) => state.customer.customers)
+  const warehouses = useSelector((state) => state.warehouse.warehouses) || []
   const loading = useSelector((state) => state.invoice.loading)
   const authUserWithRoleHasPermissions =
     useSelector((state) => state.auth.authUserWithRoleHasPermissions) || {}
@@ -193,6 +195,7 @@ const InvoiceDialog = ({
     dispatch(getCategories({ type: 'PRODUCT' }))
     dispatch(getSetting('sharing_ratio'))
     dispatch(getUsers())
+    dispatch(getWarehouses({ limit: 100 }))
   }, [dispatch])
   useEffect(() => {
     if (!open) return
@@ -912,6 +915,7 @@ const InvoiceDialog = ({
       totalAmount: calculateTotalAmount(),
       expectedDeliveryDate: data.expectedDeliveryDate || null,
       requireApproval: data.requireApproval,
+      warehouseId: data.warehouseId || null,
       ...(appliedPromotion && { promotionId: appliedPromotion.id }),
       ...(otherExpenses?.price > 0 && { otherExpenses: [otherExpenses] }),
 
@@ -1364,28 +1368,29 @@ const InvoiceDialog = ({
       <>
         <div className={cn("fixed inset-0 top-14 bottom-16 bg-background z-40 flex flex-col pt-0", props.contentClassName)}>
           {/* Mobile Header */}
-          <div className="px-4 py-3 border-b flex items-center justify-between bg-background">
-            <div className="flex items-center gap-2">
+          <div className="px-4 py-3 border-b flex items-center justify-between bg-gradient-to-r from-emerald-600 to-green-700 text-white shadow-md">
+            <div className="flex items-center gap-3">
               {mobileView === 'cart' && (
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
+                  className="text-white hover:bg-white/20 h-9 w-9"
                   onClick={() => setMobileView('products')}
                 >
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
                   </svg>
                 </Button>
               )}
               <div>
-                <h2 className="text-lg font-semibold">
+                <h2 className="text-lg font-bold tracking-tight">
                   {mobileView === 'products' ? 'Chọn sản phẩm' : 'Giỏ hàng'}
                 </h2>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-[10px] text-emerald-50 opacity-90 font-medium">
                   {mobileView === 'products'
                     ? `${selectedProducts.length} sản phẩm đã chọn`
-                    : 'Hoàn tất đơn hàng'
+                    : 'Hoàn tất đơn bán hàng'
                   }
                 </p>
               </div>
@@ -1394,6 +1399,7 @@ const InvoiceDialog = ({
               type="button"
               variant="ghost"
               size="icon"
+              className="text-white hover:bg-white/20 h-9 w-9"
               onClick={() => onOpenChange(false)}
             >
               <X className="h-5 w-5" />
@@ -1812,12 +1818,15 @@ const InvoiceDialog = ({
         )}
 
         <DialogContent className="max-w-screen w-screen p-0 m-0 h-[calc(100vh-64px)] md:max-h-screen md:h-screen">
-          <DialogHeader className="px-6 pt-4">
-            <DialogTitle>
-              {invoiceId ? 'Cập nhật hóa đơn bán hàng' : 'Tạo đơn bán mới'}
+          <DialogHeader className="px-6 py-5 bg-gradient-to-r from-emerald-600 to-green-700 text-white rounded-t-lg shadow-lg relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-2xl" />
+            <div className="absolute bottom-0 right-1/4 w-24 h-24 bg-emerald-400/10 rounded-full blur-xl" />
+            
+            <DialogTitle className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+              <span>{invoiceId ? 'Cập nhật hóa đơn bán hàng' : 'Tạo đơn bán mới'}</span>
             </DialogTitle>
-            <DialogDescription>
-              Chọn sản phẩm và điền thông tin để tạo đơn bán
+            <DialogDescription className="text-emerald-50 opacity-90 font-medium">
+              Chọn sản phẩm và điền thông tin để hoàn tất đơn hàng chuyên nghiệp
             </DialogDescription>
           </DialogHeader>
 
@@ -1972,6 +1981,7 @@ const InvoiceDialog = ({
                 <InvoiceSidebar
                   form={form}
                   customers={customers}
+                  warehouses={warehouses.filter(w => w.warehouseType === 'product')}
                   selectedCustomer={selectedCustomer}
                   customerEditData={customerEditData}
                   customerErrors={customerErrors}

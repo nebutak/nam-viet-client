@@ -9,7 +9,7 @@ export const createWarehouseSchema = z.object({
         .trim(),
     warehouseName: z.string().min(1, 'Tên kho là bắt buộc').max(200, 'Tên kho quá dài').trim(),
     warehouseType: z
-        .enum(['raw_material', 'packaging', 'finished_product', 'goods'], {
+        .enum(['raw_material', 'goods'], {
             errorMap: () => ({ message: 'Loại kho không hợp lệ' })
         }),
     address: z.string().max(255, 'Địa chỉ quá dài').optional().or(z.literal('')),
@@ -29,7 +29,7 @@ export const updateWarehouseSchema = z.object({
         .trim()
         .optional(),
     warehouseName: z.string().max(200, 'Tên kho quá dài').trim().optional(),
-    warehouseType: z.enum(['raw_material', 'packaging', 'finished_product', 'goods']).optional(),
+    warehouseType: z.enum(['raw_material', 'goods']).optional(),
     address: z.string().max(255, 'Địa chỉ quá dài').optional().or(z.literal('')),
     city: z.string().max(100, 'Tên thành phố quá dài').optional().or(z.literal('')),
     region: z.string().max(100, 'Tên vùng quá dài').optional().or(z.literal('')),

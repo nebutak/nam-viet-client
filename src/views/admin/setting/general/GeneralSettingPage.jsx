@@ -458,7 +458,7 @@ const GeneralSettingPage = () => {
                           <IconUser className="h-4 w-4" />
                           <span>
                             Người cập nhật sau cùng:{' '}
-                            <strong>{setting?.user?.fullName || 'N/A'}</strong>
+                            <strong>{setting?.updatedBy?.fullName || 'N/A'}</strong>
                           </span>
                         </li>
 

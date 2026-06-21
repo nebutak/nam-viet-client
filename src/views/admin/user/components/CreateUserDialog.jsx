@@ -38,6 +38,7 @@ import { createUser } from '@/stores/UserSlice'
 import { useDispatch, useSelector } from 'react-redux'
 import { getRoles } from '@/stores/RoleSlice'
 import { createUserFormSchema } from '../schema'
+import api from '@/utils/axios'
 
 const genders = [
   { label: 'Nam', value: 'male' },
@@ -77,8 +78,35 @@ const CreateUserDialog = ({
 
   const dispatch = useDispatch()
   useEffect(() => {
-    dispatch(getRoles())
-  }, [dispatch])
+    if (!roles || roles.length === 0) {
+      dispatch(getRoles())
+    }
+  }, [dispatch, roles])
+
+  useEffect(() => {
+    if (!open) return
+
+    let mounted = true
+    const generateEmployeeCode = async () => {
+      try {
+        const response = await api.get('/users', { params: { limit: 1 } })
+        const total = response.data?.meta?.total ?? response.data?.data?.length ?? 0
+        const nextNum = String(total + 1).padStart(4, '0')
+        if (mounted) {
+          form.setValue('employeeCode', `NV-${nextNum}`)
+        }
+      } catch {
+        if (mounted) {
+          form.setValue('employeeCode', 'NV-0001')
+        }
+      }
+    }
+
+    generateEmployeeCode()
+    return () => {
+      mounted = false
+    }
+  }, [open, form])
 
   const onSubmit = async (data) => {
     try {
@@ -103,6 +131,7 @@ const CreateUserDialog = ({
       }
       await dispatch(createUser(payload)).unwrap()
       form.reset()
+      setGrantAccount(false)
       onOpenChange?.(false)
     } catch (error) {
       console.log('Submit error: ', error)

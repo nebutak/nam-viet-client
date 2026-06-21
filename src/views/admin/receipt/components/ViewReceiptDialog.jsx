@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -40,7 +40,8 @@ import { Printer } from 'lucide-react'
 import { dateFormat } from '@/utils/date-format'
 import { moneyFormat, toVietnamese } from '@/utils/money-format'
 import { getPublicUrl } from '@/utils/file'
-import { getReceiptById, approveReceipt, postReceipt, getReceiptQRCode } from '@/stores/ReceiptSlice'
+import { getReceiptById, approveReceipt, postReceipt, updateReceiptStatus, getReceiptQRCode } from '@/stores/ReceiptSlice'
+import UpdateReceiptStatusDialog from './UpdateReceiptStatusDialog'
 import { DeleteReceiptDialog } from './DeleteReceiptDialog'
 import { receiptStatus, paymentMethods } from '../data'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -63,8 +64,10 @@ const ViewReceiptDialog = ({
   const [loading, setLoading] = useState(false)
   const [actionLoading, setActionLoading] = useState(false)
   const [printData, setPrintData] = useState(null)
+  const [editableReason, setEditableReason] = useState('')
 
   const [qrCodeData, setQrCodeData] = useState(null)
+  const [showUpdateStatusDialog, setShowUpdateStatusDialog] = useState(false)
   const [openQrDisplayDialog, setOpenQrDisplayDialog] = useState(false)
 
   const handleGenerateQR = async (receiptData) => {
@@ -146,6 +149,20 @@ const ViewReceiptDialog = ({
     }
   }
 
+  const handleUpdateStatus = async (newStatus, id) => {
+    try {
+      setActionLoading(true)
+      await dispatch(updateReceiptStatus({ id, status: newStatus })).unwrap()
+      const result = await dispatch(getReceiptById(id)).unwrap()
+      setReceipt(result)
+      setShowUpdateStatusDialog(false)
+    } catch (error) {
+      console.error(error)
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
   const getReceiptStatusObj = (statusValue) => {
     return receiptStatus.find(s => s.value === statusValue)
   }
@@ -165,6 +182,7 @@ const ViewReceiptDialog = ({
         try {
           const result = await dispatch(getReceiptById(receiptId)).unwrap()
           setReceipt(result)
+          setEditableReason(result.note || result.notes || '')
         } catch (error) {
           console.error("Failed to fetch receipt", error)
           toast.error("Không thể tải thông tin phiếu thu")
@@ -180,7 +198,10 @@ const ViewReceiptDialog = ({
 
   const handlePrintReceipt = () => {
     if (!receipt) return
-    setPrintData(receipt)
+    setPrintData({
+      ...receipt,
+      note: editableReason
+    })
   }
 
   return (
@@ -411,11 +432,21 @@ const ViewReceiptDialog = ({
 
                   {/* Tổng hợp & công nợ */}
                   <div className="grid gap-4 md:grid-cols-[2fr,1fr]">
-                    <div className="text-sm">
-                      <strong className="text-destructive">Ghi chú: </strong>
-                      <span className="text-primary">
-                        {receipt?.note || 'Không có'}
-                      </span>
+                    <div className="text-sm space-y-1">
+                      <strong className="text-destructive">Lý do nộp tiền (Có thể sửa trước khi in): </strong>
+                      <div className="mt-1">
+                        <textarea
+                          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 min-h-[60px]"
+                          value={editableReason}
+                          onChange={(e) => setEditableReason(e.target.value)}
+                          placeholder="Nhập lý do nộp tiền..."
+                        />
+                      </div>
+                      {receipt?.note && receipt.note !== editableReason && (
+                        <div className="mt-1">
+                          <strong>Ghi chú gốc: </strong> {receipt.note}
+                        </div>
+                      )}
                     </div>
 
                     <div className="space-y-4 text-sm">
@@ -437,10 +468,12 @@ const ViewReceiptDialog = ({
                         <div className="flex items-center gap-2">
                           <Badge
                             className={cn(
-                              receipt?.status === 'posted' ? 'bg-green-500' : 'bg-yellow-500'
+                              "cursor-pointer hover:underline",
+                              (receipt?.status === 'posted' || receipt?.isPosted) ? 'bg-green-500' : 'bg-yellow-500'
                             )}
+                            onClick={() => setShowUpdateStatusDialog(true)}
                           >
-                            {receipt?.status === 'posted' ? 'Đã ghi sổ' : 'Chờ duyệt'}
+                            {(receipt?.status === 'posted' || receipt?.isPosted) ? 'Đã ghi sổ' : 'Chờ duyệt'}
                           </Badge>
                         </div>
                       </div>
@@ -649,7 +682,7 @@ const ViewReceiptDialog = ({
         <DialogFooter className={cn("hidden md:flex sm:space-x-0")}>
           <div className={cn("w-full grid grid-cols-2 gap-2 sm:flex sm:flex-row sm:justify-end")}>
 
-            {(receipt?.status === 'draft') && (
+            {(!receipt?.isPosted && receipt?.status !== 'posted') && (
               <Button
                 size="sm"
                 className="gap-2 bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto"
@@ -726,6 +759,17 @@ const ViewReceiptDialog = ({
         qrCodeData={qrCodeData}
         overlayClassName="z-[100060]"
         className="z-[100061]"
+      />
+
+      <UpdateReceiptStatusDialog
+        open={showUpdateStatusDialog}
+        onOpenChange={setShowUpdateStatusDialog}
+        receiptId={receiptId}
+        currentStatus={receipt?.status || (receipt?.isPosted ? 'posted' : 'draft')}
+        statuses={receiptStatus}
+        onSubmit={handleUpdateStatus}
+        contentClassName="z-[100070]"
+        overlayClassName="z-[100069]"
       />
 
       {

@@ -7,9 +7,9 @@ const initialState = {
         { id: 'orders-kpi', type: 'kpi', visible: true, order: 2, title: 'Đơn hàng mới' },
         { id: 'debts-kpi', type: 'kpi', visible: true, order: 3, title: 'Công nợ phải thu' },
         { id: 'production-kpi', type: 'kpi', visible: true, order: 4, title: 'Lệnh SX đang chạy' },
-        { id: 'revenue-target', type: 'kpi', visible: true, order: 5, title: 'Mục tiêu Doanh thu' },
+        { id: 'top-products-pie', type: 'kpi', visible: true, order: 5, title: 'Tỷ trọng Doanh thu Sản phẩm' },
         { id: 'revenue-chart', type: 'chart', visible: true, order: 6, title: 'Biểu đồ doanh thu' },
-        { id: 'sales-channel-chart', type: 'chart', visible: true, order: 7, title: 'Phân bổ kênh bán hàng' },
+        { id: 'top-exported-chart', type: 'chart', visible: true, order: 7, title: 'Sản lượng xuất kho nhiều nhất' },
         { id: 'inventory-chart', type: 'chart', visible: true, order: 8, title: 'Tỷ trọng tồn kho' },
         { id: 'activity-log', type: 'list', visible: true, order: 9, title: 'Nhật ký hoạt động' },
         { id: 'alerts-section', type: 'list', visible: true, order: 10, title: 'Cảnh báo & Hành động' },
@@ -69,11 +69,13 @@ export const getDashboardStats = createAsyncThunk(
                 alerts: {
                     low_stock: serverData.alerts?.low_stock || [],
                     overdue_debts: serverData.alerts?.overdue_debts || [],
-                    // These fields are provided from the server stats but might not have dedicated API
-                    pending_orders: [],
-                    expiring: [],
+                    // pending_orders: build a count-based array to show in AlertsSection
+                    pending_orders: serverData.alerts?.pending_orders_count > 0
+                        ? Array(serverData.alerts.pending_orders_count).fill({ placeholder: true })
+                        : [],
+                    expiring: serverData.alerts?.expiring || [],
                     delayed_production: [],
-                    cash_fund: 0,
+                    cash_fund: serverData.alerts?.cash_fund || 0,
                 },
                 recent: {
                     orders: serverData.recent?.orders || [],

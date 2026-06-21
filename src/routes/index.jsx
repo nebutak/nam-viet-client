@@ -17,7 +17,6 @@ import CustomerDebtPage from '@/views/admin/debt/CustomerDebtPage'
 import PartnerDebtPage from '@/views/admin/debt/PartnerDebtPage'
 import CategoryPage from '../views/admin/category/CategoryPage'
 import WarehousePage from '../views/admin/warehouse/WarehousePage'
-import UserPage from '../views/admin/user/UserPage' // Giữ nguyên UserPage cho trang User
 import RolePage from '../views/admin/role/RolePage'
 import SystemLogPage from '../views/admin/setting/system-log/SystemLogPage'
 import SettingPage from '../views/admin/setting/SettingPage'
@@ -62,6 +61,10 @@ import WarrantyPage from '@/views/admin/warranty/WarrantyPage'
 import DeliveryPage from '@/views/admin/delivery/DeliveryPage'
 import InventorySummaryPage from '@/views/admin/warehouse-report/InventorySummaryPage'
 import InventoryDetailPage from '@/views/admin/warehouse-report/InventoryDetailPage'
+import CashFlowReportPage from '@/views/admin/cash-flow/CashFlowReportPage'
+import NewsPage from '@/views/admin/news/NewsPage'
+import NewsCategoryPage from '@/views/admin/news/NewsCategoryPage'
+import NewsCommentsPage from '@/views/admin/news/NewsCommentsPage'
 
 const routes = [
   {
@@ -196,6 +199,27 @@ const routes = [
     element: PartnerDebtPage,
     layout: AdminLayout,
   },
+  //Báo cáo thu chi (Sổ quỹ)
+  {
+    path: '/cash-flow',
+    element: CashFlowReportPage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/news',
+    element: NewsPage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/news-categories',
+    element: NewsCategoryPage,
+    layout: AdminLayout,
+  },
+  {
+    path: '/news-comments',
+    element: NewsCommentsPage,
+    layout: AdminLayout,
+  },
   {
     path: '/invoice',
     element: InvoicePage,
@@ -314,7 +338,7 @@ const routes = [
   // },
   {
     path: '/user',
-    element: UserPage, // Trang người dùng hệ thống
+    element: EmployeePage,
     layout: AdminLayout,
   },
   {

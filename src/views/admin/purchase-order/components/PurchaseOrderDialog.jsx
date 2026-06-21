@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/form'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Check, ChevronsUpDown, Plus, LayoutGrid, Edit } from 'lucide-react'
+import { Check, ChevronsUpDown, Plus, LayoutGrid, Edit, Package, FlaskConical } from 'lucide-react'
 import { useDispatch, useSelector } from 'react-redux'
 import { getProducts } from '@/stores/ProductSlice'
 import { cn } from '@/lib/utils'
@@ -68,9 +68,7 @@ const PurchaseOrderDialog = ({
       }
     })
   }, [products])
-  const flatCategories = useSelector((state) =>
-    state.category.categories.filter(c => c.type === 'MATERIAL')
-  )
+  const allCategories = useSelector((state) => state.category.categories)
   const suppliers = useSelector((state) => state.supplier.suppliers)
   const loading = useSelector((state) => state.purchaseOrder.loading)
   const authUserWithRoleHasPermissions =
@@ -81,6 +79,7 @@ const PurchaseOrderDialog = ({
 
   // UI States
   const [mobileView, setMobileView] = useState('products') // 'products' | 'cart'
+  const [productMode, setProductMode] = useState('MATERIAL') // 'MATERIAL' | 'PRODUCT'
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [openCombobox, setOpenCombobox] = useState(false)
@@ -109,6 +108,9 @@ const PurchaseOrderDialog = ({
     price: 0,
     description: '',
   })
+
+  // VAT
+  const [vatRate, setVatRate] = useState(0)
 
 
   // Create Product Dialog State
@@ -149,11 +151,11 @@ const PurchaseOrderDialog = ({
   // Fetch Products & Suppliers
   useEffect(() => {
     if (open) {
-      dispatch(getProducts({ type: 'MATERIAL' }))
+      dispatch(getProducts({ type: productMode }))
       dispatch(getSuppliers())
-      dispatch(getCategories({ type: 'MATERIAL' }))
+      dispatch(getCategories({ type: productMode }))
     }
-  }, [dispatch, open])
+  }, [dispatch, open, productMode])
 
   // Populate Data for Update
   useEffect(() => {
@@ -248,6 +250,7 @@ const PurchaseOrderDialog = ({
     setExpectedDeliveryDate(null)
     setSearchQuery('')
     setSelectedCategory('all')
+    setProductMode('MATERIAL')
     setMobileView('products')
     setIsPrintContract(false)
     setContractNumber('')
@@ -255,6 +258,7 @@ const PurchaseOrderDialog = ({
     setContractPreviewData(null)
     setFetchedOrder(null)
     setOtherExpenses({ price: 0, description: '' })
+    setVatRate(0)
 
     // Reset form to default values for CREATE mode mostly
     form.reset({
@@ -270,6 +274,15 @@ const PurchaseOrderDialog = ({
       isAutoApprove: true,
     })
   }, [open, form])
+
+  // Filter categories by current product mode
+  const flatCategories = useMemo(() =>
+    allCategories.filter(c => c.type === productMode)
+  , [allCategories, productMode])
+
+  // Label helpers based on mode
+  const modeLabel = productMode === 'MATERIAL' ? 'nguyên liệu' : 'sản phẩm'
+  const modeLabelCapitalized = productMode === 'MATERIAL' ? 'Nguyên liệu' : 'Sản phẩm'
 
   // ====== CATEGORY LOGIC ======
   const categories = useMemo(() => {
@@ -295,16 +308,24 @@ const PurchaseOrderDialog = ({
 
   const productCounts = useMemo(() => {
     const counts = {}
-    processedProducts.forEach(product => {
+    const base = selectedSupplier
+      ? processedProducts.filter(p => p.supplier?.id === selectedSupplier.id)
+      : processedProducts
+    base.forEach(product => {
       const categoryId = product.categoryId || 'uncategorized'
       counts[categoryId] = (counts[categoryId] || 0) + 1
     })
     return counts
-  }, [processedProducts])
+  }, [processedProducts, selectedSupplier])
 
   // ====== PRODUCT FILTERING ======
   useEffect(() => {
     let filtered = processedProducts
+
+    // Filter by selected supplier
+    if (selectedSupplier) {
+      filtered = filtered.filter(p => p.supplier?.id === selectedSupplier.id)
+    }
 
     if (selectedCategory !== 'all') {
       filtered = filtered.filter(p => (p.categoryId || 'uncategorized') === selectedCategory)
@@ -320,7 +341,7 @@ const PurchaseOrderDialog = ({
     }
 
     setFilteredProducts(filtered)
-  }, [selectedCategory, processedProducts, searchQuery])
+  }, [selectedCategory, processedProducts, searchQuery, selectedSupplier])
 
   // ====== UNIT HELPERS ======
   const getBaseUnitId = (product) =>
@@ -556,7 +577,8 @@ const PurchaseOrderDialog = ({
     const subTotal = calculateSubTotal()
     const tax = calculateTotalTax()
     const expenses = calculateExpenses()
-    return subTotal + tax + expenses
+    const vatAmount = Math.round(handleCalculateSubTotalInvoice() * (Number(vatRate) || 0) / 100)
+    return subTotal + tax + expenses + vatAmount
   }
 
   const handleSetOtherExpenses = (data) => {
@@ -658,6 +680,8 @@ const PurchaseOrderDialog = ({
       orderDate: data.orderDate ? new Date(data.orderDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
       expectedDeliveryDate: formattedDate,
       otherCosts: otherExpenses.price,
+      vatRate: Number(vatRate) || 0,
+      vatAmount: Math.round(handleCalculateSubTotalInvoice() * (Number(vatRate) || 0) / 100),
       isAutoApprove: data.isAutoApprove,
 
       notes: data.note,
@@ -745,11 +769,11 @@ const PurchaseOrderDialog = ({
               )}
               <div>
                 <h2 className="text-lg font-semibold">
-                  {mobileView === 'products' ? 'Chọn nguyên liệu' : 'Đơn hàng'}
+                  {mobileView === 'products' ? `Chọn ${modeLabel}` : 'Đơn hàng'}
                 </h2>
                 <p className="text-xs text-muted-foreground">
                   {mobileView === 'products' ?
-                    (isUpdateMode ? 'Cập nhật đơn hàng' : `${selectedProducts.length} nguyên liệu đã chọn`) :
+                    (isUpdateMode ? 'Cập nhật đơn hàng' : `${selectedProducts.length} ${modeLabel} đã chọn`) :
                     (isUpdateMode ? 'Cập nhật đơn hàng' : 'Hoàn tất đơn hàng')
                   }
                 </p>
@@ -780,19 +804,19 @@ const PurchaseOrderDialog = ({
                           aria-expanded={openCombobox}
                           className="w-full justify-between"
                         >
-                          {searchQuery ? searchQuery : "Tìm kiếm nguyên liệu..."}
+                          {searchQuery ? searchQuery : `Tìm kiếm ${modeLabel}...`}
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-[calc(100vw-32px)] p-0 z-[1001]" align="start">
                         <Command shouldFilter={false}>
                           <CommandInput
-                            placeholder="Nhập tên hoặc mã nguyên liệu..."
+                            placeholder={`Nhập tên hoặc mã ${modeLabel}...`}
                             value={searchQuery}
                             onValueChange={setSearchQuery}
                           />
                           <CommandList>
-                            <CommandEmpty>Không tìm thấy nguyên liệu.</CommandEmpty>
+                            <CommandEmpty>Không tìm thấy {modeLabel}.</CommandEmpty>
                             <CommandGroup heading="Gợi ý">
                               {filteredProducts.slice(0, 10).map((product) => {
                                 const isSelected = selectedProducts.some(p => p.id === product.id)
@@ -833,11 +857,47 @@ const PurchaseOrderDialog = ({
                       </PopoverContent>
                     </Popover>
                     <div className="mt-3 text-xs text-muted-foreground">
-                      Hiển thị {filteredProducts.length} / {products.length} nguyên liệu
+                      Hiển thị {filteredProducts.length} / {products.length} {modeLabel}
                     </div>
                   </div>
 
-                  <div className="px-4 py-2 border-b flex justify-end bg-background">
+                  <div className="px-4 py-2 border-b flex items-center justify-between bg-background">
+                    <div className="flex items-center gap-1 bg-muted/60 rounded-lg p-0.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setProductMode('MATERIAL')
+                          setSelectedCategory('all')
+                          setSearchQuery('')
+                        }}
+                        className={cn(
+                          "flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all",
+                          productMode === 'MATERIAL'
+                            ? "bg-background text-foreground shadow-sm"
+                            : "text-muted-foreground"
+                        )}
+                      >
+                        <FlaskConical className="h-3 w-3" />
+                        Nguyên liệu
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setProductMode('PRODUCT')
+                          setSelectedCategory('all')
+                          setSearchQuery('')
+                        }}
+                        className={cn(
+                          "flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all",
+                          productMode === 'PRODUCT'
+                            ? "bg-background text-foreground shadow-sm"
+                            : "text-muted-foreground"
+                        )}
+                      >
+                        <Package className="h-3 w-3" />
+                        Sản phẩm
+                      </button>
+                    </div>
                     <Button
                       size="sm"
                       variant="default"
@@ -848,7 +908,7 @@ const PurchaseOrderDialog = ({
                       }}
                     >
                       <Plus className="h-3 w-3 mr-1" />
-                      Thêm nguyên liệu
+                      Thêm {modeLabel}
                     </Button>
                   </div>
 
@@ -931,6 +991,9 @@ const PurchaseOrderDialog = ({
                         calculateExpenses={calculateExpenses}
                         onEditExpenses={() => setShowOtherExpenses(true)}
                         isUpdate={isUpdateMode}
+                        vatRate={vatRate}
+                        onVatRateChange={setVatRate}
+                        vatAmount={Math.round(handleCalculateSubTotalInvoice() * (Number(vatRate) || 0) / 100)}
                       />
                     </div>
                   </div>
@@ -943,10 +1006,11 @@ const PurchaseOrderDialog = ({
         <CreateProductDialog
           open={showCreateProduct}
           onOpenChange={setShowCreateProduct}
+          defaultType={productMode}
           onSuccess={() => {
-            dispatch(getProducts())
+            dispatch(getProducts({ type: productMode }))
             setShowCreateProduct(false)
-            toast.success('Đã thêm nguyên liệu mới')
+            toast.success(`Đã thêm ${modeLabel} mới`)
           }}
           showTrigger={false}
           contentClassName="z-[10006]"
@@ -971,9 +1035,16 @@ const PurchaseOrderDialog = ({
       )}
 
       <DialogContent className="max-w-screen w-screen p-0 m-0 h-[calc(100vh-64px)] md:max-h-screen md:h-screen">
-        <DialogHeader className="px-6 pt-4">
-          <DialogTitle>{isUpdateMode ? 'Cập nhật đơn đặt hàng' : 'Tạo đơn đặt hàng mới'}</DialogTitle>
-          <DialogDescription>{isUpdateMode ? 'Chỉnh sửa thông tin đơn đặt hàng' : 'Chọn nguyên liệu và điền thông tin để tạo đơn đặt hàng'}</DialogDescription>
+        <DialogHeader className="px-6 py-5 bg-gradient-to-r from-emerald-600 to-green-700 text-white rounded-t-lg shadow-lg relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-2xl" />
+          <div className="absolute bottom-0 right-1/4 w-24 h-24 bg-emerald-400/10 rounded-full blur-xl" />
+          
+          <DialogTitle className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+            <span>{isUpdateMode ? 'Cập nhật đơn đặt hàng' : 'Tạo đơn đặt hàng mới'}</span>
+          </DialogTitle>
+          <DialogDescription className="text-emerald-50 opacity-90 font-medium">
+            {isUpdateMode ? 'Chỉnh sửa thông tin đơn đặt hàng' : `Chọn ${modeLabel} và điền thông tin để tạo đơn đặt hàng`}
+          </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
@@ -989,19 +1060,19 @@ const PurchaseOrderDialog = ({
                         aria-expanded={openCombobox}
                         className="w-full justify-between"
                       >
-                        {searchQuery ? searchQuery : "Tìm kiếm nguyên liệu..."}
+                        {searchQuery ? searchQuery : `Tìm kiếm ${modeLabel}...`}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-[660px] p-0 z-[1001]" align="start">
                       <Command shouldFilter={false}>
                         <CommandInput
-                          placeholder="Nhập tên hoặc mã nguyên liệu..."
+                          placeholder={`Nhập tên hoặc mã ${modeLabel}...`}
                           value={searchQuery}
                           onValueChange={setSearchQuery}
                         />
                         <CommandList>
-                          <CommandEmpty>Không tìm thấy nguyên liệu.</CommandEmpty>
+                          <CommandEmpty>Không tìm thấy {modeLabel}.</CommandEmpty>
                           <CommandGroup heading="Gợi ý">
                             {filteredProducts.slice(0, 10).map((product) => {
                               const isSelected = selectedProducts.some(p => p.id === product.id)
@@ -1048,11 +1119,47 @@ const PurchaseOrderDialog = ({
                     </PopoverContent>
                   </Popover>
                   <div className="mt-3 text-xs text-muted-foreground">
-                    Hiển thị {filteredProducts.length} / {products.length} nguyên liệu
+                    Hiển thị {filteredProducts.length} / {products.length} {modeLabel}
                   </div>
                 </div>
 
-                <div className="ml-auto">
+                <div className="flex items-center justify-between px-2 py-1.5">
+                  <div className="flex items-center gap-1 bg-muted/60 rounded-lg p-0.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setProductMode('MATERIAL')
+                        setSelectedCategory('all')
+                        setSearchQuery('')
+                      }}
+                      className={cn(
+                        "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
+                        productMode === 'MATERIAL'
+                          ? "bg-background text-foreground shadow-sm"
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      <FlaskConical className="h-3.5 w-3.5" />
+                      Nguyên liệu
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setProductMode('PRODUCT')
+                        setSelectedCategory('all')
+                        setSearchQuery('')
+                      }}
+                      className={cn(
+                        "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
+                        productMode === 'PRODUCT'
+                          ? "bg-background text-foreground shadow-sm"
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      <Package className="h-3.5 w-3.5" />
+                      Sản phẩm
+                    </button>
+                  </div>
                   <Button
                     size="sm"
                     variant="default"
@@ -1063,7 +1170,7 @@ const PurchaseOrderDialog = ({
                     }}
                   >
                     <Plus className="h-3 w-3 mr-1" />
-                    Thêm nguyên liệu
+                    Thêm {modeLabel}
                   </Button>
                 </div>
 
@@ -1126,6 +1233,9 @@ const PurchaseOrderDialog = ({
                 calculateExpenses={calculateExpenses}
                 onEditExpenses={() => setShowOtherExpenses(true)}
                 isUpdate={isUpdateMode}
+                vatRate={vatRate}
+                onVatRateChange={setVatRate}
+                vatAmount={Math.round(handleCalculateSubTotalInvoice() * (Number(vatRate) || 0) / 100)}
               />
             </div>
           </form>
@@ -1144,11 +1254,11 @@ const PurchaseOrderDialog = ({
       <CreateProductDialog
         open={showCreateProduct}
         onOpenChange={setShowCreateProduct}
-        defaultType="MATERIAL"
+        defaultType={productMode}
         onSuccess={() => {
-          dispatch(getProducts({ type: 'MATERIAL' }))
+          dispatch(getProducts({ type: productMode }))
           setShowCreateProduct(false)
-          toast.success('Đã thêm nguyên liệu mới')
+          toast.success(`Đã thêm ${modeLabel} mới`)
         }}
         showTrigger={false}
         contentClassName="z-[10006]"

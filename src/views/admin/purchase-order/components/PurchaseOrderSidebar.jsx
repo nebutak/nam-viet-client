@@ -63,6 +63,9 @@ const PurchaseOrderSidebar = ({
   expectedDeliveryDate,
   onExpectedDeliveryDateChange,
   isUpdate = false,
+  vatRate = 0,
+  onVatRateChange,
+  vatAmount = 0,
 }) => {
   const dispatch = useDispatch()
   const [openOrderDatePicker, setOpenOrderDatePicker] = useState(false)
@@ -162,8 +165,11 @@ const PurchaseOrderSidebar = ({
       {/* Left divider */}
       <div className="absolute left-0 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-border/40 to-transparent" />
 
-      <div className="p-4 border-b bg-background">
-        <h3 className="font-semibold">Thông tin đơn mua hàng</h3>
+      <div className="p-4 border-b bg-emerald-50/30 flex items-center gap-2">
+        <div className="p-1.5 bg-emerald-600 rounded-md">
+          <IconDatabasePlus className="h-4 w-4 text-white" />
+        </div>
+        <h3 className="font-bold text-emerald-800 tracking-tight">Thông tin đơn mua hàng</h3>
       </div>
 
       <ScrollArea className="flex-1">
@@ -641,14 +647,17 @@ const PurchaseOrderSidebar = ({
           <Separator />
 
           {/* Summary */}
-          <div className="space-y-2">
-            <h4 className="font-semibold text-sm">Tổng kết</h4>
+          <div className="p-4 rounded-xl bg-gradient-to-br from-emerald-50/50 to-white border border-emerald-100/50 shadow-sm space-y-3">
+            <h4 className="font-bold text-emerald-900 text-sm flex items-center gap-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              Tổng kết đơn mua
+            </h4>
 
-            <div className="space-y-1.5 text-sm">
+            <div className="space-y-2 text-sm">
               {/* Tạm tính */}
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Tạm tính:</span>
-                <span>{moneyFormat(subtotal)}</span>
+              <div className="flex justify-between items-center group">
+                <span className="text-muted-foreground group-hover:text-foreground transition-colors">Tạm tính:</span>
+                <span className="font-medium">{moneyFormat(subtotal)}</span>
               </div>
 
               {/* Giảm giá */}
@@ -700,16 +709,55 @@ const PurchaseOrderSidebar = ({
                 </div>
               )}
 
-              <Separator />
-
-              {/* Tổng cộng */}
-              <div className="flex justify-between font-semibold text-base pt-1">
-                <span>Tổng cộng:</span>
-                <span className="text-primary">{moneyFormat(total)}</span>
+              {/* VAT */}
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">VAT (%):</span>
+                <div className="flex items-center gap-2">
+                  <div className="relative w-20">
+                    <Input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.1"
+                      placeholder="0"
+                      value={vatRate === 0 ? '' : vatRate}
+                      onChange={(e) => {
+                        const val = e.target.value
+                        if (val === '') {
+                          onVatRateChange && onVatRateChange(0)
+                        } else {
+                          const num = parseFloat(val)
+                          if (!isNaN(num) && num >= 0 && num <= 100) {
+                            onVatRateChange && onVatRateChange(num)
+                          }
+                        }
+                      }}
+                      onFocus={(e) => e.target.select()}
+                      className="h-7 pr-6 text-xs text-right"
+                    />
+                    <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">%</span>
+                  </div>
+                </div>
               </div>
+              {vatAmount > 0 && (
+                <div className="flex justify-between text-orange-600">
+                  <span>Tiền VAT:</span>
+                  <span className="font-medium">+{moneyFormat(vatAmount)}</span>
+                </div>
+              )}
 
-              <div className="text-xs text-muted-foreground pt-1">
-                Bằng chữ: <span className="font-medium">{toVietnamese(total)}</span>
+              <div className="pt-2 border-t border-emerald-100">
+                <div className="flex justify-between items-end mb-1">
+                  <span className="font-bold text-emerald-900">Tổng cộng:</span>
+                  <span className="text-2xl font-black text-emerald-700 tracking-tight">
+                    {moneyFormat(total)}
+                  </span>
+                </div>
+
+                <div className="text-[10px] text-muted-foreground pt-1 italic text-right leading-tight">
+                  <span className="opacity-70">Bằng chữ: </span>
+                  <span className="font-semibold text-emerald-800">{toVietnamese(total)}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -717,17 +765,17 @@ const PurchaseOrderSidebar = ({
       </ScrollArea >
 
       {/* Footer Actions */}
-      < div className="p-4 border-t space-y-2" >
+      <div className="p-4 border-t space-y-2">
         <Button
-          className="w-full"
+          className="w-full bg-emerald-600 hover:bg-emerald-700 h-11 text-base font-bold shadow-lg shadow-emerald-100 transition-all hover:scale-[1.01] active:scale-[0.99]"
           onClick={form.handleSubmit(onSubmit)}
           disabled={loading}
           loading={loading}
         >
-          <IconDatabasePlus className="h-4 w-4 mr-2" />
-          {isUpdate ? 'Cập nhật đơn hàng' : 'Tạo đơn mua hàng'}
+          <IconDatabasePlus className="h-5 w-5 mr-2" />
+          {isUpdate ? 'Cập nhật đơn mua' : 'Xác nhận & Lưu đơn'}
         </Button>
-      </div >
+      </div>
     </div >
   )
 }

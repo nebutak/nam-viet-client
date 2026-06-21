@@ -158,7 +158,9 @@ const UpdateCategoryDialog = ({
                         </FormControl>
                         <SelectContent className="z-[10010]">
                           <SelectItem value="none">-- Không chọn --</SelectItem>
-                          {categoriesList.filter(cat => cat.id !== category.id).map((cat) => (
+                          {categoriesList
+                            .filter(cat => cat.id !== category.id && cat.type === type)
+                            .map((cat) => (
                             <SelectItem key={cat.id} value={cat.id.toString()}>
                               {cat.categoryName}
                             </SelectItem>

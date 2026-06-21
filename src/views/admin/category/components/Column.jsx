@@ -98,10 +98,10 @@ export const getColumns = (type) => [
   {
     id: 'itemCount',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={type === 'MATERIAL' ? "Số nguyên liệu" : "Số sản phẩm"} />
+      <DataTableColumnHeader column={column} title={type === 'MATERIAL' ? "Số nguyên liệu" : type === 'PACKAGING' ? "Số bao bì" : "Số sản phẩm"} />
     ),
     cell: ({ row }) => (
-      <div className="w-24 text-center">{type === 'MATERIAL' ? (row.original._count?.materials || 0) : (row.original._count?.products || 0)}</div>
+      <div className="w-24 text-center">{row.original._count?.products || 0}</div>
     ),
     enableSorting: false,
     enableHiding: true,

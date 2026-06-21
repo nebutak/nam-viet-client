@@ -8,15 +8,17 @@ import {
     DropdownMenuShortcut,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { IconEdit, IconTrash } from '@tabler/icons-react'
+import { IconEdit, IconShieldCheck, IconTrash } from '@tabler/icons-react'
 import Can from '@/utils/can'
 import { useState } from 'react'
 import DeleteUserDialog from './DeleteEmployeeDialog'
 import UpdateUserDialog from './UpdateEmployeeDialog'
+import UpdateEmployeePermissionsDialog from './UpdateEmployeePermissionsDialog'
 
 const DataTableRowActions = ({ row }) => {
     const [showDeleteUserDialog, setShowDeleteUserDialog] = useState(false)
     const [showUpdateUserDialog, setShowUpdateUserDialog] = useState(false)
+    const [showUpdatePermissionsDialog, setShowUpdatePermissionsDialog] = useState(false)
 
     return (
         <>
@@ -35,6 +37,14 @@ const DataTableRowActions = ({ row }) => {
                     onOpenChange={setShowUpdateUserDialog}
                     user={row.original}
                     showTrigger={false}
+                />
+            )}
+
+            {showUpdatePermissionsDialog && (
+                <UpdateEmployeePermissionsDialog
+                    open={showUpdatePermissionsDialog}
+                    onOpenChange={setShowUpdatePermissionsDialog}
+                    user={row.original}
                 />
             )}
 
@@ -57,6 +67,18 @@ const DataTableRowActions = ({ row }) => {
                             Sửa
                             <DropdownMenuShortcut>
                                 <IconEdit className="h-4 w-4" />
+                            </DropdownMenuShortcut>
+                        </DropdownMenuItem>
+                    </Can>
+
+                    <Can permission="UPDATE_USER">
+                        <DropdownMenuItem
+                            onSelect={() => setShowUpdatePermissionsDialog(true)}
+                            className="text-emerald-700 focus:text-emerald-700 focus:bg-emerald-50"
+                        >
+                            Sửa quyền
+                            <DropdownMenuShortcut>
+                                <IconShieldCheck className="h-4 w-4" />
                             </DropdownMenuShortcut>
                         </DropdownMenuItem>
                     </Can>

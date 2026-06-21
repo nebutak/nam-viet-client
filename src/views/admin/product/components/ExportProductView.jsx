@@ -47,7 +47,7 @@ const ExportProductView = ({
 }) => {
   const handleExport = async () => {
     const workbook = new ExcelJS.Workbook()
-    const label = type === 'PRODUCT' ? 'Sản phẩm' : 'Nguyên liệu'
+    const label = type === 'PRODUCT' ? 'Sản phẩm' : type === 'MATERIAL' ? 'Nguyên liệu' : 'Bao bì'
     const worksheet = workbook.addWorksheet(`Danh sách ${label}`, {
       views: [{ showGridLines: true }],
     })
@@ -154,7 +154,7 @@ const ExportProductView = ({
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `DanhSach_${type === 'PRODUCT' ? 'SanPham' : 'NguyenLieu'}.xlsx`
+    a.download = `DanhSach_${type === 'PRODUCT' ? 'SanPham' : type === 'MATERIAL' ? 'NguyenLieu' : 'BaoBi'}.xlsx`
     document.body.appendChild(a)
     a.click()
     onOpenChange(false)
@@ -176,7 +176,7 @@ const ExportProductView = ({
 
       <DialogContent className="md:h-auto md:max-w-full z-[100100]" overlayClassName="z-[100099]">
         <DialogHeader>
-          <DialogTitle>Danh sách {type === 'PRODUCT' ? 'sản phẩm' : 'nguyên liệu'} xuất file</DialogTitle>
+          <DialogTitle>Danh sách {type === 'PRODUCT' ? 'sản phẩm' : type === 'MATERIAL' ? 'nguyên liệu' : 'bao bì'} xuất file</DialogTitle>
         </DialogHeader>
 
         <div className="max-h-[65vh] overflow-auto md:max-h-[75vh]">
@@ -185,8 +185,8 @@ const ExportProductView = ({
               <TableHeader>
                 <TableRow className="bg-secondary text-xs whitespace-nowrap">
                   <TableHead className="w-8">STT</TableHead>
-                  <TableHead className="min-w-40">Tên {type === 'PRODUCT' ? 'sản phẩm' : 'nguyên liệu'}</TableHead>
-                  <TableHead className="min-w-28">Mã {type === 'PRODUCT' ? 'sản phẩm' : 'nguyên liệu'}</TableHead>
+                  <TableHead className="min-w-40">Tên {type === 'PRODUCT' ? 'sản phẩm' : type === 'MATERIAL' ? 'nguyên liệu' : 'bao bì'}</TableHead>
+                  <TableHead className="min-w-28">Mã {type === 'PRODUCT' ? 'sản phẩm' : type === 'MATERIAL' ? 'nguyên liệu' : 'bao bì'}</TableHead>
                   <TableHead className="min-w-32">Danh mục</TableHead>
                   <TableHead className="min-w-28">Loại</TableHead>
                   <TableHead className="min-w-28">Đơn vị</TableHead>
@@ -210,7 +210,7 @@ const ExportProductView = ({
                       <TableCell>{product.productName}</TableCell>
                       <TableCell>{product.code}</TableCell>
                       <TableCell>{product.category?.categoryName || '—'}</TableCell>
-                      <TableCell>{type === 'PRODUCT' ? 'Sản phẩm' : 'Nguyên liệu'}</TableCell>
+                      <TableCell>{type === 'PRODUCT' ? 'Sản phẩm' : type === 'MATERIAL' ? 'Nguyên liệu' : 'Bao bì'}</TableCell>
                       <TableCell>{unitName}</TableCell>
                       <TableCell>{stockQuantity}</TableCell>
                       <TableCell>{moneyFormat(product.basePrice || 0)}</TableCell>

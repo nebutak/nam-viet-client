@@ -702,14 +702,42 @@ const ViewPurchaseOrderDialog = ({
                             </span>
                           </div>
                         )}
-                        {purchaseOrder.paidAmount < purchaseOrder.totalAmount && (
-                          <div className="flex justify-between">
-                            <strong>Còn nợ:</strong>
-                            <span className="font-medium text-red-600">
-                              {moneyFormat(purchaseOrder.totalAmount - (purchaseOrder.paidAmount || 0))}
-                            </span>
-                          </div>
-                        )}
+                        {(() => {
+                          const totalAmount = parseFloat(purchaseOrder.totalAmount || 0)
+                          const paidAmount = parseFloat(purchaseOrder.paidAmount || 0)
+                          const diff = totalAmount - paidAmount
+                          if (diff > 0) {
+                            // Ta còn nợ NCC
+                            return (
+                              <div className="flex justify-between">
+                                <strong>Còn nợ:</strong>
+                                <span className="font-medium text-red-600">
+                                  {moneyFormat(diff)}
+                                </span>
+                              </div>
+                            )
+                          } else if (diff < 0) {
+                            // NCC nợ lại ta (đã chi nhiều hơn totalAmount)
+                            return (
+                              <div className="flex justify-between">
+                                <strong>NCC còn nợ:</strong>
+                                <span className="font-medium text-blue-600">
+                                  {moneyFormat(Math.abs(diff))}
+                                </span>
+                              </div>
+                            )
+                          } else if (paidAmount > 0 && diff === 0) {
+                            return (
+                              <div className="flex justify-between">
+                                <strong>Công nợ:</strong>
+                                <span className="font-medium text-green-600">
+                                  Đã thanh toán đủ
+                                </span>
+                              </div>
+                            )
+                          }
+                          return null
+                        })()}
                         {purchaseOrder.expectedDeliveryDate && (
                           <div className="flex justify-between">
                             <strong>Ngày nhận hàng dự kiến: </strong>
@@ -779,11 +807,8 @@ const ViewPurchaseOrderDialog = ({
                             const hasPostedReturn = purchaseOrder?.warehouseReceipts?.some(
                               r => r.referenceType === 'purchase_refunds' && r.status === 'posted'
                             )
-                            // Điều kiện 3: Có ít nhất 1 phiếu chi đã thanh toán (posted)
-                            const hasPostedPayment = purchaseOrder?.paymentVouchers?.some(
-                              pv => pv.status === 'posted' && pv.receiptType !== 'refund'
-                            )
-                            return hasPostedImport && hasPostedReturn && hasPostedPayment
+                            // Chỉ cần nhập kho posted + trả hàng posted (không cần phiếu chi posted)
+                            return hasPostedImport && hasPostedReturn
                           })() && (
                             <Button
                               size="sm"

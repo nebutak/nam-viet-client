@@ -4,7 +4,7 @@ import { Button } from '@/components/custom/Button'
 import { moneyFormat } from '@/utils/money-format'
 import { dateFormat } from '@/utils/date-format'
 import { cn } from '@/lib/utils'
-import { ChevronDown, MoreVertical, Eye, Pencil, Trash2, Phone, CreditCard } from 'lucide-react'
+import { ChevronDown, MoreVertical, Eye, Pencil, Trash2, Phone, CreditCard, Truck } from 'lucide-react'
 import { IconFileTypePdf } from '@tabler/icons-react'
 import { useState, useMemo } from 'react'
 import {
@@ -103,8 +103,26 @@ const MobileInvoiceCard = ({
 
 
   const getPaymentStatusBadge = (paymentStatusValue) => {
+    const hasApprovedWarehouseReceipt = invoice.hasApprovedWarehouseReceipt
+    const isNotDelivered = !hasApprovedWarehouseReceipt && !['cancelled', 'pending'].includes(status)
+
+    if (isNotDelivered) {
+      return (
+        <Badge variant="outline" className="border-0 text-slate-500 bg-slate-50">
+          <span className="mr-1 inline-flex h-3 w-3 items-center justify-center">
+            <Truck className="h-3 w-3" />
+          </span>
+          Chưa giao hàng
+        </Badge>
+      )
+    }
+
+    const customerDebt = Number(invoice?.customer?.currentDebt || 0)
+    const hasPrepaidCredit = customerDebt < 0
+    const resolvedStatus = hasPrepaidCredit ? 'paid' : paymentStatusValue
+
     const paymentStatusObj = paymentStatuses.find(
-      (s) => s.value === paymentStatusValue
+      (s) => s.value === resolvedStatus
     )
     return (
       <Badge variant="outline" className={`${paymentStatusObj?.color} border-0`}>
@@ -113,7 +131,7 @@ const MobileInvoiceCard = ({
             <paymentStatusObj.icon className="h-3 w-3" />
           ) : null}
         </span>
-        {paymentStatusObj?.label || 'Không xác định'}
+        {hasPrepaidCredit ? 'Đã trả trước' : (paymentStatusObj?.label || 'Không xác định')}
       </Badge>
     )
   }
@@ -122,11 +140,15 @@ const MobileInvoiceCard = ({
     const paymentStatus = invoice?.paymentStatus
     const totalAmount = parseFloat(invoice?.totalAmount || 0)
     const paidAmount = parseFloat(invoice?.paidAmount || 0)
-    const remainingAmount = totalAmount - paidAmount
+    const refundedAmount = parseFloat(invoice?.refundedAmount || 0)
+    const remainingAmount = totalAmount - paidAmount - refundedAmount
+
+    const customerDebt = Number(invoice?.customer?.currentDebt || 0)
+    const hasPrepaidCredit = customerDebt < 0
 
     // If fully paid
-    if (paymentStatus === 'paid' || remainingAmount <= 0) {
-      return <span className="text-xs text-green-500 font-medium">✓ Thanh toán toàn bộ</span>
+    if (paymentStatus === 'paid' || remainingAmount <= 0 || hasPrepaidCredit) {
+      return <span className="text-xs text-green-500 font-medium">✓ {hasPrepaidCredit ? 'Đã trả trước' : 'Thanh toán toàn bộ'}</span>
     }
 
     // If partially paid

@@ -17,7 +17,7 @@ export function DeleteMultipleProductsDialog({
   count,
   type = 'PRODUCT',
 }) {
-  const label = type === 'PRODUCT' ? 'sản phẩm' : 'nguyên liệu'
+  const label = type === 'PRODUCT' ? 'sản phẩm' : type === 'MATERIAL' ? 'nguyên liệu' : 'bao bì'
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>

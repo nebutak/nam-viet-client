@@ -69,6 +69,7 @@ const ViewPaymentDialog = ({
   const [showUpdateStatusDialog, setShowUpdateStatusDialog] = useState(false)
   const [showUpdatePaymentDialog, setShowUpdatePaymentDialog] = useState(false)
   const [printData, setPrintData] = useState(null)
+  const [editableReason, setEditableReason] = useState('')
 
   const setting = useSelector((state) => state.setting.setting)
 
@@ -152,6 +153,7 @@ const ViewPaymentDialog = ({
         try {
           const result = await dispatch(getPaymentById(paymentId)).unwrap()
           setFetchedPayment(result)
+          setEditableReason(result.reason || result.note || '')
         } catch (error) {
           console.error("Failed to fetch payment", error)
           toast.error("Không thể tải thông tin phiếu chi")
@@ -168,28 +170,50 @@ const ViewPaymentDialog = ({
 
   const handlePrintPayment = () => {
     if (!payment) return
-    setPrintData(payment)
+    const receiverData = getReceiverData()
+    setPrintData({
+      ...payment,
+      reason: editableReason,
+      receiver: receiverData
+    })
   }
 
   // Helper to determine display name for receiver type
   const getReceiverLabel = () => {
-    if (payment?.receiverType === 'customer') return 'Khách hàng'
-    if (payment?.receiverType === 'supplier') return 'Nhà cung cấp'
-    if (payment?.receiverType === 'employee') return 'Nhân viên'
+    if (payment?.voucherType === 'supplier_payment') return 'Nhà cung cấp'
+    if (payment?.voucherType === 'salary') return 'Nhân viên'
+    if (payment?.voucherType === 'refund') return 'Khách hàng'
     if (payment?.supplier || purchaseOrder?.supplier) return 'Nhà cung cấp'
+    if (payment?.customer) return 'Khách hàng'
+    if (payment?.employee) return 'Nhân viên'
     return 'Người nhận'
   }
 
-  // Helper to get receiver data - normalize supplier fields
+  // Helper to get receiver data - normalize fields
   const getReceiverData = () => {
-    if (payment?.receiver) return payment.receiver
-    // Normalize supplier fields (supplierName -> name, supplierCode -> code)
-    const supplier = payment?.supplier || purchaseOrder?.supplier
+    const supplier = payment?.supplier || purchaseOrder?.supplier;
+    const customer = payment?.customer;
+    const employee = payment?.employee;
+
     if (supplier) {
       return {
         ...supplier,
         name: supplier.supplierName || supplier.name,
         code: supplier.supplierCode || supplier.code,
+      }
+    }
+    if (customer) {
+      return {
+        ...customer,
+        name: customer.customerName,
+        code: customer.customerCode,
+      }
+    }
+    if (employee) {
+      return {
+        ...employee,
+        name: employee.fullName,
+        code: employee.employeeCode,
       }
     }
     return {}
@@ -409,14 +433,19 @@ const ViewPaymentDialog = ({
 
                   {/* Tổng hợp & công nợ */}
                   <div className="grid gap-4 md:grid-cols-[2fr,1fr]">
-                    <div className="text-sm">
-                      <strong className="text-destructive">Lý do chi: </strong>
-                      <span className="text-primary">
-                        {payment?.reason || payment?.note || 'Không có'}
-                      </span>
-                      {payment?.note && payment.note !== payment.reason && (
+                    <div className="text-sm space-y-1">
+                      <strong className="text-destructive">Lý do chi (Có thể sửa trước khi in): </strong>
+                      <div className="mt-1">
+                        <textarea
+                          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 min-h-[60px]"
+                          value={editableReason}
+                          onChange={(e) => setEditableReason(e.target.value)}
+                          placeholder="Nhập lý do chi..."
+                        />
+                      </div>
+                      {payment?.note && payment.note !== editableReason && (
                         <div className="mt-1">
-                          <strong>Ghi chú thêm: </strong> {payment.note}
+                          <strong>Ghi chú gốc: </strong> {payment.note}
                         </div>
                       )}
                     </div>
@@ -526,7 +555,7 @@ const ViewPaymentDialog = ({
                 </div>
 
                 <div className="space-y-6">
-                  {receiverData?.name || payment?.receiverId ? (
+                  {receiverData?.name || receiverData?.fullName ? (
                     <>
                       <div className="flex items-center gap-4">
                         <Avatar className="h-8 w-8">

@@ -2,6 +2,14 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import api from '@/utils/axios'
 import { handleError } from '@/utils/handle-error'
 
+const normalizeWarehouseType = (warehouse) => {
+    if (!warehouse) return warehouse
+    return {
+        ...warehouse,
+        warehouseType: warehouse.warehouseType === 'product' ? 'goods' : warehouse.warehouseType,
+    }
+}
+
 // Thunks
 export const getWarehouses = createAsyncThunk(
     'warehouse/getWarehouses',
@@ -160,7 +168,7 @@ const warehouseSlice = createSlice({
             })
             .addCase(getWarehouses.fulfilled, (state, action) => {
                 state.loading = false
-                state.warehouses = action.payload.data
+                state.warehouses = (action.payload.data || []).map(normalizeWarehouseType)
                 state.meta = action.payload.meta
             })
             .addCase(getWarehouses.rejected, (state, action) => {
@@ -176,7 +184,7 @@ const warehouseSlice = createSlice({
             })
             .addCase(getWarehouseById.fulfilled, (state, action) => {
                 state.loading = false
-                state.currentWarehouse = action.payload.data
+                state.currentWarehouse = normalizeWarehouseType(action.payload.data)
             })
             .addCase(getWarehouseById.rejected, (state, action) => {
                 state.loading = false
@@ -250,7 +258,7 @@ const warehouseSlice = createSlice({
                     (w) => w.id === action.payload.data.id
                 )
                 if (updatedIndex !== -1) {
-                    state.warehouses[updatedIndex] = action.payload.data
+                    state.warehouses[updatedIndex] = normalizeWarehouseType(action.payload.data)
                 }
             })
             .addCase(updateWarehouseStatus.rejected, (state, action) => {

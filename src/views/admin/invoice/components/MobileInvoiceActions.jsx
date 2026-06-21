@@ -54,32 +54,33 @@ const MobileInvoiceActions = ({
             <SheetTitle>Thao tác đơn hàng</SheetTitle>
           </SheetHeader>
           <div className="flex flex-col gap-3">
-            {/* Receipt & Warehouse Actions */}
-            {(!['pending', 'cancelled', 'completed'].includes(invoice?.orderStatus) && invoice?.paymentStatus !== 'paid') && (
-              <div className="grid grid-cols-2 gap-3">
-                <Button
-                  className="bg-green-600 text-white hover:bg-green-700 h-auto py-3 flex-col gap-1"
-                  onClick={() => handleAction(handleCreateReceipt)}
-                >
-                  <PlusIcon className="h-5 w-5" />
-                  <span className="text-xs">Tạo Phiếu Thu</span>
-                </Button>
-                {invoice?.orderStatus === 'preparing' && (
-                  <Button
-                    className="bg-orange-600 text-white hover:bg-orange-700 h-auto py-3 flex-col gap-1"
-                    onClick={() => handleAction(handleCreateWarehouseReceipt)}
-                  >
-                    <PlusIcon className="h-5 w-5" />
-                    <span className="text-xs">Tạo Phiếu Xuất Kho</span>
-                  </Button>
-                )}
-              </div>
+
+            {/* Payment Action */}
+            {(invoice?.orderStatus !== 'cancelled' && invoice?.orderStatus !== 'pending' && invoice?.paymentStatus !== 'paid') && (
+              <Button
+                className="bg-green-600 text-white hover:bg-green-700 h-auto py-3 flex-row gap-2"
+                onClick={() => handleAction(handleCreateReceipt)}
+              >
+                <IconPlus className="h-5 w-5" />
+                <span className="text-sm font-semibold">Tạo Phiếu Thu</span>
+              </Button>
+            )}
+
+            {/* Warehouse Actions */}
+            {(['preparing', 'delivering', 'completed'].includes(invoice?.orderStatus)) && (
+              <Button
+                className="bg-blue-600 text-white hover:bg-blue-700 h-auto py-3 flex-row gap-2"
+                onClick={() => handleAction(handleCreateWarehouseReceipt)}
+              >
+                <IconPlus className="h-5 w-5" />
+                <span className="text-sm font-semibold">Xuất kho</span>
+              </Button>
             )}
 
             {/* Delivery Action */}
             {(!invoice.isPickupOrder && ['preparing', 'delivering'].includes(invoice?.orderStatus)) && (
               <Button
-                className="bg-blue-600 text-white hover:bg-blue-700 h-auto py-3 flex-row gap-2"
+                className="bg-purple-600 text-white hover:bg-purple-700 h-auto py-3 flex-row gap-2"
                 onClick={() => handleAction(handleCreateDelivery)}
               >
                 <Truck className="h-5 w-5" />
@@ -87,22 +88,25 @@ const MobileInvoiceActions = ({
               </Button>
             )}
 
+
             <Separator />
 
             {/* Print Actions */}
-            <div className="space-y-2">
-              <div className="text-sm font-medium text-muted-foreground">In ấn</div>
-              <div className="grid grid-cols-1 gap-2">
-                <Button
-                  variant="outline"
-                  className="justify-start gap-2 text-blue-600 border-blue-200 hover:bg-blue-50"
-                  onClick={() => handleAction(handlePrintInvoice)}
-                >
-                  <Printer className="h-4 w-4" />
-                  In Hóa Đơn
-                </Button>
+            {invoice?.orderStatus !== 'cancelled' && (
+              <div className="space-y-2">
+                <div className="text-sm font-medium text-muted-foreground">In ấn</div>
+                <div className="grid grid-cols-1 gap-2">
+                  <Button
+                    variant="outline"
+                    className="justify-start gap-2 text-blue-600 border-blue-200 hover:bg-blue-50"
+                    onClick={() => handleAction(handlePrintInvoice)}
+                  >
+                    <Printer className="h-4 w-4" />
+                    In Hóa Đơn
+                  </Button>
+                </div>
               </div>
-            </div>
+            )}
 
             <Separator />
 

@@ -1,4 +1,4 @@
-import { CheckCircleIcon, PauseCircle, Box, Package, ShoppingCart, Archive } from 'lucide-react'
+import { CheckCircleIcon, PauseCircle, Box, Archive } from 'lucide-react'
 
 export const warehouseStatuses = [
     {
@@ -21,18 +21,6 @@ export const warehouseTypes = [
         label: 'Nguyên liệu',
         icon: Box,
         color: 'text-amber-600',
-    },
-    {
-        value: 'packaging',
-        label: 'Bao bì',
-        icon: Package,
-        color: 'text-blue-600',
-    },
-    {
-        value: 'finished_product',
-        label: 'Thành phẩm',
-        icon: ShoppingCart,
-        color: 'text-green-600',
     },
     {
         value: 'goods',

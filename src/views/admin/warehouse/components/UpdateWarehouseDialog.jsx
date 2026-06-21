@@ -41,12 +41,14 @@ const UpdateWarehouseDialog = ({
     onOpenChange,
     ...props
 }) => {
+    const normalizedWarehouseType = warehouse?.warehouseType === 'product' ? 'goods' : warehouse?.warehouseType
+
     const form = useForm({
         resolver: zodResolver(updateWarehouseSchema),
         defaultValues: {
             warehouseCode: warehouse?.warehouseCode || '',
             warehouseName: warehouse?.warehouseName || '',
-            warehouseType: warehouse?.warehouseType || 'goods',
+            warehouseType: normalizedWarehouseType || 'goods',
             address: warehouse?.address || '',
             city: warehouse?.city || '',
             region: warehouse?.region || '',
@@ -61,10 +63,11 @@ const UpdateWarehouseDialog = ({
 
     useEffect(() => {
         if (warehouse && open) {
+            const normalizedType = warehouse.warehouseType === 'product' ? 'goods' : warehouse.warehouseType
             form.reset({
                 warehouseCode: warehouse.warehouseCode || '',
                 warehouseName: warehouse.warehouseName || '',
-                warehouseType: warehouse.warehouseType || 'goods',
+                warehouseType: normalizedType || 'goods',
                 address: warehouse.address || '',
                 city: warehouse.city || '',
                 region: warehouse.region || '',

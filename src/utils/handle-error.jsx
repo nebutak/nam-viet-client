@@ -3,7 +3,18 @@ const handleError = (error) => {
     return { message: error.message || 'Opps!! Đã có vài lỗi xảy ra', url: error.config?.url }
   }
   const { status, data, config } = error.response
-  const serverMessage = data?.error?.message || data?.message
+  const detailList = Array.isArray(data?.error?.details) ? data.error.details : []
+  const firstDetail = detailList.length > 0 ? detailList[0] : null
+  const detailedMessage = firstDetail?.message
+    ? `${firstDetail.field ? `${firstDetail.field}: ` : ''}${firstDetail.message}`
+    : null
+  // Try to extract the best message: Zod errors come as data.error (string with all issues)
+  // or data.message, or data.error.message
+  const serverMessage =
+    detailedMessage ||
+    (typeof data?.error === 'string' ? data.error : null) ||
+    data?.error?.message ||
+    data?.message
   console.error(`API Error ${status} from ${config?.url}:`, serverMessage || data)
   switch (status) {
     case 400:

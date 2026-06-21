@@ -1,13 +1,13 @@
 import AuthForm from '@/views/auth/components/AuthForm'
 import { Card } from '@/components/ui/card'
-import { useEffect } from 'react'
+import { useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 const LoginPage = () => {
   const isAuthenticated = !!localStorage.getItem('accessToken')
   const navigate = useNavigate()
 
-  const checkAuthenticated = () => {
+  const checkAuthenticated = useCallback(() => {
     if (isAuthenticated) {
       const pendingScan = localStorage.getItem('pending_qr_scan')
       if (pendingScan) {
@@ -15,11 +15,15 @@ const LoginPage = () => {
       }
       return navigate('/dashboard')
     }
-  }
+  }, [isAuthenticated, navigate])
 
   useEffect(() => {
     checkAuthenticated()
-  }, [])
+  }, [checkAuthenticated])
+
+  if (isAuthenticated) {
+    return null
+  }
 
   return (
     <div className="flex flex-1 flex-col lg:w-1/2">

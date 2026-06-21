@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 
 const DataTableViewOptions = ({ table, type = 'PRODUCT' }) => {
-  const label = type === 'PRODUCT' ? 'sản phẩm' : 'nguyên liệu'
+  const label = type === 'PRODUCT' ? 'sản phẩm' : type === 'MATERIAL' ? 'nguyên liệu' : 'bao bì'
   const options = {
     productName: `Tên ${label}`,
     code: `Mã ${label}`,

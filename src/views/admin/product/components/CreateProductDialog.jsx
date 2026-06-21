@@ -1052,6 +1052,7 @@ const CreateProductDialog = ({
           open={showCreateCategoryDialog}
           onOpenChange={setShowCreateCategoryDialog}
           showTrigger={false}
+          type={defaultType}
           contentClassName="z-[10020]"
           overlayClassName="z-[10019]"
         />

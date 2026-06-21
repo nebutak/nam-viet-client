@@ -7,7 +7,8 @@ import ViewReceiptDialog from './ViewReceiptDialog'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useDispatch } from 'react-redux'
-import { getReceiptById } from '@/stores/ReceiptSlice'
+import { updateReceiptStatus } from '@/stores/ReceiptSlice'
+import UpdateReceiptStatusDialog from './UpdateReceiptStatusDialog'
 import { receiptStatus, paymentMethods } from '../data'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -92,22 +93,30 @@ export const columns = [
       if (type === 'customer' || type === 'sales') {
         label = 'Khách hàng'
         Icon = User
-        colorClass = 'text-blue-600'
+        colorClass = 'bg-blue-100 text-blue-800 border-blue-300 shadow-sm'
       } else if (type === 'supplier') {
         label = 'Nhà cung cấp'
         Icon = Building2
-        colorClass = 'text-orange-600'
+        colorClass = 'bg-orange-100 text-orange-800 border-orange-300 shadow-sm'
       } else if (type === 'employee' || type === 'user') {
         label = 'Nhân viên'
         Icon = Contact
-        colorClass = 'text-purple-600'
+        colorClass = 'bg-purple-100 text-purple-800 border-purple-300 shadow-sm'
+      } else if (type === 'debt_collection') {
+        label = 'Thu công nợ'
+        Icon = CircleHelp
+        colorClass = 'bg-teal-100 text-teal-800 border-teal-300 shadow-sm'
+      } else if (type === 'refund') {
+        label = 'Hoàn tiền'
+        Icon = CircleHelp
+        colorClass = 'bg-emerald-100 text-emerald-800 border-emerald-300 shadow-sm'
       } else if (type) {
         label = type
       }
 
       return (
         <div className="shrink-0 flex pr-2">
-          <Badge variant="outline" className={`whitespace-nowrap border-transparent bg-transparent px-0 font-medium ${colorClass}`}>
+          <Badge variant="outline" className={`whitespace-nowrap font-semibold px-2.5 py-1 text-[13px] ${colorClass}`}>
             <Icon className="mr-1.5 h-3.5 w-3.5" />
             {label}
           </Badge>
@@ -182,10 +191,10 @@ export const columns = [
 
       return (
         <div className="flex flex-col gap-1 items-end">
-          <span className="max-w-32 truncate sm:max-w-72 md:max-w-[31rem] text-green-600 font-medium">
+          <span className="max-w-32 truncate sm:max-w-72 md:max-w-[31rem] text-slate-800 font-bold">
             {moneyFormat(row.getValue('amount'))}
           </span>
-          <Badge variant="outline" className={`whitespace-nowrap border-transparent bg-transparent px-0 font-medium ${paymentMethodObj?.color}`}>
+          <Badge variant="outline" className={`whitespace-nowrap font-medium transition-colors ${paymentMethodObj?.color}`}>
             {Icon && <Icon className="mr-1 h-3 w-3" />}
             {paymentMethodObj?.label || method || '—'}
           </Badge>
@@ -203,24 +212,31 @@ export const columns = [
     cell: function Cell({ row }) {
       const isPosted = row.getValue('isPosted')
       const status = isPosted ? 'posted' : 'draft'
-      const [showViewReceiptDialog, setShowViewReceiptDialog] = useState(false)
+      const [showUpdateStatusDialog, setShowUpdateStatusDialog] = useState(false)
       const dispatch = useDispatch()
+
+      const handleUpdateStatus = async (newStatus, id) => {
+        try {
+          await dispatch(updateReceiptStatus({ id, status: newStatus })).unwrap()
+          setShowUpdateStatusDialog(false)
+        } catch (error) {
+          console.error(error)
+        }
+      }
 
       const getStatusColor = (s) => {
         switch (s) {
-          case 'draft': return 'bg-yellow-500 hover:bg-yellow-600'
-          case 'approved': return 'bg-blue-500 hover:bg-blue-600'
-          case 'posted': return 'bg-green-500 hover:bg-green-600'
+          case 'draft': return 'bg-amber-100 text-amber-800 hover:bg-amber-200 border border-amber-200'
+          case 'posted': return 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border border-emerald-200'
           case 'cancelled':
-          case 'canceled': return 'bg-red-500 hover:bg-red-600'
-          default: return 'bg-gray-500'
+          case 'canceled': return 'bg-red-100 text-red-800 hover:bg-red-200 border border-red-200'
+          default: return 'bg-slate-100 text-slate-800 hover:bg-slate-200 border border-slate-200'
         }
       }
 
       const getStatusLabel = (s) => {
         switch (s) {
           case 'draft': return 'Chờ duyệt'
-          case 'approved': return 'Đã duyệt'
           case 'posted': return 'Đã ghi sổ'
           case 'cancelled':
           case 'canceled': return 'Đã hủy'
@@ -233,17 +249,21 @@ export const columns = [
           <div className="w-28 flex items-center justify-center gap-2">
             <Badge
               className={cn("cursor-pointer", getStatusColor(status))}
-              onClick={() => setShowViewReceiptDialog(true)}
+              onClick={() => setShowUpdateStatusDialog(true)}
             >
               {getStatusLabel(status)}
             </Badge>
           </div>
-          {showViewReceiptDialog && (
-            <ViewReceiptDialog
-              open={showViewReceiptDialog}
-              onOpenChange={setShowViewReceiptDialog}
+          {showUpdateStatusDialog && (
+            <UpdateReceiptStatusDialog
+              open={showUpdateStatusDialog}
+              onOpenChange={setShowUpdateStatusDialog}
               receiptId={row.original.id}
-              showTrigger={false}
+              currentStatus={status}
+              statuses={receiptStatus}
+              onSubmit={handleUpdateStatus}
+              contentClassName="z-[10002]"
+              overlayClassName="z-[10001]"
             />
           )}
         </>

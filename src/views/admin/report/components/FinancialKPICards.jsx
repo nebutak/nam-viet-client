@@ -1,138 +1,178 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { TrendingUp, TrendingDown, Wallet, PieChart, Edit2 } from 'lucide-react'
+import { Card, CardContent } from '@/components/ui/card'
+import { TrendingUp, TrendingDown, Wallet, PieChart, Edit2, DollarSign } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 
-const formatCurrency = (value) => {
-  return new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND',
-    maximumFractionDigits: 0,
-  }).format(value || 0)
-}
+const formatCurrency = (v) =>
+  new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(v || 0)
 
-const FinancialKPICards = ({ title, kpi, loading = false, isYearly = false, onEditOpeningBalance }) => {
-  if (loading) {
-    return (
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div
-            key={i}
-            className="h-32 animate-pulse rounded-lg border bg-gray-100 dark:bg-gray-800"
-          />
-        ))}
-      </div>
-    )
-  }
+const moneyFmt = formatCurrency
 
-  if (!kpi) {
-    return (
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Card key={i} className="dark:bg-gray-800 dark:border-gray-700">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Đang tải...
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-900 dark:text-white">-</div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    )
-  }
+const KPICard = ({ label, value, icon: Icon, color, bgColor, description, loading, action }) => (
+  <Card className="border-0 shadow-sm overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer dark:bg-gray-800 dark:border-gray-700">
+    <CardContent className="p-5">
+      {loading ? (
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-8 w-36" />
+          <Skeleton className="h-3 w-20" />
+        </div>
+      ) : (
+        <div className="flex items-start justify-between">
+          <div className="space-y-1 flex-1">
+            <p className="text-sm text-muted-foreground font-medium">{label}</p>
+            <div className="flex items-center flex-wrap">
+              <p className={`text-2xl font-bold ${color}`}>{value}</p>
+              {action}
+            </div>
+            {description && (
+              <p className="text-xs text-muted-foreground mt-1">{description}</p>
+            )}
+          </div>
+          <div className={`h-11 w-11 rounded-xl ${bgColor} flex items-center justify-center flex-shrink-0 ml-2`}>
+            <Icon className={`h-5 w-5 ${color}`} />
+          </div>
+        </div>
+      )}
+    </CardContent>
+  </Card>
+)
 
-  const totalReceipts = Number(kpi.totalReceipts || 0)
-  const totalPayments = Number(kpi.totalPayments || 0)
-  const netCashFlow = Number(kpi.netCashFlow || 0)
-  const closingBalance = Number(kpi.closingBalance || 0)
-  const openingBalance = Number(kpi.openingBalance || 0)
-  const profitMargin = totalReceipts > 0 ? ((netCashFlow / totalReceipts) * 100).toFixed(1) : '0.0'
+const FinancialKPICards = ({
+  title,
+  kpi,
+  loading = false,
+  isYearly = false,
+  onEditOpeningBalance,
+  openingBalance,
+  totalReceipt,
+  totalPayment,
+  closingBalance,
+}) => {
+  const hasKpiObj = !!kpi
+  const oBalance = hasKpiObj ? (kpi.openingBalance ?? 0) : (openingBalance ?? 0)
+  const tReceipt = hasKpiObj ? (kpi.totalReceipts ?? kpi.totalReceipt ?? 0) : (totalReceipt ?? 0)
+  const tPayment = hasKpiObj ? (kpi.totalPayments ?? kpi.totalPayment ?? 0) : (totalPayment ?? 0)
+  const cBalance = hasKpiObj ? (kpi.closingBalance ?? 0) : (closingBalance ?? 0)
+  const netFlow = hasKpiObj ? (kpi.netCashFlow ?? (tReceipt - tPayment)) : (tReceipt - tPayment)
+  const profitMargin = tReceipt > 0 ? ((netFlow / tReceipt) * 100).toFixed(1) : '0.0'
 
   let cards = []
 
   if (isYearly) {
     cards = [
       {
-        title: 'Quỹ đầu kỳ',
-        value: formatCurrency(openingBalance),
+        label: 'Quỹ đầu kỳ',
+        value: formatCurrency(oBalance),
         icon: Wallet,
-        bgColor: 'bg-purple-100',
-        iconColor: 'text-purple-600',
-        subText: 'Admin thiết lập',
-        valueColor: 'text-purple-600',
+        color: 'text-purple-600 dark:text-purple-400',
+        bgColor: 'bg-purple-100 dark:bg-purple-900/30',
+        description: 'Admin thiết lập',
         action: onEditOpeningBalance ? (
-          <Button variant="ghost" size="icon" className="h-6 w-6 ml-2" onClick={onEditOpeningBalance}>
-            <Edit2 className="h-4 w-4" />
+          <Button variant="ghost" size="icon" className="h-6 w-6 ml-2 p-0 hover:bg-purple-200 dark:hover:bg-purple-800" onClick={onEditOpeningBalance}>
+            <Edit2 className="h-3 w-3" />
           </Button>
-        ) : null
+        ) : null,
       },
       {
-        title: 'Tổng thu năm',
-        value: formatCurrency(totalReceipts),
+        label: 'Tổng thu năm',
+        value: formatCurrency(tReceipt),
         icon: TrendingUp,
-        bgColor: 'bg-green-100',
-        iconColor: 'text-green-600',
-        subText: 'Phiếu thu trong năm',
-        valueColor: 'text-green-600',
+        color: 'text-green-600 dark:text-green-400',
+        bgColor: 'bg-green-100 dark:bg-green-900/30',
+        description: 'Phiếu thu trong năm',
       },
       {
-        title: 'Tổng chi năm',
-        value: formatCurrency(totalPayments),
+        label: 'Tổng chi năm',
+        value: formatCurrency(tPayment),
         icon: TrendingDown,
-        bgColor: 'bg-red-100',
-        iconColor: 'text-red-600',
-        subText: 'Phiếu chi trong năm',
-        valueColor: 'text-red-600',
+        color: 'text-red-600 dark:text-red-400',
+        bgColor: 'bg-red-100 dark:bg-red-900/30',
+        description: 'Phiếu chi trong năm',
       },
       {
-        title: 'Tồn quỹ năm',
-        value: formatCurrency(closingBalance),
+        label: 'Tồn quỹ năm',
+        value: formatCurrency(cBalance),
         icon: Wallet,
-        bgColor: 'bg-blue-100',
-        iconColor: 'text-blue-600',
-        subText: 'Đầu kỳ + Tổng thu - Tổng chi',
-        valueColor: closingBalance >= 0 ? 'text-blue-600' : 'text-red-600',
+        color: cBalance >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400',
+        bgColor: cBalance >= 0 ? 'bg-blue-100 dark:bg-blue-900/30' : 'bg-red-100 dark:bg-red-900/30',
+        description: 'Đầu kỳ + Tổng thu - Tổng chi',
+      },
+    ]
+  } else if (hasKpiObj) {
+    // HEAD style for period filter
+    const receiptGrowth = kpi.receiptGrowth ?? 0
+    const paymentGrowth = kpi.paymentGrowth ?? 0
+    const cashFlowGrowth = kpi.cashFlowGrowth ?? 0
+
+    cards = [
+      {
+        label: 'Tổng thu',
+        value: formatCurrency(tReceipt),
+        icon: TrendingUp,
+        color: 'text-green-600 dark:text-green-400',
+        bgColor: 'bg-green-100 dark:bg-green-900/30',
+        description: receiptGrowth > 0 ? `+${receiptGrowth.toFixed(1)}% so với kỳ trước` : `${receiptGrowth.toFixed(1)}% so với kỳ trước`,
+      },
+      {
+        label: 'Tổng chi',
+        value: formatCurrency(tPayment),
+        icon: TrendingDown,
+        color: 'text-red-600 dark:text-red-400',
+        bgColor: 'bg-red-100 dark:bg-red-900/30',
+        description: paymentGrowth > 0 ? `+${paymentGrowth.toFixed(1)}% so với kỳ trước` : `${paymentGrowth.toFixed(1)}% so với kỳ trước`,
+      },
+      {
+        label: 'Tồn quỹ kỳ này (Thu - Chi)',
+        value: formatCurrency(netFlow),
+        icon: Wallet,
+        color: netFlow >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400',
+        bgColor: netFlow >= 0 ? 'bg-blue-100 dark:bg-blue-900/30' : 'bg-red-100 dark:bg-red-900/30',
+        description: cashFlowGrowth > 0 ? `+${cashFlowGrowth.toFixed(1)}% so với kỳ trước` : `${cashFlowGrowth.toFixed(1)}% so với kỳ trước`,
+      },
+      {
+        label: 'Tỷ suất (Thu - Chi)/Thu',
+        value: `${profitMargin}%`,
+        icon: PieChart,
+        color: 'text-purple-600 dark:text-purple-400',
+        bgColor: 'bg-purple-100 dark:bg-purple-900/30',
+        description: 'Tồn quỹ trong kỳ / Tổng thu',
       },
     ]
   } else {
+    // vanquy style for cash-book
     cards = [
-    {
-      title: 'Tổng thu',
-      value: formatCurrency(totalReceipts),
-      icon: TrendingUp,
-      bgColor: 'bg-green-100',
-      iconColor: 'text-green-600',
-      subText: kpi.receiptGrowth > 0 ? `+${kpi.receiptGrowth.toFixed(1)}%` : `${kpi.receiptGrowth?.toFixed(1) || 0}%` + ' so với kỳ trước',
-      valueColor: 'text-green-600',
-    },
-    {
-      title: 'Tổng chi',
-      value: formatCurrency(totalPayments),
-      icon: TrendingDown,
-      bgColor: 'bg-red-100',
-      iconColor: 'text-red-600',
-      subText: kpi.paymentGrowth > 0 ? `+${kpi.paymentGrowth.toFixed(1)}%` : `${kpi.paymentGrowth?.toFixed(1) || 0}%` + ' so với kỳ trước',
-      valueColor: 'text-red-600',
-    },
       {
-        title: 'Tồn quỹ kỳ này (Thu - Chi)',
-        value: formatCurrency(netCashFlow),
+        label: 'Quỹ đầu kỳ',
+        value: formatCurrency(oBalance),
         icon: Wallet,
-        bgColor: 'bg-blue-100',
-        iconColor: 'text-blue-600',
-        subText: kpi.cashFlowGrowth > 0 ? `+${kpi.cashFlowGrowth.toFixed(1)}%` : `${kpi.cashFlowGrowth?.toFixed(1) || 0}%` + ' so với kỳ trước',
-        valueColor: netCashFlow >= 0 ? 'text-blue-600' : 'text-red-600',
+        color: 'text-slate-700 dark:text-slate-300',
+        bgColor: 'bg-slate-100 dark:bg-slate-800',
+        description: 'Số dư trước kỳ báo cáo',
       },
       {
-        title: 'Tỷ suất (Thu - Chi)/Thu',
-        value: `${profitMargin}%`,
-        icon: PieChart,
-        bgColor: 'bg-purple-100',
-        iconColor: 'text-purple-600',
-        subText: 'Tồn quỹ trong kỳ / Tổng thu',
-        valueColor: 'text-purple-600',
+        label: 'Tổng thu',
+        value: formatCurrency(tReceipt),
+        icon: TrendingUp,
+        color: 'text-emerald-600',
+        bgColor: 'bg-emerald-50 dark:bg-emerald-900/30',
+        description: 'Tổng phiếu thu trong kỳ',
+      },
+      {
+        label: 'Tổng chi',
+        value: formatCurrency(tPayment),
+        icon: TrendingDown,
+        color: 'text-rose-600',
+        bgColor: 'bg-rose-50 dark:bg-rose-900/30',
+        description: 'Tổng phiếu chi trong kỳ',
+      },
+      {
+        label: 'Tồn quỹ hiện tại',
+        value: formatCurrency(cBalance),
+        icon: DollarSign,
+        color: cBalance >= 0 ? 'text-blue-600' : 'text-rose-600',
+        bgColor: cBalance >= 0 ? 'bg-blue-50 dark:bg-blue-900/30' : 'bg-rose-50 dark:bg-rose-900/30',
+        description: 'Quỹ đầu kỳ + Thu - Chi',
       },
     ]
   }
@@ -140,39 +180,10 @@ const FinancialKPICards = ({ title, kpi, loading = false, isYearly = false, onEd
   return (
     <div className="mb-6">
       {title && <h3 className="text-lg font-bold mb-3">{title}</h3>}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      {cards.map((card, index) => {
-        const Icon = card.icon
-        return (
-          <Card 
-            key={index} 
-            className="hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer border-l-4 dark:bg-gray-800 dark:border-gray-700"
-            style={{ borderLeftColor: card.iconColor.replace('text-', '#').replace('green', '22c55e').replace('red', 'ef4444').replace('blue', '3b82f6').replace('purple', 'a855f7') }}
-          >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                {card.title}
-              </CardTitle>
-              <div className={`flex h-12 w-12 items-center justify-center rounded-lg ${card.bgColor} dark:bg-opacity-20 transition-transform duration-300 hover:scale-110`}>
-                <Icon className={`h-6 w-6 ${card.iconColor}`} />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center">
-                <div className={`text-2xl font-bold ${card.valueColor}`}>
-                  {card.value}
-                </div>
-                {card.action}
-              </div>
-              {card.subText && (
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                  {card.subText}
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        )
-      })}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        {cards.map((card, idx) => (
+          <KPICard key={card.label || idx} {...card} loading={loading} />
+        ))}
       </div>
     </div>
   )

@@ -25,7 +25,7 @@ const ProductPage = () => {
   const columns = getColumns(type)
 
   useEffect(() => {
-    document.title = type === 'PRODUCT' ? 'Quản lý sản phẩm' : 'Quản lý nguyên liệu'
+    document.title = type === 'PRODUCT' ? 'Quản lý sản phẩm' : type === 'MATERIAL' ? 'Quản lý nguyên liệu' : 'Quản lý bao bì'
 
     const filtersParams = columnFilters.reduce((acc, filter) => {
       acc[filter.id] = filter.value.join ? filter.value.join(',') : filter.value
@@ -61,14 +61,15 @@ const ProductPage = () => {
         <div className="mb-2 flex items-center justify-between space-y-2 px-2 sm:px-0">
           <div>
             <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
-              {type === 'PRODUCT' ? 'Danh sách sản phẩm' : 'Danh sách nguyên liệu'}
+              {type === 'PRODUCT' ? 'Danh sách sản phẩm' : type === 'MATERIAL' ? 'Danh sách nguyên liệu' : 'Danh sách bao bì'}
             </h2>
           </div>
           <div className="flex items-center gap-2">
-            <Tabs value={type} onValueChange={setType} className="w-[300px]">
-              <TabsList className="grid w-full grid-cols-2">
+            <Tabs value={type} onValueChange={setType} className="w-[450px]">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="PRODUCT">Sản phẩm</TabsTrigger>
                 <TabsTrigger value="MATERIAL">Nguyên liệu</TabsTrigger>
+                <TabsTrigger value="PACKAGING">Bao bì</TabsTrigger>
               </TabsList>
             </Tabs>
           </div>

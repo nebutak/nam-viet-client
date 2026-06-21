@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { useMediaQuery } from '@/hooks/UseMediaQuery'
-import { MobileIcon, PlusIcon } from '@radix-ui/react-icons'
+import { MobileIcon, PlusIcon, IdCardIcon } from '@radix-ui/react-icons'
 import { toast } from 'sonner'
 
 import { useForm } from 'react-hook-form'
@@ -27,7 +27,7 @@ import {
 } from '@/components/ui/table'
 import { moneyFormat, toVietnamese } from '@/utils/money-format'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Mail, MapPin, User } from 'lucide-react'
+import { Mail, MapPin, User, RefreshCcw } from 'lucide-react'
 import {
   Form,
   FormControl,
@@ -46,7 +46,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { paymentMethods } from '../../receipt/data'
+import { paymentMethods, voucherTypes } from '../../receipt/data'
 import { createPaymentSchema } from '../../receipt/schema'
 import { useDispatch, useSelector } from 'react-redux'
 import { createPayment, updatePayment, getPaymentById } from '@/stores/PaymentSlice'
@@ -54,6 +54,24 @@ import { Input } from '@/components/ui/input'
 import { getSetting } from '@/stores/SettingSlice'
 import { cn } from '@/lib/utils'
 import { getPublicUrl } from '@/utils/file'
+import api from '@/utils/axios'
+import { getUsers } from '@/stores/UserSlice'
+import { getSuppliers } from '@/stores/SupplierSlice'
+import { getCustomers } from '@/stores/CustomerSlice'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
+import { CheckIcon, ChevronsUpDown } from 'lucide-react'
 
 const PaymentDialog = ({
   paymentId, // Optional: for Edit mode
@@ -73,6 +91,63 @@ const PaymentDialog = ({
   const loading = useSelector((state) => state.payment.loading)
   const setting = useSelector((state) => state.setting.setting)
   const banks = setting?.banks || []
+
+  const [customTypes, setCustomTypes] = useState([])
+  const [isAddTypeOpen, setIsAddTypeOpen] = useState(false)
+  const [newTypeName, setNewTypeName] = useState('')
+  const allVoucherTypes = [...voucherTypes, ...customTypes]
+
+  const handleAddType = () => {
+    if (!newTypeName.trim()) return
+    const isExist = allVoucherTypes.find((t) => t.label.toLowerCase() === newTypeName.trim().toLowerCase())
+    if (!isExist) {
+       const newType = { value: 'custom_' + newTypeName.trim(), label: newTypeName.trim() }
+       setCustomTypes([...customTypes, newType])
+       form.setValue('voucherType', newType.value)
+    } else {
+       form.setValue('voucherType', isExist.value)
+    }
+    setNewTypeName('')
+    setIsAddTypeOpen(false)
+  }
+
+  const users = useSelector((state) => state.user.users)
+  const suppliersList = useSelector((state) => state.supplier.suppliers)
+  const customers = useSelector((state) => state.customer.customers)
+  const [openUserPopover, setOpenUserPopover] = useState(false)
+  const [openSupplierPopover, setOpenSupplierPopover] = useState(false)
+  const [openCustomerPopover, setOpenCustomerPopover] = useState(false)
+  const [selectedUser, setSelectedUser] = useState(null)
+  const [selectedSupplier, setSelectedSupplier] = useState(null)
+  const [selectedCustomer, setSelectedCustomer] = useState(null)
+  const [supplierDebt, setSupplierDebt] = useState(null)
+
+  // The selected party for the sidebar (unified)
+  const selectedSidebarParty = selectedSupplier || selectedUser || selectedCustomer
+
+  // Fetch supplier debt when a supplier is selected
+  useEffect(() => {
+    if (selectedSupplier?.id) {
+      const supplierCode = selectedSupplier.supplierCode || selectedSupplier.code
+      api.get('/smart-debt', { params: { type: 'supplier', search: supplierCode, limit: 1 } })
+        .then(res => {
+          const items = res.data?.data || []
+          const match = items.find(d => d.objId === selectedSupplier.id) || items[0]
+          setSupplierDebt(match || null)
+        })
+        .catch(() => setSupplierDebt(null))
+    } else {
+      setSupplierDebt(null)
+    }
+  }, [selectedSupplier])
+
+  useEffect(() => {
+    if (open) {
+      if (!users || users.length === 0) dispatch(getUsers())
+      if (!suppliersList || suppliersList.length === 0) dispatch(getSuppliers())
+      if (!customers || customers.length === 0) dispatch(getCustomers())
+    }
+  }, [open, dispatch, users, suppliersList, customers])
 
   const effectivePaymentId = paymentId || propPayment?.id
   const isEditMode = !!effectivePaymentId
@@ -137,6 +212,7 @@ const PaymentDialog = ({
     resolver: zodResolver(createPaymentSchema),
     defaultValues: {
       note: '',
+      voucherType: isCustomerPO ? 'refund' : 'supplier_payment',
       paymentAmount: 0,
       paymentMethod: 'cash',
       paymentNote: '',
@@ -146,6 +222,39 @@ const PaymentDialog = ({
       paymentDate: new Date().toISOString(),
     },
   })
+
+  const selectedVoucherType = form.watch('voucherType')
+
+  // Clear sidebar selection when voucher type changes
+  useEffect(() => {
+    if (!party) {
+      setSelectedSupplier(null)
+      setSelectedUser(null)
+      setSelectedCustomer(null)
+    }
+  }, [selectedVoucherType])
+
+  // Determine sidebar title and badge based on voucher type
+  const sidebarConfig = (() => {
+    if (party) {
+      return {
+        title: isCustomerPO || payment?.receiverType === 'customer' ? 'Khách hàng' : 'Nhà cung cấp',
+        badge: isCustomerPO || payment?.receiverType === 'customer' ? 'KH' : 'NCC',
+        badgeClass: isCustomerPO || payment?.receiverType === 'customer' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700',
+      }
+    }
+    switch (selectedVoucherType) {
+      case 'salary':
+        return { title: 'Nhân viên', badge: 'NV', badgeClass: 'bg-purple-100 text-purple-700' }
+      case 'refund':
+        return { title: 'Khách hàng', badge: 'KH', badgeClass: 'bg-blue-100 text-blue-700' }
+      case 'operating_cost':
+      case 'other':
+        return { title: null, hidden: true }
+      default:
+        return { title: 'Nhà cung cấp', badge: 'NCC', badgeClass: 'bg-orange-100 text-orange-700' }
+    }
+  })()
 
   // Fetch Payment Detail on Open if Edit Mode
   useEffect(() => {
@@ -198,6 +307,7 @@ const PaymentDialog = ({
 
         form.reset({
           note: dataToUse.reason || '',
+          voucherType: dataToUse.voucherType || (isCustomerPO ? 'refund' : 'supplier_payment'),
           paymentAmount: parseFloat(dataToUse.amount || 0),
           paymentMethod: dataToUse.paymentMethod || 'cash',
           paymentNote: dataToUse.note || '',
@@ -209,8 +319,10 @@ const PaymentDialog = ({
       } else if (effectivePurchaseOrder) {
         // Create Mode
         const initialAmount = remainingAmount > 0 ? remainingAmount : 0
+        const defaultCode = effectivePurchaseOrder.poCode || effectivePurchaseOrder.orderCode || effectivePurchaseOrder.code || ''
         form.reset({
-          note: '',
+          note: defaultCode ? `Chi trả đơn hàng ${defaultCode}` : '',
+          voucherType: isCustomerPO ? 'refund' : 'supplier_payment',
           paymentAmount: initialAmount,
           paymentMethod: 'cash',
           paymentNote: '',
@@ -224,9 +336,9 @@ const PaymentDialog = ({
 
 
   const onSubmit = async (data) => {
-    // Shared Validation for Create and Edit Mode avoiding overpayments
+    // Validate overpayment only when linked to a purchase order
     const amountToPay = parseFloat(data.paymentAmount) || 0
-    if (amountToPay > remainingAmount) {
+    if (effectivePurchaseOrder && amountToPay > remainingAmount) {
       form.setError('paymentAmount', {
         type: 'manual',
         message: `Số tiền chi không được vượt quá số nợ còn lại (${moneyFormat(remainingAmount)})`,
@@ -234,13 +346,25 @@ const PaymentDialog = ({
       return
     }
 
+    const actualType = data.voucherType.startsWith('custom_') ? 'other' : data.voucherType;
+    const customTypeName = data.voucherType.startsWith('custom_') ? data.voucherType.replace('custom_', '') : '';
+    const defaultCode = effectivePurchaseOrder?.poCode || effectivePurchaseOrder?.orderCode || effectivePurchaseOrder?.code || '';
+    const baseReason = data.note || (effectivePurchaseOrder ? `Chi trả đơn hàng ${defaultCode}` : '');
+    
+    let appendedNote = ''
+    if (actualType === 'salary' && selectedUser) {
+        appendedNote = `[NV: ${selectedUser.fullName || selectedUser.username}] `
+    }
+    const finalReason = customTypeName ? `[Loại: ${customTypeName}] ${baseReason}`.trim() : (baseReason || undefined);
+    const superFinalReason = (appendedNote + (finalReason || '')).trim()
+
     const commonData = {
       amount: parseInt(data.paymentAmount) || 0,
       paymentMethod: data.paymentMethod,
       bankName: data.paymentMethod === 'transfer' && data.bankAccount
         ? JSON.stringify(data.bankAccount)
         : undefined, // undefined passes z.string().optional() better than null, but we'll fix validator too
-      reason: data.note || (effectivePurchaseOrder ? `Chi trả đơn hàng ${effectivePurchaseOrder.code}` : undefined),
+      reason: superFinalReason,
       notes: data.paymentNote,
       paymentDate: data.paymentDate,
     }
@@ -250,6 +374,7 @@ const PaymentDialog = ({
         // UPDATE
         const dataToSend = {
           ...data, // includes status etc from form if needed
+          voucherType: actualType,
           id: effectivePaymentId,
           ...commonData
         }
@@ -266,8 +391,10 @@ const PaymentDialog = ({
           ...data,
           ...commonData,
           purchaseOrderId: effectivePurchaseOrder?.id,
-          voucherType: isCustomerPO ? 'refund' : 'supplier_payment',
-          supplierId: !isCustomerPO ? party?.id : undefined,
+          voucherType: actualType,
+          supplierId: !isCustomerPO ? (party?.id || selectedSupplier?.id) : undefined,
+          customerId: actualType === 'refund' ? (selectedCustomer?.id) : undefined,
+          receiverType: actualType === 'salary' ? 'employee' : actualType === 'refund' ? 'customer' : 'supplier',
           voucherDate: new Date().toISOString(),
         }
         delete dataToSend.note
@@ -320,9 +447,14 @@ const PaymentDialog = ({
         )}
         overlayClassName={overlayClassName}
       >
-        <DialogHeader className={cn(isMobile && "px-4 pt-4")}>
-          <DialogTitle>{dialogTitle}</DialogTitle>
-          <DialogDescription>
+        <DialogHeader className={cn("px-6 py-5 bg-gradient-to-r from-emerald-600 to-green-700 text-white rounded-t-lg shadow-lg relative overflow-hidden", isMobile && "rounded-none")}>
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-2xl" />
+          <div className="absolute bottom-0 right-1/4 w-24 h-24 bg-emerald-400/10 rounded-full blur-xl" />
+          
+          <DialogTitle className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+            <span>{dialogTitle}</span>
+          </DialogTitle>
+          <DialogDescription className="text-emerald-50 opacity-90 font-medium">
             {dialogDesc}
           </DialogDescription>
         </DialogHeader>
@@ -340,6 +472,7 @@ const PaymentDialog = ({
                   </h2>
 
                   <div className="space-y-6">
+                    {items.length > 0 && (
                     <div className={cn("overflow-x-auto rounded-lg border", isMobile && "border-0 overflow-visible")}>
                       {!isMobile ? (
                         <Table className="min-w-full">
@@ -462,7 +595,7 @@ const PaymentDialog = ({
                         </div>
                       )}
                     </div>
-
+                    )}
                     <div className="grid gap-4 md:grid-cols-[2fr,1fr]">
                       <FormField
                         control={form.control}
@@ -530,30 +663,47 @@ const PaymentDialog = ({
                           </div>
                         )}
 
-
                         <Separator />
 
                         <div className="mb-3">
                           <FormField
                             control={form.control}
-                            name="paymentDate"
+                            name="voucherType"
                             render={({ field }) => (
-                              <FormItem className="mb-3 flex flex-col pt-1">
-                                <FormLabel required={true}>Ngày chi</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    type="date"
-                                    value={field.value ? new Date(field.value).toISOString().substring(0, 10) : ''}
-                                    onChange={(e) => {
-                                      const val = e.target.value
-                                      if (val) {
-                                        field.onChange(new Date(val).toISOString())
-                                      } else {
-                                        field.onChange('')
-                                      }
-                                    }}
-                                  />
-                                </FormControl>
+                              <FormItem className="mb-3 space-y-1">
+                                <div className="flex items-center justify-between">
+                                  <FormLabel required={true}>Loại phiếu chi</FormLabel>
+                                  <button 
+                                    type="button" 
+                                    onClick={() => setIsAddTypeOpen(true)}
+                                    className="text-xs text-primary font-medium hover:underline flex items-center gap-1"
+                                  >
+                                    <PlusIcon className="w-3 h-3" /> Thêm loại mới
+                                  </button>
+                                </div>
+                                <Select
+                                  onValueChange={field.onChange}
+                                  value={field.value}
+                                  defaultValue={field.value}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Chọn loại phiếu chi" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent className="z-[100100]">
+                                    <SelectGroup>
+                                      {allVoucherTypes?.map((type) => (
+                                        <SelectItem
+                                          key={type.value}
+                                          value={type.value}
+                                        >
+                                          {type.label}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectGroup>
+                                  </SelectContent>
+                                </Select>
                                 <FormMessage />
                               </FormItem>
                             )}
@@ -585,34 +735,108 @@ const PaymentDialog = ({
                             )}
                           />
 
-                          <div className="mb-3 mt-3">
+                          <FormField
+                            control={form.control}
+                            name="paymentDate"
+                            render={({ field }) => (
+                              <FormItem className="mb-2 space-y-1">
+                                <FormLabel required={true}>Ngày chi</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="date"
+                                    className="w-full"
+                                    value={field.value ? new Date(field.value).toISOString().substring(0, 10) : ''}
+                                    onChange={(e) => {
+                                      const val = e.target.value
+                                      if (val) {
+                                        field.onChange(new Date(val).toISOString())
+                                      } else {
+                                        field.onChange('')
+                                      }
+                                    }}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        <div className="mb-3">
+                          <FormField
+                            control={form.control}
+                            name="paymentMethod"
+                            render={({ field }) => (
+                              <FormItem className="mb-3 space-y-1">
+                                <FormLabel required={true}>Phương thức thanh toán</FormLabel>
+                                <Select
+                                  onValueChange={field.onChange}
+                                  value={field.value}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Chọn phương thức" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent className="z-[100100]">
+                                    <SelectGroup>
+                                      {paymentMethods.map((method) => (
+                                        <SelectItem
+                                          key={method.label}
+                                          value={method.value}
+                                        >
+                                          <div className="flex items-center">
+                                            <div className="mr-2 h-4 w-4">
+                                              <method.icon className="h-4 w-4 text-primary" />
+                                            </div>
+                                            {method.label}
+                                          </div>
+                                        </SelectItem>
+                                      ))}
+                                    </SelectGroup>
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          {paymentMethod === 'transfer' && (
                             <FormField
                               control={form.control}
-                              name="paymentMethod"
+                              name="bankAccount"
                               render={({ field }) => (
                                 <FormItem className="mb-3 space-y-1">
-                                  <FormLabel required={true}>Phương thức</FormLabel>
+                                  <FormLabel required={true}>Tài khoản nguồn</FormLabel>
                                   <Select
-                                    onValueChange={field.onChange}
-                                    value={field.value}
+                                    value={field.value?.accountNumber}
+                                    onValueChange={(value) => {
+                                      const selectedBank = banks.find(
+                                        (b) => b.accountNumber === value,
+                                      )
+                                      field.onChange(selectedBank)
+                                    }}
                                   >
                                     <FormControl>
                                       <SelectTrigger>
-                                        <SelectValue placeholder="Chọn phương thức" />
+                                        <SelectValue placeholder="Chọn tài khoản" />
                                       </SelectTrigger>
                                     </FormControl>
+
                                     <SelectContent className="z-[100100]">
                                       <SelectGroup>
-                                        {paymentMethods.map((method) => (
+                                        {banks.map((bank, index) => (
                                           <SelectItem
-                                            key={method.label}
-                                            value={method.value}
+                                            key={index}
+                                            value={bank.accountNumber}
                                           >
-                                            <div className="flex items-center">
-                                              <div className="mr-2 h-4 w-4">
-                                                <method.icon className="h-4 w-4 text-primary" />
-                                              </div>
-                                              {method.label}
+                                            <div className="flex flex-col">
+                                              <span className="font-medium">
+                                                {bank.bankName} – {bank.accountNumber}
+                                              </span>
+                                              <span className="text-xs text-muted-foreground">
+                                                {bank.accountName}
+                                              </span>
                                             </div>
                                           </SelectItem>
                                         ))}
@@ -623,165 +847,332 @@ const PaymentDialog = ({
                                 </FormItem>
                               )}
                             />
-
-                            {paymentMethod === 'transfer' && (
-                              <FormField
-                                control={form.control}
-                                name="bankAccount"
-                                render={({ field }) => (
-                                  <FormItem className="mb-3 space-y-1">
-                                    <FormLabel required={true}>Tài khoản nguồn</FormLabel>
-                                    <Select
-                                      value={field.value?.accountNumber}
-                                      onValueChange={(value) => {
-                                        const selectedBank = banks.find(
-                                          (b) => b.accountNumber === value,
-                                        )
-                                        field.onChange(selectedBank)
-                                      }}
-                                    >
-                                      <FormControl>
-                                        <SelectTrigger>
-                                          <SelectValue placeholder="Chọn tài khoản" />
-                                        </SelectTrigger>
-                                      </FormControl>
-
-                                      <SelectContent className="z-[100100]">
-                                        <SelectGroup>
-                                          {banks.map((bank, index) => (
-                                            <SelectItem
-                                              key={index}
-                                              value={bank.accountNumber}
-                                            >
-                                              <div className="flex flex-col">
-                                                <span className="font-medium">
-                                                  {bank.bankName} – {bank.accountNumber}
-                                                </span>
-                                                <span className="text-xs text-muted-foreground">
-                                                  {bank.accountName}
-                                                </span>
-                                              </div>
-                                            </SelectItem>
-                                          ))}
-                                        </SelectGroup>
-                                      </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                            )}
-                          </div>
-
-                          <div className="mb-3">
-                            <FormField
-                              control={form.control}
-                              name="paymentNote"
-                              render={({ field }) => (
-                                <FormItem className="mb-2 space-y-1">
-                                  <FormLabel>Ghi chú thanh toán</FormLabel>
-                                  <FormControl>
-                                    <Textarea
-                                      rows={2}
-                                      placeholder="Ghi chú thêm về thanh toán..."
-                                      {...field}
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          </div>
-
+                          )}
                         </div>
+
+
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {party && (
-                  <div className="w-full rounded-lg border p-4 lg:w-72">
-                    <div className="flex items-center justify-between">
-                      <h2 className="py-2 text-lg font-semibold">
-                        {isCustomerPO || payment?.receiverType === 'customer' ? 'Khách hàng' : 'Nhà cung cấp'}
-                      </h2>
+                {!sidebarConfig.hidden && (
+                <div className="w-full rounded-lg border p-4 lg:w-72 lg:sticky lg:top-0 lg:h-fit">
+                  <div className="flex items-center justify-between">
+                    <h2 className="py-2 text-lg font-semibold">
+                      {sidebarConfig.title}
+                    </h2>
+                    {(party || selectedSidebarParty) && (
                       <span className={cn(
                         'rounded px-1.5 py-0.5 text-xs font-semibold',
-                        isCustomerPO || payment?.receiverType === 'customer'
-                          ? 'bg-blue-100 text-blue-700'
-                          : 'bg-orange-100 text-orange-700'
+                        sidebarConfig.badgeClass
                       )}>
-                        {isCustomerPO || payment?.receiverType === 'customer' ? 'KH' : 'NCC'}
+                        {sidebarConfig.badge}
                       </span>
-                    </div>
-
-                    <div className="space-y-6">
-                      <div className="flex items-center gap-4">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage
-                            src={`https://ui-avatars.com/api/?bold=true&background=random&name=${party?.supplierName || party?.fullName || party?.name}`}
-                            alt={party?.supplierName || party?.fullName || party?.name}
-                          />
-                          <AvatarFallback>
-                            {isCustomerPO || payment?.receiverType === 'customer' ? 'KH' : 'NCC'}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <div className="font-medium">{party?.supplierName || party?.fullName || party?.name}</div>
-                          {(party?.supplierCode || party?.code) && (
-                            <div className="text-xs text-muted-foreground">{party.supplierCode || party.code}</div>
-                          )}
-                        </div>
-                      </div>
-
-                      <div>
-                        <div className="mb-2 flex items-center justify-between">
-                          <div className="font-medium">Thông tin liên hệ</div>
-                        </div>
-
-                        <div className="mt-4 space-y-2 text-sm">
-                          {party?.contactName && (
-                            <div className="flex items-center text-muted-foreground">
-                              <div className="mr-2 h-4 w-4">
-                                <User className="h-4 w-4" />
-                              </div>
-                              <span className="font-medium text-foreground">
-                                Liên hệ: {party.contactName}
-                              </span>
-                            </div>
-                          )}
-                          <div className="flex cursor-pointer items-center text-primary hover:text-secondary-foreground">
-                            <div className="mr-2 h-4 w-4">
-                              <MobileIcon className="h-4 w-4" />
-                            </div>
-                            <a href={`tel:${party?.phone}`}>
-                              {party?.phone || 'Chưa cập nhật'}
-                            </a>
-                          </div>
-                          <div className="flex items-center text-muted-foreground">
-                            <div className="mr-2 h-4 w-4">
-                              <Mail className="h-4 w-4" />
-                            </div>
-                            <a href={`mailto:${party?.email}`}>
-                              {party?.email || 'Chưa cập nhật'}
-                            </a>
-                          </div>
-
-                          <div className="flex items-center text-primary hover:text-secondary-foreground">
-                            <div className="mr-2 h-4 w-4">
-                              <MapPin className="h-4 w-4" />
-                            </div>
-                            {party?.address || 'Chưa cập nhật'}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                    )}
                   </div>
+
+                  <div className="space-y-6">
+                    {party ? (
+                      /* PO-linked mode: show party info */
+                      <>
+                        <div className="flex items-center gap-4">
+                          <Avatar className="h-8 w-8">
+                            <AvatarImage
+                              src={`https://ui-avatars.com/api/?bold=true&background=random&name=${party?.supplierName || party?.customerName || party?.fullName || party?.name}`}
+                              alt={party?.supplierName || party?.customerName || party?.fullName || party?.name}
+                            />
+                            <AvatarFallback>{sidebarConfig.badge}</AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="font-medium">{party?.supplierName || party?.customerName || party?.fullName || party?.name}</div>
+                            {(party?.supplierCode || party?.customerCode || party?.code) && (
+                              <div className="text-xs text-muted-foreground">{party.supplierCode || party.customerCode || party.code}</div>
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="mb-2 font-medium">Thông tin liên hệ</div>
+                          <div className="mt-2 space-y-2 text-sm">
+                            {party?.contactName && (
+                              <div className="flex items-center text-muted-foreground">
+                                <User className="mr-2 h-4 w-4" />
+                                <span className="font-medium text-foreground">Liên hệ: {party.contactName}</span>
+                              </div>
+                            )}
+                            <div className="flex cursor-pointer items-center text-primary hover:text-secondary-foreground">
+                              <MobileIcon className="mr-2 h-4 w-4" />
+                              <a href={`tel:${party?.phone}`}>{party?.phone || 'Chưa cập nhật'}</a>
+                            </div>
+                            <div className="flex items-center text-muted-foreground">
+                              <Mail className="mr-2 h-4 w-4" />
+                              <a href={`mailto:${party?.email}`}>{party?.email || 'Chưa cập nhật'}</a>
+                            </div>
+                            <div className="flex items-center text-primary hover:text-secondary-foreground">
+                              <MapPin className="mr-2 h-4 w-4" />
+                              {party?.address || 'Chưa cập nhật'}
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      /* Standalone mode: dynamic selection based on voucher type */
+                      <>
+                        {selectedSidebarParty ? (
+                          <div className="border rounded-lg p-3 space-y-2">
+                            <div className="flex items-center gap-2">
+                              <Avatar className="h-8 w-8">
+                                <AvatarImage
+                                  src={`https://ui-avatars.com/api/?bold=true&background=random&name=${selectedSidebarParty?.supplierName || selectedSidebarParty?.customerName || selectedSidebarParty?.fullName || selectedSidebarParty?.username || selectedSidebarParty?.name}`}
+                                  alt={selectedSidebarParty?.supplierName || selectedSidebarParty?.customerName || selectedSidebarParty?.fullName || selectedSidebarParty?.name}
+                                />
+                                <AvatarFallback>
+                                  <User className="h-4 w-4" />
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-sm truncate">
+                                  {selectedSidebarParty?.supplierName || selectedSidebarParty?.customerName || selectedSidebarParty?.fullName || selectedSidebarParty?.username || selectedSidebarParty?.name}
+                                </div>
+                                {(selectedSidebarParty?.supplierCode || selectedSidebarParty?.customerCode || selectedSidebarParty?.code || selectedSidebarParty?.employeeCode) && (
+                                  <div className="text-xs text-muted-foreground">
+                                    {selectedSidebarParty?.supplierCode || selectedSidebarParty?.customerCode || selectedSidebarParty?.code || selectedSidebarParty?.employeeCode}
+                                  </div>
+                                )}
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={() => {
+                                  setSelectedSupplier(null)
+                                  setSelectedUser(null)
+                                  setSelectedCustomer(null)
+                                }}
+                              >
+                                <RefreshCcw className="h-4 w-4" />
+                              </Button>
+                            </div>
+
+                            <Separator />
+
+                            <div className="space-y-1.5 text-xs">
+                              {selectedSidebarParty?.phone && (
+                                <div className="flex items-center gap-2 text-muted-foreground">
+                                  <MobileIcon className="h-3 w-3" />
+                                  <a href={`tel:${selectedSidebarParty.phone}`} className="hover:text-primary">
+                                    {selectedSidebarParty.phone}
+                                  </a>
+                                </div>
+                              )}
+                              {selectedSidebarParty?.email && (
+                                <div className="flex items-center gap-2 text-muted-foreground">
+                                  <Mail className="h-3 w-3" />
+                                  <a href={`mailto:${selectedSidebarParty.email}`} className="hover:text-primary truncate">
+                                    {selectedSidebarParty.email}
+                                  </a>
+                                </div>
+                              )}
+                              {selectedSidebarParty?.address && (
+                                <div className="flex items-start gap-2 text-muted-foreground">
+                                  <MapPin className="h-3 w-3 mt-0.5 shrink-0" />
+                                  <span className="line-clamp-2">{selectedSidebarParty.address}</span>
+                                </div>
+                              )}
+                              {(selectedSidebarParty?.cccd || selectedSidebarParty?.identityCard) && (
+                                <div className="flex items-center gap-2 text-muted-foreground">
+                                  <IdCardIcon className="h-3 w-3" />
+                                  <span>CCCD: {selectedSidebarParty.cccd || selectedSidebarParty.identityCard}</span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Show debt info for supplier */}
+                            {selectedSupplier && supplierDebt && (
+                              <>
+                                <Separator />
+                                <div className="rounded-md bg-muted/50 p-2 space-y-1">
+                                  <div className="flex items-center justify-between text-xs">
+                                    <span className="text-muted-foreground">
+                                      {Number(supplierDebt?.closingBalance || 0) < 0 ? "Đã trả trước:" : "Còn nợ:"}
+                                    </span>
+                                    <span className={cn(
+                                      "font-bold",
+                                      Number(supplierDebt?.closingBalance || 0) < 0 ? "text-green-600" : Number(supplierDebt?.closingBalance || 0) > 0 ? "text-red-600" : "text-muted-foreground"
+                                    )}>
+                                      {Number(supplierDebt?.closingBalance || 0) < 0 ? `+${moneyFormat(Math.abs(supplierDebt?.closingBalance || 0))}` : moneyFormat(supplierDebt?.closingBalance || 0)}
+                                    </span>
+                                  </div>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        ) : (
+                          /* Show dropdown based on voucher type */
+                          <>
+                            {selectedVoucherType === 'salary' ? (
+                              /* Employee selector */
+                              <Popover open={openUserPopover} onOpenChange={setOpenUserPopover}>
+                                <PopoverTrigger asChild>
+                                  <Button type="button" variant="outline" className="w-full justify-between font-normal">
+                                    Chọn nhân viên
+                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" style={{ zIndex: 100020 }}>
+                                  <Command>
+                                    <CommandInput placeholder="Tìm kiếm nhân viên..." className="h-9" />
+                                    <CommandEmpty>Không tìm thấy nhân viên</CommandEmpty>
+                                    <CommandGroup>
+                                      <CommandList>
+                                        {users?.map((u) => (
+                                          <CommandItem
+                                            value={`${u.fullName || u.username || ''} ${u.phone || ''}`}
+                                            key={u.id}
+                                            onSelect={() => {
+                                              setSelectedUser(u)
+                                              setOpenUserPopover(false)
+                                            }}
+                                          >
+                                            <div className="flex flex-col">
+                                              <span className="font-medium">{u.fullName || u.username}</span>
+                                              <span className="text-xs text-muted-foreground">{u.phone} · {u.employeeCode || u.code || ''}</span>
+                                            </div>
+                                            <CheckIcon
+                                              className={cn(
+                                                'ml-auto h-4 w-4',
+                                                selectedUser?.id === u.id ? 'opacity-100' : 'opacity-0'
+                                              )}
+                                            />
+                                          </CommandItem>
+                                        ))}
+                                      </CommandList>
+                                    </CommandGroup>
+                                  </Command>
+                                </PopoverContent>
+                              </Popover>
+                            ) : selectedVoucherType === 'refund' ? (
+                              /* Customer selector */
+                              <Popover open={openCustomerPopover} onOpenChange={setOpenCustomerPopover}>
+                                <PopoverTrigger asChild>
+                                  <Button type="button" variant="outline" className="w-full justify-between font-normal">
+                                    Chọn khách hàng
+                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" style={{ zIndex: 100020 }}>
+                                  <Command>
+                                    <CommandInput placeholder="Tìm kiếm theo tên, SĐT, CCCD..." className="h-9" />
+                                    <CommandEmpty>Không tìm thấy khách hàng</CommandEmpty>
+                                    <CommandGroup>
+                                      <CommandList>
+                                        {customers?.map((c) => (
+                                          <CommandItem
+                                            value={`${c.customerName || c.name || ''} ${c.phone || ''} ${c.cccd || ''}`}
+                                            key={c.id}
+                                            onSelect={() => {
+                                              setSelectedCustomer(c)
+                                              setOpenCustomerPopover(false)
+                                            }}
+                                          >
+                                            <div className="flex flex-col">
+                                              <span className="font-medium">{c.customerName || c.name}</span>
+                                              <span className="text-xs text-muted-foreground">{c.phone} · {c.customerCode || c.code}</span>
+                                            </div>
+                                            <CheckIcon
+                                              className={cn(
+                                                'ml-auto h-4 w-4',
+                                                selectedCustomer?.id === c.id ? 'opacity-100' : 'opacity-0'
+                                              )}
+                                            />
+                                          </CommandItem>
+                                        ))}
+                                      </CommandList>
+                                    </CommandGroup>
+                                  </Command>
+                                </PopoverContent>
+                              </Popover>
+                            ) : (
+                              /* Supplier selector (default) */
+                              <Popover open={openSupplierPopover} onOpenChange={setOpenSupplierPopover}>
+                                <PopoverTrigger asChild>
+                                  <Button type="button" variant="outline" className="w-full justify-between font-normal">
+                                    Chọn nhà cung cấp
+                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" style={{ zIndex: 100020 }}>
+                                  <Command>
+                                    <CommandInput placeholder="Tìm kiếm theo tên, SĐT..." className="h-9" />
+                                    <CommandEmpty>Không tìm thấy nhà cung cấp</CommandEmpty>
+                                    <CommandGroup>
+                                      <CommandList>
+                                        {suppliersList?.map((s) => (
+                                          <CommandItem
+                                            value={`${s.supplierName || ''} ${s.phone || ''}`}
+                                            key={s.id}
+                                            onSelect={() => {
+                                              setSelectedSupplier(s)
+                                              setOpenSupplierPopover(false)
+                                            }}
+                                          >
+                                            <div className="flex flex-col">
+                                              <span className="font-medium">{s.supplierName}</span>
+                                              <span className="text-xs text-muted-foreground">{s.phone} · {s.supplierCode}</span>
+                                            </div>
+                                            <CheckIcon
+                                              className={cn(
+                                                'ml-auto h-4 w-4',
+                                                selectedSupplier?.id === s.id ? 'opacity-100' : 'opacity-0'
+                                              )}
+                                            />
+                                          </CommandItem>
+                                        ))}
+                                      </CommandList>
+                                    </CommandGroup>
+                                  </Command>
+                                </PopoverContent>
+                              </Popover>
+                            )}
+                          </>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
                 )}
               </div>
             </form>
           </Form>
         </div>
+
+        {/* Add Custom Type Dialog */}
+        <Dialog open={isAddTypeOpen} onOpenChange={setIsAddTypeOpen}>
+          <DialogContent className="sm:max-w-[425px] z-[100100]">
+            <DialogHeader>
+              <DialogTitle>Thêm loại phiếu chi mới</DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <Input 
+                value={newTypeName} 
+                onChange={e => setNewTypeName(e.target.value)} 
+                placeholder="Nhập tên loại phiếu chi..."
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    handleAddType()
+                  }
+                }}
+                autoFocus
+              />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsAddTypeOpen(false)}>Hủy</Button>
+              <Button onClick={handleAddType} disabled={!newTypeName.trim()}>Thêm mới</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <DialogFooter className={cn("flex gap-2 sm:space-x-0", isMobile && "pb-4 px-4 flex-row")}>
           <DialogClose asChild>
@@ -797,7 +1188,7 @@ const PaymentDialog = ({
             </Button>
           </DialogClose>
 
-          <Button form="payment-form" loading={loading} className={cn(isMobile && "flex-1")}>
+          <Button form="payment-form" loading={loading} className={cn("bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] transition-all duration-200 text-white shadow-md hover:shadow-lg", isMobile && "flex-1")}>
             {submitLabel}
           </Button>
         </DialogFooter>

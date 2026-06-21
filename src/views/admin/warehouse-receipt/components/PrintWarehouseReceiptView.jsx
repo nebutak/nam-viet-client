@@ -53,108 +53,150 @@ const PrintableContent = React.forwardRef(({ setting, receipt, isTransferType, d
   const nowTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')} ${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear().toString().slice(-2)}`
 
   return (
-    <div ref={ref} className="font-serif text-black mx-auto bg-white w-[210mm] min-h-[297mm] text-sm p-4 relative">
+    <div 
+      ref={ref} 
+      className="print-container font-serif text-black mx-auto bg-white w-[148mm] min-h-[210mm] text-[11px] p-3 relative leading-tight"
+    >
+      <style>{`
+        @media print {
+          @page {
+            size: A5 portrait;
+            margin: 5mm;
+          }
+          body {
+            margin: 0;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          .print-container {
+            width: 138mm !important;
+            min-height: 200mm !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+        }
+      `}</style>
+
       {/* Top small header */}
-      <div className="flex justify-between items-center mb-1 text-xs">
+      <div className="flex justify-between items-center mb-1 text-[9px] text-gray-500">
         <span>{nowTime}</span>
-        <span>In Chứng Từ</span>
+        <span>In Chứng Tử</span>
       </div>
 
       {/* Brand Header */}
-      <div className="flex items-start mb-4">
+      <div className="flex items-start mb-2 border-b border-gray-200 pb-1">
         {/* Logo */}
-        <div className="w-24 h-24 mr-4 flex items-center justify-center flex-shrink-0">
-          <img src={setting?.logo ? getPublicUrl(setting.logo) : "/images/logo/logo-nobackground.png"} alt="Logo" className="max-w-full max-h-full object-contain" />
+        <div className="w-16 h-16 mr-3 flex items-center justify-center flex-shrink-0">
+          <img 
+            src={setting?.logo ? getPublicUrl(setting.logo) : "/images/logo/logo-nobackground.png"} 
+            alt="Logo" 
+            className="max-w-full max-h-full object-contain" 
+          />
         </div>
         
-        <div className="flex-1">
-          <h1 className="text-xl font-bold uppercase mb-1 text-red-600">{setting?.brandName || 'CÔNG TY CỔ PHẦN HÓA SINH NAM VIỆT'}</h1>
-          <p className="mb-0.5 leading-tight text-green-700 font-semibold text-[13px]">{setting?.address || 'Quốc Lộ 30, ấp Đông Mỹ, xã Mỹ Thọ, tỉnh Đồng Tháp.'}</p>
-          <p className="mb-0.5 leading-tight text-blue-700 font-semibold text-[13px]">
-            Điện thoại: {setting?.phone || '088 635 7788 - 0868 759 588'} 
-            {setting?.taxCode && <span> - MST: {setting.taxCode}</span>}
+        <div className="flex-1 text-[10px] leading-snug">
+          <h1 className="text-[12px] font-bold uppercase mb-0.5 text-red-600">
+            {setting?.brandName || 'CÔNG TY CỔ PHẦN HÓA SINH NAM VIỆT'}
+          </h1>
+          <p className="mb-0.5 text-green-700 font-semibold">
+            {setting?.address || 'Quốc Lộ 30, ấp Đông Mỹ, xã Mỹ Thọ, tỉnh Đồng Tháp.'}
           </p>
-          {setting?.bankAccount1 ? <p className="mb-0.5 leading-tight text-blue-700 font-semibold text-[13px]">{setting.bankAccount1}</p> : <p className="mb-0.5 leading-tight text-blue-700 font-semibold text-[13px]">TK Lê Trung Thành: 9 75 76 77 88 - NH ACB CN Đồng Tháp</p>}
-          {setting?.bankAccount2 ? <p className="mb-0 leading-tight text-blue-700 font-semibold text-[13px]">{setting.bankAccount2}</p> : <p className="mb-0 leading-tight text-blue-700 font-semibold text-[13px]">TK Lê Trung Thành: 09 75 76 77 88 - NH SACOMBANK CN Đồng Tháp.</p>}
+          <p className="mb-0.5 text-purple-700 font-semibold">
+            Điện thoại: {setting?.phone ? (setting.phone.includes("0868") ? setting.phone : setting.phone + " - 0868 759 588") : "088 635 7788 - 0868 759 588"}
+          </p>
+          <p className="mb-0.5 text-amber-600 font-semibold">
+            TK Lê Trung Thành: 9 75 76 77 88 - NH ACB CN Đồng Tháp
+          </p>
+          <p className="text-amber-600 font-semibold">
+            TK Lê Trung Thành: 09 75 76 77 88 - NH SACOMBANK CN Đồng Tháp.
+          </p>
         </div>
       </div>
 
-      {/* Title */}
-      <div className="relative text-center mb-6">
-        <h2 className="text-2xl font-bold uppercase text-blue-700">{isImport ? 'PHIẾU NHẬP KHO' : 'PHIẾU XUẤT KHO'}</h2>
-        <div className="absolute right-0 top-0 text-sm font-bold mt-2">
-          Số HĐ: {receipt?.code}
-        </div>
-      </div>
-
-      {/* Partner Info */}
-      <div className="mb-4">
-        <div className="flex text-fuchsia-600 font-semibold">
-          <span className="w-40">{isTransferIn ? 'Kho xuất:' : isTransferOut ? 'Kho nhận:' : isImport ? 'Nhà cung cấp:' : 'Cty/Hộ kinh doanh:'}</span>
-          <span className="uppercase">{isTransferType ? displayTransferWarehouse?.warehouseName : receipt?.partnerName || receipt?.supplier?.name || receipt?.customer?.customerName || ''}</span>
-        </div>
-        <div className="flex mt-1 text-green-600 font-semibold">
-          <span className="w-40">Địa chỉ:</span>
-          <span>{isTransferType ? displayTransferWarehouse?.address : receipt?.supplier?.address || receipt?.customer?.address || ''}</span>
-        </div>
-        <div className="flex mt-1 text-blue-600 font-semibold">
-          <span className="w-40">Điện thoại:</span>
-          <span>{isTransferType ? displayTransferWarehouse?.phone : receipt?.supplier?.phone || receipt?.customer?.phone || ''}</span>
+      {/* Title & Subheader */}
+      <div className="mb-3">
+        <h2 className="text-lg font-bold text-center uppercase text-red-600 mb-1">
+          {isImport ? 'PHIẾU NHẬP KHO' : 'PHIẾU XUẤT KHO'}
+        </h2>
+        <div className="flex justify-between items-center text-[10px] px-1">
+          <span className="text-blue-700 font-semibold">
+            Nội dung: {receipt?.reason || receipt?.notes || (isImport ? 'Nhập kho thành phẩm' : 'Xuất kho thành phẩm')}
+          </span>
+          <span className="text-red-600 font-bold">
+            Số: {receipt?.code}
+          </span>
         </div>
       </div>
 
       {/* Table */}
-      <table className="mb-2 w-full text-sm border-collapse border border-black">
+      <table className="mb-2 w-full text-[10px] border-collapse border border-black">
         <thead>
-          <tr className="bg-white text-green-700">
-            <th className="border border-black p-1 text-center font-bold w-12">TT</th>
+          <tr className="bg-[#e29d1c] text-black">
+            <th className="border border-black p-1 text-center font-bold w-8">TT</th>
             <th className="border border-black p-1 text-center font-bold">Tên sản phẩm</th>
-            <th className="border border-black p-1 text-center font-bold w-20">ĐVT</th>
-            <th className="border border-black p-1 text-center font-bold w-24">SL</th>
-            <th className="border border-black p-1 text-center font-bold w-28">Ghi chú</th>
+            <th className="border border-black p-1 text-center font-bold w-12">ĐVT</th>
+            <th className="border border-black p-1 text-center font-bold w-16">SL</th>
+            <th className="border border-black p-1 text-center font-bold w-24">Date</th>
           </tr>
         </thead>
         <tbody>
-          {receipt?.details?.map((item, index) => (
-            <tr key={index}>
-              <td className="border border-black p-1 text-center">{index + 1}</td>
-              <td className="border border-black p-1 font-semibold">{item.productName || item.product?.productName}</td>
-              <td className="border border-black p-1 text-center font-semibold">{item.unitName || item.product?.unit?.name}</td>
-              <td className="border border-black p-1 text-center font-bold">{parseFloat(item.qtyActual || item.quantity || 0).toLocaleString('vi-VN')}</td>
-              <td className="border border-black p-1 text-center font-semibold text-xs">{item.notes}</td>
-            </tr>
-          ))}
+          {receipt?.details?.map((item, index) => {
+            const itemDate = item.expiryDate || item.mfgDate || item.createdAt || '';
+            const itemDateStr = itemDate ? dateFormat(itemDate) : '';
+            return (
+              <tr key={index} className="h-6">
+                <td className="border border-black p-0.5 text-center">{index + 1}</td>
+                <td className="border border-black p-0.5 px-1 font-semibold text-blue-700">
+                  {item.productName || item.product?.productName}
+                </td>
+                <td className="border border-black p-0.5 text-center font-semibold text-blue-700">
+                  {item.unitName || item.product?.unit?.name || '—'}
+                </td>
+                <td className="border border-black p-0.5 text-center font-bold text-blue-700">
+                  {parseFloat(item.qtyActual || item.quantity || 0).toLocaleString('vi-VN')}
+                </td>
+                <td className="border border-black p-0.5 text-center font-semibold text-blue-700">
+                  {itemDateStr}
+                </td>
+              </tr>
+            )
+          })}
           {/* Summary Row */}
-          <tr className="text-red-600">
-            <td className="border border-black p-1 text-left font-bold" colSpan={3}>Cộng:</td>
-            <td className="border border-black p-1 text-center font-bold">
+          <tr className="bg-white text-black font-bold">
+            <td className="border border-black p-0.5 px-2 text-center" colSpan={3}>Cộng:</td>
+            <td className="border border-black p-0.5 text-center">
               {receipt?.details?.reduce((sum, item) => sum + parseFloat(item.qtyActual || item.quantity || 0), 0).toLocaleString('vi-VN')}
             </td>
-            <td className="border border-black p-1 text-center"></td>
+            <td className="border border-black p-0.5"></td>
           </tr>
         </tbody>
       </table>
 
-      {/* Ghi chú Invoice */}
-      <div className="mb-8">
-        <p className="text-red-600 italic text-sm font-semibold">
-          Ghi chú: {receipt?.notes || receipt?.note || 'Hóa đơn sẽ được xuất khi khách nhận đủ và thanh toán hết đơn hàng.'}
-        </p>
+      {/* Date Str */}
+      <div className="text-right text-[10px] font-semibold italic text-green-700 mb-2 pr-2">
+        {printDateStr}
       </div>
 
-      {/* Date & Signatures */}
-      <div className="flex justify-end mb-2">
-        <div className="text-sm font-semibold italic text-center pr-8 w-1/3">
-          {printDateStr}
+      {/* Signatures */}
+      <div className="flex justify-between text-center text-[10px] px-2 mb-8">
+        <div className="w-1/3 flex flex-col items-center">
+          <p className="font-bold">Lập phiếu</p>
+          <div className="h-12"></div>
+          <p className="font-bold text-red-600 uppercase text-[9px] leading-tight">
+            {receipt?.creator?.fullName || receipt?.createdByUser?.fullName || 'NGUYỄN THỊ THÙY TRANG'}
+          </p>
         </div>
-      </div>
-      
-      <div className="flex justify-between text-center text-sm">
-        <div className="w-1/2">
-          <p className="font-bold">{isImport ? 'Người giao hàng' : 'Người nhận hàng'}</p>
+        <div className="w-1/3 flex flex-col items-center">
+          <p className="font-bold">Người nhận hàng</p>
+          <div className="h-12"></div>
+          <p className="font-bold text-red-600 uppercase text-[9px] leading-tight"></p>
         </div>
-        <div className="w-1/2">
+        <div className="w-1/3 flex flex-col items-center">
           <p className="font-bold">Thủ kho</p>
+          <div className="h-12"></div>
+          <p className="font-bold text-red-600 text-[9px] leading-tight">
+            {setting?.warehouseKeeper || 'Nguyễn Thị Thùy Trang'}
+          </p>
         </div>
       </div>
     </div>

@@ -48,6 +48,7 @@ import { MoneyInputQuick } from '@/components/custom/MoneyInputQuick'
 const InvoiceSidebar = ({
   form,
   customers,
+  warehouses = [],
   selectedCustomer,
   customerEditData,
   onCustomerEditDataChange,
@@ -150,8 +151,11 @@ const InvoiceSidebar = ({
       <div className="absolute left-0 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-border/40 to-transparent" />
 
       {/* Header */}
-      <div className="p-4 border-b bg-background">
-        <h3 className="font-semibold">Thông tin đơn hàng</h3>
+      <div className="p-4 border-b bg-emerald-50/30 flex items-center gap-2">
+        <div className="p-1.5 bg-emerald-600 rounded-md">
+          <IconDatabasePlus className="h-4 w-4 text-white" />
+        </div>
+        <h3 className="font-bold text-emerald-800 tracking-tight">Thông tin đơn hàng</h3>
       </div>
 
       <ScrollArea className="flex-1">
@@ -400,7 +404,9 @@ const InvoiceSidebar = ({
                             <CommandEmpty>Không tìm thấy</CommandEmpty>
                             <CommandGroup>
                               <CommandList>
-                                {customers.map((customer) => (
+                                {customers
+                                  .filter((c) => c.status !== 'blacklisted')
+                                  .map((customer) => (
                                   <CommandItem
                                     value={`${customer.customerName || customer.name || ''} ${customer.phone || ''} ${customer.cccd || customer.identityCard || ''}`.trim()}
                                     key={customer.id}
@@ -679,6 +685,32 @@ const InvoiceSidebar = ({
             )}
           />
 
+          <FormField
+            control={form.control}
+            name="warehouseId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Kho xuất kho mặc định</FormLabel>
+                <Select onValueChange={(val) => field.onChange(val === 'unselected' ? undefined : parseInt(val))} value={field.value ? field.value.toString() : 'unselected'}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Chọn kho xuất hàng mặc định (Tùy chọn)" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="unselected">Không chọn</SelectItem>
+                    {warehouses?.map((w) => (
+                      <SelectItem key={w.id} value={w.id.toString()}>
+                        {w.warehouseName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
           {!form.watch('isPickupOrder') && (
             <div className="space-y-3 p-3 border rounded-lg bg-orange-50/50">
               <div className="text-xs font-medium text-orange-800">Thông tin giao hàng</div>
@@ -810,52 +842,58 @@ const InvoiceSidebar = ({
           <Separator />
 
           {/* Summary */}
-          <div className="space-y-2">
-            <h4 className="font-semibold text-sm">Tổng kết</h4>
+          <div className="p-4 rounded-xl bg-gradient-to-br from-emerald-50/50 to-white border border-emerald-100/50 shadow-sm space-y-3">
+            <h4 className="font-bold text-emerald-900 text-sm flex items-center gap-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              Tổng kết đơn bán
+            </h4>
 
-            <div className="space-y-1.5 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Tạm tính:</span>
-                <span>{moneyFormat(subtotal)}</span>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between items-center group">
+                <span className="text-muted-foreground group-hover:text-foreground transition-colors">Tạm tính:</span>
+                <span className="font-medium">{moneyFormat(subtotal)}</span>
               </div>
 
               {tax > 0 && (
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Thuế:</span>
-                  <span>{moneyFormat(tax)}</span>
+                  <span className="font-medium">{moneyFormat(tax)}</span>
                 </div>
               )}
 
               {discount > 0 && (
-                <div className="flex justify-between text-destructive">
-                  <span>Giảm giá:</span>
-                  <span>-{moneyFormat(discount)}</span>
+                <div className="flex justify-between items-center text-rose-600 bg-rose-50/50 px-2 py-0.5 rounded-md -mx-2">
+                  <span className="font-medium text-xs">Giảm giá:</span>
+                  <span className="font-bold">-{moneyFormat(discount)}</span>
                 </div>
               )}
 
               {expenses > 0 && (
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Phí khác:</span>
-                  <span>{moneyFormat(expenses)}</span>
+                  <span className="font-medium">{moneyFormat(expenses)}</span>
                 </div>
               )}
 
               {Number(form.watch('shippingFee')) > 0 && (
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Phí giao hàng:</span>
-                  <span>{moneyFormat(Number(form.watch('shippingFee')))}</span>
+                  <span className="font-medium">{moneyFormat(Number(form.watch('shippingFee')))}</span>
                 </div>
               )}
 
-              <Separator />
+              <div className="pt-2 border-t border-emerald-100">
+                <div className="flex justify-between items-end mb-1">
+                  <span className="font-bold text-emerald-900">Tổng cộng:</span>
+                  <span className="text-2xl font-black text-emerald-700 tracking-tight">
+                    {moneyFormat(total)}
+                  </span>
+                </div>
 
-              <div className="flex justify-between font-semibold text-base pt-1">
-                <span>Tổng cộng:</span>
-                <span className="text-primary">{moneyFormat(total)}</span>
-              </div>
-
-              <div className="text-xs text-muted-foreground pt-1">
-                Bằng chữ: <span className="font-medium">{toVietnamese(total)}</span>
+                <div className="text-[10px] text-muted-foreground pt-1 italic text-right leading-tight">
+                  <span className="opacity-70">Bằng chữ: </span>
+                  <span className="font-semibold text-emerald-800">{toVietnamese(total)}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -866,13 +904,13 @@ const InvoiceSidebar = ({
       <div className="p-4 border-t space-y-2">
         {/* Main Button */}
         <Button
-          className="w-full"
+          className="w-full bg-emerald-600 hover:bg-emerald-700 h-11 text-base font-bold shadow-lg shadow-emerald-100 transition-all hover:scale-[1.01] active:scale-[0.99]"
           onClick={form.handleSubmit(onSubmit, onInvalidSubmit)}
           disabled={loading}
           loading={loading}
         >
-          <IconDatabasePlus className="h-4 w-4 mr-2" />
-          {isUpdate ? 'Cập nhật đơn bán' : 'Tạo đơn bán'}
+          <IconDatabasePlus className="h-5 w-5 mr-2" />
+          {isUpdate ? 'Cập nhật đơn bán' : 'Xác nhận & Lưu đơn'}
         </Button>
 
         {/* Print Buttons Disabled by Business Logic (Chỉ in khi có phiếu xuất kho)
