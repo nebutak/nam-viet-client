@@ -56,7 +56,7 @@ const MobileInvoiceActions = ({
           <div className="flex flex-col gap-3">
 
             {/* Payment Action */}
-            {(invoice?.orderStatus !== 'cancelled' && invoice?.orderStatus !== 'pending' && invoice?.paymentStatus !== 'paid') && (
+            {(invoice?.orderStatus !== 'cancelled' && invoice?.paymentStatus !== 'paid') && (
               <Button
                 className="bg-green-600 text-white hover:bg-green-700 h-auto py-3 flex-row gap-2"
                 onClick={() => handleAction(handleCreateReceipt)}

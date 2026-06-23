@@ -1061,7 +1061,7 @@ const ViewInvoiceDialog = ({ invoiceId, showTrigger = true, onEdit, onSuccess, c
                         <div className="space-y-4">
                           <div className="flex items-center justify-between">
                             <h3 className="font-semibold">Phiếu thu</h3>
-                            {(invoice?.orderStatus !== 'cancelled' && invoice?.orderStatus !== 'pending' && invoice?.paymentStatus !== 'paid') ? (
+                            {(invoice?.orderStatus !== 'cancelled' && invoice?.paymentStatus !== 'paid') && (
                               <Button
                                 size="sm"
                                 className="h-8 gap-1 bg-green-600 text-white hover:bg-green-700 border-transparent"
@@ -1072,10 +1072,6 @@ const ViewInvoiceDialog = ({ invoiceId, showTrigger = true, onEdit, onSuccess, c
                                   Thêm
                                 </span>
                               </Button>
-                            ) : (
-                              invoice?.orderStatus === 'pending' ? (
-                                <span className="text-[12px] text-gray-500">Đơn hàng chưa được duyệt</span>
-                              ) : null
                             )}
                           </div>
 
@@ -1939,7 +1935,6 @@ const ViewInvoiceDialog = ({ invoiceId, showTrigger = true, onEdit, onSuccess, c
                   <>
                     {/* Add Payment Button */}
                     {invoice?.orderStatus !== 'cancelled' &&
-                      invoice?.orderStatus !== 'pending' &&
                       invoice?.paymentStatus !== 'paid' && (
                         <Button
                           size='sm'

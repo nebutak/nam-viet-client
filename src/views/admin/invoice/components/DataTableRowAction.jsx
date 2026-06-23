@@ -258,8 +258,8 @@ const DataTableRowActions = ({ row, table }) => {
 
           <DropdownMenuSeparator />
 
-          {/* Tạo Phiếu Thu - Hiển thị khi đã duyệt hoặc đang giao, chưa thanh toán đủ */}
-          {(invoice?.orderStatus === 'preparing' || invoice?.orderStatus === 'delivering') && invoice?.paymentStatus !== 'paid' && (
+          {/* Tạo Phiếu Thu - Hiển thị khi chưa hủy và chưa thanh toán đủ */}
+          {invoice?.orderStatus !== 'cancelled' && invoice?.paymentStatus !== 'paid' && (
             <Can permission="CREATE_RECEIPT">
               <DropdownMenuItem onClick={handleCreateReceipt} className="text-emerald-600">
                 Tạo Phiếu Thu
