@@ -125,7 +125,7 @@ const MobileReceiptCard = ({
   const getStatusBadge = (statusValue) => {
     // Legacy badge function if needed, but we are replacing with Select in UI
     const statusObj = receiptStatus.find((s) => s.value === statusValue)
-    const colorClass = statusValue === 'completed' ? 'bg-green-500' : statusValue === 'cancelled' ? 'bg-red-500' : 'bg-yellow-500'
+    const colorClass = statusValue === 'posted' ? 'bg-green-500' : (statusValue === 'cancelled' || statusValue === 'canceled') ? 'bg-red-500' : 'bg-yellow-500'
 
     return (
       <Badge
@@ -282,7 +282,7 @@ const MobileReceiptCard = ({
                   <SelectValue placeholder="Chọn trạng thái">
                     {selectedStatusObj ? (
                       <span
-                        className={`inline-flex items-center gap-1 font-medium ${selectedStatusObj.value === 'completed' ? 'text-green-600' : selectedStatusObj.value === 'cancelled' ? 'text-red-600' : 'text-yellow-600'
+                        className={`inline-flex items-center gap-1 font-medium ${selectedStatusObj.value === 'posted' ? 'text-green-600' : (selectedStatusObj.value === 'cancelled' || selectedStatusObj.value === 'canceled') ? 'text-red-600' : 'text-yellow-600'
                           }`}
                       >
                         {selectedStatusObj.label}
@@ -298,7 +298,7 @@ const MobileReceiptCard = ({
                       className="cursor-pointer text-xs"
                     >
                       <span
-                        className={`inline-flex items-center gap-1 font-medium ${s.value === 'completed' ? 'text-green-600' : s.value === 'canceled' ? 'text-red-600' : 'text-yellow-600'
+                        className={`inline-flex items-center gap-1 font-medium ${s.value === 'posted' ? 'text-green-600' : (s.value === 'cancelled' || s.value === 'canceled') ? 'text-red-600' : 'text-yellow-600'
                           }`}
                       >
                         {s.label}

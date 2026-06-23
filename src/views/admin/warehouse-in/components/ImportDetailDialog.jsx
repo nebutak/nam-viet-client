@@ -44,7 +44,7 @@ export function ImportDetailDialog({ transaction, open, onOpenChange }) {
                         <span className="font-mono text-lg font-bold text-primary">
                             {transaction.transactionCode || `#${transaction.id}`}
                         </span>
-                        <StatusBadge isPosted={transaction.isPosted} />
+                        <StatusBadge isPosted={transaction.isPosted} isCancelled={transaction.isCancelled} />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4 rounded-lg border p-3 bg-muted/30">

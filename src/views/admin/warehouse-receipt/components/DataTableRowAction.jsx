@@ -17,7 +17,7 @@ import {
 import ViewWarehouseReceiptDialog from './ViewWarehouseReceiptDialog'
 import UpdateWarehouseReceiptDialog from './UpdateWarehouseReceiptDialog'
 import Can from '@/utils/can'
-import { Eye, Printer, Trash2, Pencil, FileSpreadsheet, CheckCircle } from 'lucide-react'
+import { Eye, Printer, Trash2, Pencil, FileSpreadsheet, CheckCircle, X } from 'lucide-react'
 import { DeleteWarehouseReceiptDialog } from './DeleteWarehouseReceiptDialog'
 import { CancelWarehouseReceiptDialog } from './CancelWarehouseReceiptDialog'
 import PrintWarehouseReceiptView from './PrintWarehouseReceiptView'
@@ -122,6 +122,7 @@ export function DataTableRowActions({ row, onRefresh }) {
           onOpenChange={setShowCancelDialog}
           receipt={receipt}
           showTrigger={false}
+          onSuccess={onRefresh}
         />
       )}
 
@@ -210,6 +211,20 @@ export function DataTableRowActions({ row, onRefresh }) {
                 <CheckCircle className="h-4 w-4" />
               </DropdownMenuShortcut>
             </DropdownMenuItem>
+          )}
+
+          {receipt.status === 'posted' && (
+            <Can permission={receipt.receiptType === 1 ? 'WAREHOUSE_IMPORT_DELETE' : 'WAREHOUSE_EXPORT_DELETE'}>
+              <DropdownMenuItem
+                onClick={() => setShowCancelDialog(true)}
+                className="text-destructive focus:text-destructive"
+              >
+                Hủy phiếu
+                <DropdownMenuShortcut>
+                  <X className="h-4 w-4" />
+                </DropdownMenuShortcut>
+              </DropdownMenuItem>
+            </Can>
           )}
 
           {(receipt.status === 'draft' || receipt.status === 'cancelled') && (

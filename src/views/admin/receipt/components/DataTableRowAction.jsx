@@ -12,13 +12,14 @@ import {
 import { useState } from 'react'
 import { DeleteReceiptDialog } from './DeleteReceiptDialog'
 import { useDispatch, useSelector } from 'react-redux'
-import { getReceiptQRCode } from '@/stores/ReceiptSlice'
+import { getReceiptQRCode, updateReceiptStatus } from '@/stores/ReceiptSlice'
 import { toast } from 'sonner'
 import {
   Eye,
   Printer,
   Trash2,
   QrCode,
+  Ban,
 } from 'lucide-react'
 import PaymentQRCodeDialog from './PaymentQRCodeDialog'
 import ViewReceiptDialog from './ViewReceiptDialog'
@@ -36,6 +37,16 @@ const DataTableRowActions = ({ row }) => {
   const dispatch = useDispatch()
   const setting = useSelector((state) => state.setting.setting)
   const receipt = row.original
+
+  const handleCancel = async () => {
+    if (confirm('Bạn có chắc chắn muốn hủy phiếu thu này không?')) {
+      try {
+        await dispatch(updateReceiptStatus({ id: receipt.id, status: 'cancelled' })).unwrap()
+      } catch (error) {
+        console.error(error)
+      }
+    }
+  }
 
   const handleGenerateQR = async () => {
     if (receipt.status !== 'draft') {
@@ -98,29 +109,39 @@ const DataTableRowActions = ({ row }) => {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
-            aria-label="Open menu"
             variant="ghost"
-            className="flex size-8 p-0 data-[state=open]:bg-muted"
+            className="flex h-8 w-8 p-0 data-[state=open]:bg-muted"
           >
-            <DotsHorizontalIcon className="size-4" aria-hidden="true" />
+            <DotsHorizontalIcon className="h-4 w-4" />
+            <span className="sr-only">Mở menu</span>
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-40">
+        <DropdownMenuContent align="end" className="w-[160px]">
           <DropdownMenuItem
             onClick={() => setShowViewReceiptDialog(true)}
             className="text-blue-600 focus:text-blue-600"
           >
             <Eye className="mr-2 h-4 w-4" />
-            Xem
+            Xem chi tiết
           </DropdownMenuItem>
 
           <DropdownMenuItem
             onClick={handlePrintReceipt}
-            className="text-orange-600 focus:text-orange-600"
+            className="text-violet-600 focus:text-violet-600"
           >
             <Printer className="mr-2 h-4 w-4" />
             In phiếu
           </DropdownMenuItem>
+
+          {receipt.status === 'posted' && (
+            <DropdownMenuItem
+              onSelect={handleCancel}
+              className="text-destructive focus:text-destructive"
+            >
+              <Ban className="mr-2 h-4 w-4" />
+              Hủy
+            </DropdownMenuItem>
+          )}
 
           {receipt.status === 'draft' && (
             <>

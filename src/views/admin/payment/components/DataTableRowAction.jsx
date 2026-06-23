@@ -12,8 +12,9 @@ import {
 import { IconEdit, IconTrash } from '@tabler/icons-react'
 import { useState } from 'react'
 import { DeletePaymentDialog } from './DeletePaymentDialog'
+import { CancelPaymentDialog } from './CancelPaymentDialog'
 import PaymentFormDialog from './PaymentDialog'
-import { Pencil, Eye, Printer, Trash2 } from 'lucide-react'
+import { Pencil, Eye, Printer, Trash2, Ban } from 'lucide-react'
 import Can from '@/utils/can'
 import ViewPaymentDialog from './ViewPaymentDialog'
 import PrintPaymentView from './PrintPaymentView'
@@ -25,6 +26,7 @@ const DataTableRowActions = ({ row }) => {
   const [showDeletePaymentDialog, setShowDeletePaymentDialog] = useState(false)
   const [showUpdatePaymentDialog, setShowUpdatePaymentDialog] = useState(false)
   const [showViewPaymentDialog, setShowViewPaymentDialog] = useState(false)
+  const [showCancelPaymentDialog, setShowCancelPaymentDialog] = useState(false)
   const [printData, setPrintData] = useState(null)
 
   const payment = row.original
@@ -84,6 +86,15 @@ const DataTableRowActions = ({ row }) => {
         />
       )}
 
+      {showCancelPaymentDialog && (
+        <CancelPaymentDialog
+          open={showCancelPaymentDialog}
+          onOpenChange={setShowCancelPaymentDialog}
+          payment={payment}
+          showTrigger={false}
+        />
+      )}
+
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -110,6 +121,18 @@ const DataTableRowActions = ({ row }) => {
             <Printer className="mr-2 h-4 w-4" />
             In phiếu
           </DropdownMenuItem>
+
+          {payment.status === 'posted' && (
+            <Can permission="PAYMENT_DELETE">
+              <DropdownMenuItem
+                onSelect={() => setShowCancelPaymentDialog(true)}
+                className="text-destructive focus:text-destructive"
+              >
+                <Ban className="mr-2 h-4 w-4" />
+                Hủy
+              </DropdownMenuItem>
+            </Can>
+          )}
 
           {(payment.status === 'draft') && (
             <Can permission="PAYMENT_UPDATE">

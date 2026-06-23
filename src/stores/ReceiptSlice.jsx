@@ -68,7 +68,7 @@ export const getReceiptById = createAsyncThunk(
       const data = response.data.data
       return {
         ...data,
-        status: data.isPosted ? 'posted' : 'draft'
+        status: data.isCancelled ? 'cancelled' : (data.isPosted ? 'posted' : 'draft')
       }
     } catch (error) {
       const message = handleError(error)
@@ -146,7 +146,7 @@ export const postReceipt = createAsyncThunk(
       const data = response.data.data
       return {
         ...data,
-        status: data.isPosted ? 'posted' : 'draft'
+        status: data.isCancelled ? 'cancelled' : (data.isPosted ? 'posted' : 'draft')
       }
     } catch (error) {
       const message = handleError(error)
@@ -167,16 +167,14 @@ export const updateReceiptStatus = createAsyncThunk(
       } else if (status === 'draft') {
         response = await api.post(`/payment-receipts/${id}/unpost`, { notes })
       } else if (status === 'cancelled' || status === 'canceled') {
-        response = await api.delete(`/payment-receipts/${id}`)
-        // Delete returns { message }
-        return { id, status: 'canceled', deletedAt: new Date().toISOString() }
+        response = await api.post(`/payment-receipts/${id}/cancel`, { notes })
       } else {
         response = await api.put(`/payment-receipts/${id}`, { status, notes })
       }
       const data = response.data.data
       return {
         ...data,
-        status: data.isPosted ? 'posted' : 'draft'
+        status: data.isCancelled ? 'cancelled' : (data.isPosted ? 'posted' : 'draft')
       }
     } catch (error) {
       const message = handleError(error)
@@ -194,7 +192,7 @@ export const updateReceipt = createAsyncThunk(
       const data = response.data.data
       return {
         ...data,
-        status: data.isPosted ? 'posted' : 'draft'
+        status: data.isCancelled ? 'cancelled' : (data.isPosted ? 'posted' : 'draft')
       }
     } catch (error) {
       const message = handleError(error)
@@ -241,7 +239,7 @@ export const receiptSlice = createSlice({
         state.loading = false
         const mapReceipt = (r) => ({
           ...r,
-          status: r.isPosted ? 'posted' : 'draft'
+          status: r.isCancelled ? 'cancelled' : (r.isPosted ? 'posted' : 'draft')
         })
 
         if (action.payload?.data && Array.isArray(action.payload.data)) {
@@ -265,7 +263,7 @@ export const receiptSlice = createSlice({
         state.loading = false
         const mapReceipt = (r) => ({
           ...r,
-          status: r.isPosted ? 'posted' : 'draft'
+          status: r.isCancelled ? 'cancelled' : (r.isPosted ? 'posted' : 'draft')
         })
 
         if (action.payload?.data && Array.isArray(action.payload.data)) {
@@ -326,7 +324,7 @@ export const receiptSlice = createSlice({
       .addCase(postReceipt.fulfilled, (state, action) => {
         const updatedReceipt = {
           ...action.payload,
-          status: action.payload.isPosted ? 'posted' : 'draft'
+          status: action.payload.isCancelled ? 'cancelled' : (action.payload.isPosted ? 'posted' : 'draft')
         }
         const index = state.receipts.findIndex((r) => r.id === updatedReceipt.id)
         if (index !== -1) {
@@ -340,7 +338,7 @@ export const receiptSlice = createSlice({
         state.loading = false
         const updatedReceipt = {
           ...action.payload,
-          status: action.payload.isPosted ? 'posted' : 'draft'
+          status: action.payload.isCancelled ? 'cancelled' : (action.payload.isPosted ? 'posted' : 'draft')
         }
         const index = state.receipts.findIndex((r) => r.id === updatedReceipt.id)
         if (index !== -1) {
@@ -359,7 +357,7 @@ export const receiptSlice = createSlice({
         state.loading = false
         const updatedReceipt = {
           ...action.payload,
-          status: action.payload.isPosted ? 'posted' : 'draft'
+          status: action.payload.isCancelled ? 'cancelled' : (action.payload.isPosted ? 'posted' : 'draft')
         }
         const index = state.receipts.findIndex((r) => r.id === updatedReceipt.id)
         if (index !== -1) {

@@ -10,6 +10,7 @@ export const receiptTypes = [
 export const warehouseReceiptStatuses = [
   { value: 'draft', label: 'Chờ duyệt', color: 'bg-yellow-500', icon: IconFileText },
   { value: 'posted', label: 'Đã ghi sổ', color: 'bg-green-500', icon: IconCircleCheck },
+  { value: 'cancelled', label: 'Đã hủy', color: 'bg-red-500', icon: IconCircleX },
 ]
 
 export const fulfillmentStatuses = [

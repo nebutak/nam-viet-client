@@ -48,6 +48,8 @@ const UpdateReceiptStatusDialog = ({
     switch (statusValue) {
       case 'draft': return 'text-yellow-500'
       case 'posted': return 'text-green-600'
+      case 'cancelled':
+      case 'canceled': return 'text-red-600'
       default: return ''
     }
   }

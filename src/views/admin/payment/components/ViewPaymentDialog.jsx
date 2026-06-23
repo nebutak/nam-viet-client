@@ -689,6 +689,22 @@ const ViewPaymentDialog = ({
               </Button>
             )}
 
+            {payment?.status === 'posted' && (
+              <Button
+                size="sm"
+                variant="destructive"
+                className="gap-2 bg-red-600 hover:bg-red-700 text-white border-none w-full sm:w-auto"
+                onClick={() => {
+                  if (confirm('Bạn có chắc chắn muốn hủy phiếu chi này không?')) {
+                    handleUpdateStatus('cancelled', payment.id)
+                  }
+                }}
+                disabled={actionLoading}
+              >
+                Hủy phiếu
+              </Button>
+            )}
+
             <Button
               size="sm"
               className="gap-2 bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-auto"

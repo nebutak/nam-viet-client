@@ -211,7 +211,8 @@ export const columns = [
     ),
     cell: function Cell({ row }) {
       const isPosted = row.getValue('isPosted')
-      const status = isPosted ? 'posted' : 'draft'
+      const isCancelled = row.original.isCancelled
+      const status = isCancelled ? 'cancelled' : (isPosted ? 'posted' : 'draft')
       const [showUpdateStatusDialog, setShowUpdateStatusDialog] = useState(false)
       const dispatch = useDispatch()
 

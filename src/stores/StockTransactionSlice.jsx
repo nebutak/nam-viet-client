@@ -73,6 +73,36 @@ export const postTransaction = createAsyncThunk(
     }
 )
 
+export const cancelTransaction = createAsyncThunk(
+    'stockTransaction/cancel',
+    async ({ id, notes }, { rejectWithValue }) => {
+        try {
+            const response = await api.put(`/stock-transactions/${id}/cancel`, { notes })
+            toast.success('Hủy phiếu thành công')
+            return response.data.data
+        } catch (error) {
+            const message = handleError(error)
+            toast.error(message)
+            return rejectWithValue(message)
+        }
+    }
+)
+
+export const deleteTransaction = createAsyncThunk(
+    'stockTransaction/delete',
+    async (id, { rejectWithValue }) => {
+        try {
+            const response = await api.delete(`/stock-transactions/${id}`)
+            toast.success('Xóa phiếu thành công')
+            return id
+        } catch (error) {
+            const message = handleError(error)
+            toast.error(message)
+            return rejectWithValue(message)
+        }
+    }
+)
+
 
 // ─── Slice ────────────────────────────────────────────────────
 const initialState = {
@@ -167,6 +197,26 @@ const stockTransactionSlice = createSlice({
                 }
             })
             .addCase(postTransaction.rejected, handleActionRejected)
+
+        builder
+            .addCase(cancelTransaction.pending, handleActionPending)
+            .addCase(cancelTransaction.fulfilled, (state, action) => {
+                state.actionLoading = false
+                if (action.payload) {
+                    const idx = state.transactions.findIndex((t) => t.id === action.payload.id)
+                    if (idx !== -1) state.transactions[idx] = action.payload
+                }
+            })
+            .addCase(cancelTransaction.rejected, handleActionRejected)
+
+        builder
+            .addCase(deleteTransaction.pending, handleActionPending)
+            .addCase(deleteTransaction.fulfilled, (state, action) => {
+                state.actionLoading = false
+                state.transactions = state.transactions.filter((t) => t.id !== action.payload)
+                if (state.pagination) state.pagination.total -= 1
+            })
+            .addCase(deleteTransaction.rejected, handleActionRejected)
 
     },
 })

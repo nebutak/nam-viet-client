@@ -1,8 +1,8 @@
 import { Badge } from '@/components/ui/badge'
 import { getStatusConfig } from '../data'
 
-export function StatusBadge({ isPosted }) {
-    const status = isPosted ? 'posted' : 'unposted'
+export function StatusBadge({ isPosted, isCancelled }) {
+    const status = isCancelled ? 'cancelled' : (isPosted ? 'posted' : 'unposted')
     const config = getStatusConfig(status)
     const Icon = config.icon
     return (

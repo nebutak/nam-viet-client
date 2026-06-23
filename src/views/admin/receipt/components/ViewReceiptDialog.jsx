@@ -171,6 +171,8 @@ const ViewReceiptDialog = ({
     switch (statusValue) {
       case 'draft': return 'bg-yellow-100 text-yellow-700'
       case 'posted': return 'bg-green-100 text-green-700'
+      case 'cancelled':
+      case 'canceled': return 'bg-red-100 text-red-700'
       default: return 'bg-gray-100 text-gray-700'
     }
   }
@@ -469,11 +471,13 @@ const ViewReceiptDialog = ({
                           <Badge
                             className={cn(
                               "cursor-pointer hover:underline",
-                              (receipt?.status === 'posted' || receipt?.isPosted) ? 'bg-green-500' : 'bg-yellow-500'
+                              (receipt?.status === 'cancelled' || receipt?.status === 'canceled' || receipt?.isCancelled) ? 'bg-red-500 hover:bg-red-600' :
+                              (receipt?.status === 'posted' || receipt?.isPosted) ? 'bg-green-500 hover:bg-green-600' : 'bg-yellow-500 hover:bg-yellow-600'
                             )}
                             onClick={() => setShowUpdateStatusDialog(true)}
                           >
-                            {(receipt?.status === 'posted' || receipt?.isPosted) ? 'Đã ghi sổ' : 'Chờ duyệt'}
+                            {(receipt?.status === 'cancelled' || receipt?.status === 'canceled' || receipt?.isCancelled) ? 'Đã hủy' :
+                             (receipt?.status === 'posted' || receipt?.isPosted) ? 'Đã ghi sổ' : 'Chờ duyệt'}
                           </Badge>
                         </div>
                       </div>
@@ -765,7 +769,7 @@ const ViewReceiptDialog = ({
         open={showUpdateStatusDialog}
         onOpenChange={setShowUpdateStatusDialog}
         receiptId={receiptId}
-        currentStatus={receipt?.status || (receipt?.isPosted ? 'posted' : 'draft')}
+        currentStatus={receipt?.status || (receipt?.isCancelled ? 'cancelled' : (receipt?.isPosted ? 'posted' : 'draft'))}
         statuses={receiptStatus}
         onSubmit={handleUpdateStatus}
         contentClassName="z-[100070]"

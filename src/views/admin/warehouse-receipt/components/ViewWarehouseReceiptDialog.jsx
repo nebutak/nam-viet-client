@@ -760,6 +760,24 @@ const ViewWarehouseReceiptDialog = ({
                 </Button>
               </Can>
             )}
+            {receipt?.status === 'posted' && (
+              <Can permission={receipt?.receiptType === 1 ? 'WAREHOUSE_IMPORT_DELETE' : 'WAREHOUSE_EXPORT_DELETE'}>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="gap-2 bg-red-600 hover:bg-red-700 text-white border-none"
+                  onClick={() => {
+                    if (confirm('Bạn có chắc chắn muốn hủy phiếu kho này?')) {
+                      handleUpdateStatus('cancelled', receipt.id)
+                    }
+                  }}
+                  disabled={loading}
+                >
+                  <X className="h-4 w-4" />
+                  Hủy phiếu
+                </Button>
+              </Can>
+            )}
             {['draft', 'cancelled'].includes(receipt?.status) && (
               <Can permission={receipt?.receiptType === 1 ? 'WAREHOUSE_IMPORT_DELETE' : 'WAREHOUSE_EXPORT_DELETE'}>
                 <Button

@@ -41,7 +41,7 @@ export const getWarehouseReceipts = createAsyncThunk(
         code: tx.transactionCode,
         receiptType: receiptTypeMap[tx.transactionType] ?? 1,
         // Status: map isPosted boolean to status string
-        status: tx.isPosted ? 'posted' : 'draft',
+        status: tx.isCancelled ? 'cancelled' : (tx.isPosted ? 'posted' : 'draft'),
         // Dates
         receiptDate: tx.createdAt,
         updatedAt: tx.updatedAt ?? tx.createdAt,
@@ -83,7 +83,7 @@ export const getWarehouseReceiptById = createAsyncThunk(
         ...tx,
         code: tx.transactionCode,
         receiptType: receiptTypeMap[tx.transactionType] ?? 1,
-        status: tx.isPosted ? 'posted' : 'draft',
+        status: tx.isCancelled ? 'cancelled' : (tx.isPosted ? 'posted' : 'draft'),
         receiptDate: tx.createdAt,
         updatedAt: tx.updatedAt ?? tx.createdAt,
         totalAmount: tx.totalValue ?? 0,
@@ -174,10 +174,9 @@ export const cancelWarehouseReceipt = createAsyncThunk(
   'warehouseReceipt/cancel-warehouse-receipt',
   async (id, { rejectWithValue }) => {
     try {
-      // stock-transactions không có endpoint cancel riêng; dùng delete hoặc update status
-      await api.delete(`/stock-transactions/${id}`)
+      const response = await api.put(`/stock-transactions/${id}/cancel`)
       toast.success('Hủy phiếu thành công')
-      return id
+      return response.data.data
     } catch (error) {
       const message = handleError(error)
       return rejectWithValue(message)

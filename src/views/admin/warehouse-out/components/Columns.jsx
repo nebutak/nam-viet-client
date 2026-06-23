@@ -53,7 +53,7 @@ export const columns = [
         id: 'status',
         accessorKey: 'status',
         header: 'Trạng thái',
-        cell: ({ row }) => <StatusBadge isPosted={row.original.isPosted} />,
+        cell: ({ row }) => <StatusBadge isPosted={row.original.isPosted} isCancelled={row.original.isCancelled} />,
     },
     {
         id: 'actions',
